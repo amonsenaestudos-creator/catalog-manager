@@ -1,0 +1,13 @@
+import { useState } from 'react';
+import { FileText } from 'lucide-react';
+import { useCatalog } from '../context';
+import { calculateOverallRating, formatDate, isAdult, locationLabel, RATING_FIELDS } from '../store';
+import { EmptyState, Modal, PhotoView } from './ui';
+import StarRating from './StarRating';
+
+export default function CompareModal() {
+  const ctx = useCatalog(), { data } = ctx; const available = data.people.filter(p => !p.deletedAt);
+  const [leftId, setLeft] = useState(ctx.compareIds?.[0] || available[0]?.id || ''); const [rightId, setRight] = useState(ctx.compareIds?.[1] || available[1]?.id || '');
+  const a = data.people.find(p => p.id === leftId), b = data.people.find(p => p.id === rightId);
+  return <Modal title="Comparar fichas" description="Duas perspectivas, lado a lado." onClose={() => ctx.setCompareIds(null)} wide className="compare-modal"><div className="compare-selectors"><select value={leftId} aria-label="Primeira pessoa" onChange={e => setLeft(e.target.value)}><option value="">Selecione uma pessoa</option>{available.map(p => <option key={p.id} value={p.id} disabled={p.id === rightId}>{p.nome}</option>)}</select><select value={rightId} aria-label="Segunda pessoa" onChange={e => setRight(e.target.value)}><option value="">Selecione outra pessoa</option>{available.map(p => <option key={p.id} value={p.id} disabled={p.id === leftId}>{p.nome}</option>)}</select></div>{a && b && a.id !== b.id ? <><div className="compare-profiles">{[a, b].map(p => <div key={p.id}><PhotoView person={p} /><h2>{p.nome}</h2><p>{locationLabel(p, data)}</p><StarRating value={calculateOverallRating(p.rating)} readonly size={20} /><p className="compare-description">{p.descricao}</p><p className="muted">{p.redesSociais || 'Contato não informado'}</p></div>)}</div><div className="compare-ratings">{RATING_FIELDS.filter(f => !f.adult || isAdult(a) && isAdult(b)).map(f => <div key={f.key}><StarRating value={a.rating[f.key]} readonly size={18} /><span>{f.label}</span><StarRating value={b.rating[f.key]} readonly size={18} /></div>)}</div><div className="compare-notes">{[a, b].map(p => <div key={p.id}><h3>Notas de {p.nome.split(' ')[0]}</h3>{p.notas.map(n => <section key={n.id}><strong>{n.title}</strong><small>{formatDate(n.date)}</small><p>{n.content}</p></section>)}{!p.notas.length && <p className="muted">Nenhuma nota registrada.</p>}<h3>Outros detalhes</h3><p>{p.comportamento || 'Sem observações de comportamento.'}</p><p>{p.descricaoCorporal || 'Sem descrição corporal.'}</p></div>)}</div></> : <EmptyState icon={FileText} title="Escolha duas pessoas diferentes" description="Compare avaliações, descrições, fotos e notas sem alterar as fichas." />}</Modal>;
+}

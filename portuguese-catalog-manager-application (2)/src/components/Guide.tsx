@@ -1,0 +1,9 @@
+import { ArrowRight, Keyboard, Sparkles } from 'lucide-react';
+import { FEATURES } from '../features';
+import { useCatalog } from '../context';
+import { PageTitle } from './ui';
+
+export default function Guide() {
+  const ctx = useCatalog();
+  return <div className="guide-page"><PageTitle eyebrow="Mais possibilidades. Menos esforço." title="Conheça seu novo Catalog" description={`${FEATURES.length} recursos para organizar, proteger e redescobrir suas conexões.`} /><div className="guide-keyboard"><Keyboard size={22} /><div><h2>Seu tempo vale muito.</h2><p>Alguns atalhos para chegar mais rápido ao que você precisa.</p></div><div><span><kbd>Ctrl K</kbd>Buscar</span><span><kbd>Ctrl Shift P</kbd>Privacidade</span><span><kbd>N</kbd>Ficha rápida</span><span><kbd>C</kbd>Comparar</span><span><kbd>1–8</kbd>Navegar</span><span><kbd>Ctrl Z</kbd>Desfazer</span><span><kbd>Ctrl Shift Z</kbd>Refazer</span><span><kbd>Esc</kbd>Fechar</span></div></div><div className="features-grid">{FEATURES.map(([name, description, page], i) => <button key={name} onClick={() => { if (i === 0) ctx.navigate('catalog', 'favorites'); else if (i === 1) ctx.navigate('catalog', 'archived'); else if (i === 2) ctx.navigate('catalog', 'trash'); else if (i === 5) ctx.setCommandOpen(true); else ctx.navigate(page); }}><span className="feature-number">{String(i + 1).padStart(2, '0')}</span><span><strong>{name}</strong><small>{description}</small></span><ArrowRight size={17} /></button>)}</div><div className="guide-note"><Sparkles size={17} /><p>As fichas, fotos, notas, estrelas, rankings, histórias e comparações continuam aqui. Agora com mais organização e cuidado.</p></div></div>;
+}

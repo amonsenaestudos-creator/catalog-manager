@@ -1,0 +1,69 @@
+import { useState } from 'react';
+import { Archive, Camera, Check, Copy, Download, Edit3, Eye, FileText, Heart, MapPin, MoreHorizontal, Plus, Printer, Star, Trash2 } from 'lucide-react';
+import { ADULT_APPEARANCE_TAGS } from '../types';
+import type { Person } from '../types';
+import { useCatalog } from '../context';
+import { calculateOverallRating, completeness, downloadJson, formatDate, formatNumber, friendshipLabel, isAdult, locationLabel, RATING_FIELDS } from '../store';
+import { exportPersonPng } from '../lib/export';
+import { usePersonDraft } from '../hooks/usePersonDraft';
+import PersonEditor, { ReadNotes } from './PersonEditor';
+import StarRating from './StarRating';
+import { Button, Confirm, EmptyState, IconButton, Modal, PhotoView, Tag } from './ui';
+
+export default function PersonDrawer({ person }: { person: Person }) {
+  const ctx = useCatalog();
+  const { data } = ctx;
+  const [editing, setEditing] = useState(!!data.drafts[`edit-${person.id}`]);
+  const [tab, setTab] = useState('info');
+  const [menu, setMenu] = useState(false);
+  const [confirmTrash, setConfirmTrash] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const draft = usePersonDraft(`edit-${person.id}`, 'edit', person);
+  const complete = completeness(person);
+  const adult = isAdult(person);
+  const tags = person.tags.filter(tag => adult || !ADULT_APPEARANCE_TAGS.includes(tag));
+  const details = [
+    ['Apelido', person.apelido], ['Nível de amizade', friendshipLabel(person.friendshipLevel)], ['Idade', person.idade ? `${person.idade} anos` : ''], ['Altura', person.altura],
+    ['Cabelo', [person.cabeloTipo, person.cabeloCor === 'colorido' ? person.cabeloCorCustom : person.cabeloCor].filter(Boolean).join(', ')],
+    ['Tom de pele', person.pele === 'personalizado' ? person.peleCustom : person.pele], ['Tipo de corpo', person.tipoCorpo], ['Estilo de roupa', person.estiloRoupa],
+    ['Onde mora', person.localizacaoMora], ['Contato', person.redesSociais], ['Q.I. (anotação)', person.qi], ['Última interação', person.ultimoVisto ? formatDate(person.ultimoVisto) : ''], ['Adicionada em', formatDate(person.createdAt)],
+  ];
+  const exportImage = async () => {
+    if (ctx.privacy) return;
+    setBusy(true);
+    try { await exportPersonPng(person, data); ctx.notify('Imagem da ficha exportada.'); }
+    catch (error) { ctx.notify((error as Error).message, true); }
+    finally { setBusy(false); setMenu(false); }
+  };
+  const moveArchive = () => { ctx.changePeople([person.id], { archivedAt: person.archivedAt ? null : new Date().toISOString() }, person.archivedAt ? 'Ficha desarquivada.' : 'Ficha arquivada.'); setMenu(false); };
+  return <Modal title={editing ? `Editar ${person.nome}` : 'Fichário pessoal'} description={person.archivedAt ? 'Esta ficha está arquivada. Seus dados e vínculos continuam preservados.' : undefined} onClose={ctx.closePerson} wide className="person-drawer">
+    {editing ? <PersonEditor {...draft} onDiscard={draft.discard} onSave={() => { if (ctx.savePerson(draft.person, `edit-${person.id}`)) setEditing(false); }} onCancel={ctx.closePerson} /> : <div className="person-read no-print">
+      <div className="person-cover">
+        <button className="cover-photo" onClick={() => setPhoto(person.fotos.find(f => f.isMain)?.url || person.fotos[0]?.url || null)}>
+          <PhotoView person={person} /><span><Camera size={16} />Ver foto</span>
+        </button>
+        <div className="person-intro">
+          <div className="intro-top"><span className="eyebrow">{person.archivedAt ? 'No arquivo' : 'Sua conexão'}</span><IconButton label={person.favorite ? 'Remover dos favoritos' : 'Favoritar'} onClick={() => ctx.changePeople([person.id], { favorite: !person.favorite }, person.favorite ? 'Removida dos favoritos.' : 'Adicionada aos favoritos.')}><Heart size={21} fill={person.favorite ? 'currentColor' : 'none'} className={person.favorite ? 'pink' : ''} /></IconButton></div>
+          <h2>{person.nome}</h2><p className="person-location"><MapPin size={15} />{locationLabel(person, data)}</p>
+          <StarRating value={calculateOverallRating(person.rating)} readonly size={21} />
+          <p className="friendship-read">{friendshipLabel(person.friendshipLevel)}<span>Nível de amizade · não afeta a nota</span></p>
+          <p className="person-description">{person.descricao}</p><div className="tags">{tags.map(tag => <Tag key={tag} name={tag} />)}</div>
+          <div className="person-primary-actions">
+            <Button variant="primary" onClick={() => setEditing(true)}><Edit3 size={16} />Editar ficha</Button><Button onClick={() => ctx.seenToday([person.id])}><Eye size={16} />Vi hoje <small>{person.viHojeCount}</small></Button>
+            <div className="menu-anchor"><IconButton label="Mais ações" onClick={() => setMenu(!menu)}><MoreHorizontal size={20} /></IconButton>{menu && <div className="dropdown-menu"><button onClick={exportImage} disabled={busy}><Download size={16} />{busy ? 'Gerando imagem...' : 'Exportar ficha PNG'}</button><button onClick={() => { downloadJson(person, `catalog-ficha-${person.id}.json`); setMenu(false); }}><FileText size={16} />Exportar ficha JSON</button><button onClick={() => { setMenu(false); window.print(); }}><Printer size={16} />Imprimir ficha</button><button onClick={() => ctx.duplicate(person)}><Copy size={16} />Duplicar ficha</button><button onClick={() => { ctx.navigate('reminders'); ctx.closePerson(); }}><Plus size={16} />Criar lembrete</button><button onClick={moveArchive}><Archive size={16} />{person.archivedAt ? 'Desarquivar' : 'Arquivar ficha'}</button><button className="danger-text" onClick={() => { setConfirmTrash(true); setMenu(false); }}><Trash2 size={16} />Mover para lixeira</button></div>}</div>
+          </div>
+          <div className="completion-line"><div><span>Ficha {complete.percent}% completa</span><span>{complete.percent === 100 ? <Check size={14} /> : `${complete.missing.length} detalhes a preencher`}</span></div><span className="progress-track"><i style={{ width: `${complete.percent}%` }} /></span></div>
+        </div>
+      </div>
+      <div className="editor-tabs"><button className={tab === 'info' ? 'active' : ''} onClick={() => setTab('info')}><FileText size={17} />Informações</button><button className={tab === 'ratings' ? 'active' : ''} onClick={() => setTab('ratings')}><Star size={17} />Avaliações</button><button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}><FileText size={17} />Notas <small>{person.notas.length}</small></button><button className={tab === 'photos' ? 'active' : ''} onClick={() => setTab('photos')}><Camera size={17} />Fotos <small>{person.fotos.length}</small></button></div>
+      {tab === 'info' && <><dl className="person-facts">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl>{person.observacoesGerais && <section className="read-text"><h3>Observações gerais</h3><p>{person.observacoesGerais}</p></section>}{person.comportamento && <section className="read-text"><h3>Comportamento</h3><p>{person.comportamento}</p></section>}{person.descricaoCorporal && <section className="read-text"><h3>Descrição corporal</h3><p>{person.descricaoCorporal}</p></section>}<div className="read-text"><h3>Pastas</h3><div className="collection-picker">{data.folders.map(folder => <button className={folder.personIds.includes(person.id) ? 'selected' : ''} key={folder.id} onClick={() => ctx.commit(d => ({ ...d, folders: d.folders.map(x => x.id === folder.id ? { ...x, personIds: x.personIds.includes(person.id) ? x.personIds.filter(id => id !== person.id) : [...x.personIds, person.id], updatedAt: new Date().toISOString() } : x) }), 'Pasta atualizada.')}><span style={{ background: folder.color }} />{folder.name}{folder.personIds.includes(person.id) && <Check size={13} />}</button>)}{!data.folders.length && <p className="muted">Crie uma pasta em Organizar para reunir fichas, notas e fotos.</p>}</div></div></>}
+      {tab === 'ratings' && <><div className="rating-summary"><div><h3>Nota geral</h3><p>{person.rating.mode === 'manual' ? 'Definida manualmente' : 'Média ponderada dos atributos preenchidos'}</p></div><strong>{formatNumber(calculateOverallRating(person.rating))}<small>/ 5</small></strong></div><div className="rating-fields">{RATING_FIELDS.filter(field => !field.adult || adult).map(field => <div key={field.key} className="rating-field"><span>{field.label}<small>Peso {formatNumber(field.weight)}</small></span><StarRating value={person.rating[field.key]} readonly size={21} /></div>)}</div></>}
+      {tab === 'notes' && <ReadNotes person={person} />}
+      {tab === 'photos' && <div className="gallery-grid drawer-gallery">{person.fotos.map(file => <button key={file.id} onClick={() => setPhoto(file.url)}><PhotoView src={file.url} alt={person.nome} />{file.isMain && <span className="photo-caption"><Star size={13} />Foto principal</span>}</button>)}{!person.fotos.length && <EmptyState icon={Camera} title="Sua galeria começa aqui" action="Adicionar fotos" onAction={() => setEditing(true)} />}</div>}
+    </div>}
+    <article className="print-only print-region"><h1>{person.nome}</h1><p>{locationLabel(person, data)}</p><PhotoView person={person} /><p>{person.descricao}</p><dl>{details.map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl><h2>Avaliações</h2>{RATING_FIELDS.filter(field => !field.adult || adult).map(field => <p key={field.key}>{field.label}: {formatNumber(person.rating[field.key])} / 5</p>)}<h2>Notas</h2>{person.notas.map(note => <section key={note.id}><h3>{note.title}</h3><p>{note.content}</p></section>)}<h3>Observações</h3><p>{person.observacoesGerais}</p><p>{person.comportamento}</p><p>{person.descricaoCorporal}</p></article>
+    {confirmTrash && <Confirm title="Mover esta ficha para a lixeira?" description="As fotos, notas e vínculos serão preservados. Você poderá restaurar a ficha a qualquer momento." confirmLabel="Mover para lixeira" danger onConfirm={() => ctx.trashPeople([person.id])} onClose={() => setConfirmTrash(false)} />}
+    {photo && <Modal title={person.nome} onClose={() => setPhoto(null)} wide><img src={photo} alt={`Foto de ${person.nome}`} className="full-photo" /></Modal>}
+  </Modal>;
+}
