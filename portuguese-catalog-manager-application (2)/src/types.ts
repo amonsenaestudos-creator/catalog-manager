@@ -382,7 +382,7 @@ export const TAG_OPTIONS = [
 export const RETIRED_SUBCATEGORY_VALUES = ['6ano', '7ano', '8ano', '9ano', '1em'];
 
 // Usado para liberar os campos íntimos somente quando a ficha informa 18 anos ou mais.
-export const INTIMATE_MIN_AGE = 1;
+export const INTIMATE_MIN_AGE = 18;
 
 export const TIER_CATEGORY_OPTIONS = [
   { value: 'todas', label: 'Todas' },
