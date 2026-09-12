@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Archive, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, Link2, MapPin, MoreHorizontal, Plus, Printer, Sparkles, Star, Trash2 } from 'lucide-react';
+import { Archive, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, Link2, MapPin, MoreHorizontal, Plus, Printer, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
 import { ADULT_APPEARANCE_TAGS } from '../types';
 import type { Person } from '../types';
 import { useCatalog } from '../context';
-import { ageFromBirthday, calculateOverallRating, completeness, downloadJson, formatDate, formatNumber, friendshipLabel, isAdult, locationLabel, RARITY_LABELS, rarityFor, RATING_FIELDS, upcomingBirthday } from '../store';
+import { ageFromBirthday, calculateOverallRating, completeness, daysUntil, downloadJson, formatDate, formatNumber, friendshipLabel, generateId, isAdult, locationLabel, RARITY_LABELS, rarityFor, RATING_FIELDS, upcomingBirthday } from '../store';
 import { Radar } from './Charts';
 import { exportPersonPng } from '../lib/export';
 import { usePersonDraft } from '../hooks/usePersonDraft';
@@ -61,12 +61,13 @@ export default function PersonDrawer({ person }: { person: Person }) {
           <div className="completion-line"><div><span>Ficha {complete.percent}% completa</span><span>{complete.percent === 100 ? <Check size={14} /> : `${complete.missing.length} detalhes a preencher`}</span></div><span className="progress-track"><i style={{ width: `${complete.percent}%` }} /></span></div>
         </div>
       </div>
-      <div className="editor-tabs"><button className={tab === 'info' ? 'active' : ''} onClick={() => setTab('info')}><FileText size={17} />Informações</button><button className={tab === 'ratings' ? 'active' : ''} onClick={() => setTab('ratings')}><Star size={17} />Avaliações</button><button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}><FileText size={17} />Notas <small>{person.notas.length}</small></button><button className={tab === 'photos' ? 'active' : ''} onClick={() => setTab('photos')}><Camera size={17} />Fotos <small>{person.fotos.length}</small></button></div>
+      <div className="editor-tabs"><button className={tab === 'info' ? 'active' : ''} onClick={() => setTab('info')}><FileText size={17} />Informações</button><button className={tab === 'ratings' ? 'active' : ''} onClick={() => setTab('ratings')}><Star size={17} />Avaliações</button><button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}><FileText size={17} />Notas <small>{person.notas.length}</small></button><button className={tab === 'photos' ? 'active' : ''} onClick={() => setTab('photos')}><Camera size={17} />Fotos <small>{person.fotos.length}</small></button><button className={tab === 'goals' ? 'active' : ''} onClick={() => setTab('goals')}><Trophy size={17} />Metas <small>{data.goals.filter(goal => goal.personId === person.id && !goal.done).length}</small></button></div>
       {tab === 'info' && <><dl className="person-facts">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl>{person.observacoesGerais && <section className="read-text"><h3>Observações gerais</h3><p>{person.observacoesGerais}</p></section>}{person.comportamento && <section className="read-text"><h3>Comportamento</h3><p>{person.comportamento}</p></section>}{person.descricaoCorporal && <section className="read-text"><h3>Descrição corporal</h3><p>{person.descricaoCorporal}</p></section>}<div className="read-text"><h3>Pastas</h3><div className="collection-picker">{data.folders.map(folder => <button className={folder.personIds.includes(person.id) ? 'selected' : ''} key={folder.id} onClick={() => ctx.commit(d => ({ ...d, folders: d.folders.map(x => x.id === folder.id ? { ...x, personIds: x.personIds.includes(person.id) ? x.personIds.filter(id => id !== person.id) : [...x.personIds, person.id], updatedAt: new Date().toISOString() } : x) }), 'Pasta atualizada.')}><span style={{ background: folder.color }} />{folder.name}{folder.personIds.includes(person.id) && <Check size={13} />}</button>)}{!data.folders.length && <p className="muted">Crie uma pasta em Organizar para reunir fichas, notas e fotos.</p>}</div></div></>}
       {tab === 'info' && (person.attachments || []).length > 0 && <div className="read-text"><h3><Link2 size={15} />Anexos</h3><div className="attachment-links">{(person.attachments || []).map(item => <a key={item.id} href={item.url} target="_blank" rel="noreferrer noopener"><ExternalLink size={13} /><span>{item.label || 'Anexo'}<small>{item.kind.toUpperCase()}</small></span></a>)}</div></div>}
       {tab === 'ratings' && <><div className="rating-summary"><div><h3>Nota geral</h3><p>{person.rating.mode === 'manual' ? 'Definida manualmente' : 'Média ponderada dos atributos preenchidos'}</p></div><strong>{formatNumber(calculateOverallRating(person.rating))}<small>/ 5</small></strong></div><div className="rating-fields">{RATING_FIELDS.filter(field => !field.adult || adult).map(field => <div key={field.key} className="rating-field"><span>{field.label}<small>Peso {formatNumber(field.weight)}</small></span><StarRating value={person.rating[field.key]} readonly size={21} /></div>)}</div>
         <div className="rating-radar"><h3>Radar comparado à média</h3><Radar axes={RATING_FIELDS.filter(field => !field.adult || adult).map(field => field.label)} series={[{ name: person.nome, values: RATING_FIELDS.filter(field => !field.adult || adult).map(field => person.rating[field.key] || 0) }, { name: 'Média do catálogo', values: averageRadar(data).filter(item => RATING_FIELDS.filter(field => !field.adult || adult).some(field => field.label === item.label)).map(item => item.value) }]} /></div>
         {(person.ratingHistory || []).length > 0 && <div className="rating-history-block"><h3>Histórico da nota</h3><ul className="rating-history">{(person.ratingHistory || []).slice(-8).reverse().map((entry, index) => <li key={`${entry.date}-${index}`}><time>{formatDate(entry.date)}</time><strong>{formatNumber(entry.overall)}</strong></li>)}</ul></div>}</>}
+      {tab === 'goals' && <PersonGoals personId={person.id} personName={person.nome} />}
       {tab === 'notes' && <ReadNotes person={person} />}
       {tab === 'photos' && <div className="gallery-grid drawer-gallery">{person.fotos.map(file => <button key={file.id} onClick={() => setPhoto(file.url)}><PhotoView src={file.url} alt={person.nome} />{file.isMain && <span className="photo-caption"><Star size={13} />Foto principal</span>}</button>)}{!person.fotos.length && <EmptyState icon={Camera} title="Sua galeria começa aqui" action="Adicionar fotos" onAction={() => setEditing(true)} />}</div>}
     </div>}
@@ -74,4 +75,32 @@ export default function PersonDrawer({ person }: { person: Person }) {
     {confirmTrash && <Confirm title="Mover esta ficha para a lixeira?" description="As fotos, notas e vínculos serão preservados. Você poderá restaurar a ficha a qualquer momento." confirmLabel="Mover para lixeira" danger onConfirm={() => ctx.trashPeople([person.id])} onClose={() => setConfirmTrash(false)} />}
     {photo && <Modal title={person.nome} onClose={() => setPhoto(null)} wide><img src={photo} alt={`Foto de ${person.nome}`} className="full-photo" /></Modal>}
   </Modal>;
+}
+/** Checklist de objetivos por pessoa: puxar assunto, pegar o número, marcar encontro. */
+function PersonGoals({ personId, personName }: { personId: string; personName: string }) {
+  const ctx = useCatalog(), { data } = ctx;
+  const [title, setTitle] = useState('');
+  const goals = data.goals.filter(goal => goal.personId === personId).sort((a, b) => Number(a.done) - Number(b.done) || b.createdAt.localeCompare(a.createdAt));
+  const done = goals.filter(goal => goal.done).length;
+  const add = () => {
+    const text = title.trim();
+    if (!text) { ctx.notify('Escreva o objetivo primeiro.', true); return; }
+    ctx.commit(d => ({ ...d, goals: [...d.goals, { id: generateId(), title: text, done: false, personId, due: null, kind: 'conexao', createdAt: new Date().toISOString() }] }), 'Objetivo adicionado.');
+    ctx.addXp(2, 'Novo objetivo de conexão');
+    setTitle('');
+  };
+  const toggle = (id: string, isDone: boolean) => ctx.commit(d => ({ ...d, goals: d.goals.map(goal => goal.id === id ? { ...goal, done: !isDone, doneAt: !isDone ? new Date().toISOString() : null } : goal) }), isDone ? 'Objetivo reaberto.' : 'Objetivo concluído!');
+  return <div className="person-goals">
+    <div className="goal-progress"><span>{done} de {goals.length} concluídos com {personName}</span><i><b style={{ width: `${goals.length ? done / goals.length * 100 : 0}%` }} /></i></div>
+    <form className="goal-add" onSubmit={event => { event.preventDefault(); add(); }}>
+      <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex.: puxar assunto, pegar o número, marcar um café" maxLength={140} aria-label="Novo objetivo" />
+      <Button variant="primary" onClick={add}><Plus size={16} />Adicionar</Button>
+    </form>
+    {goals.length ? <ul className="goal-checklist">{goals.map(goal => { const left = daysUntil(goal.due); return <li key={goal.id} className={goal.done ? 'done' : ''}>
+      <button className={`complete-reminder ${goal.done ? 'checked' : ''}`} onClick={() => toggle(goal.id, goal.done)} aria-label={goal.done ? 'Reabrir objetivo' : 'Concluir objetivo'}>{goal.done && <Check size={15} />}</button>
+      <span><strong>{goal.title}</strong>{goal.due && <small className={left !== null && left < 0 && !goal.done ? 'overdue' : ''}> · {left !== null && left < 0 && !goal.done ? 'prazo vencido' : left === 0 ? 'vence hoje' : `até ${formatDate(goal.due)}`}</small>}{goal.doneAt && <small> · feito em {formatDate(goal.doneAt)}</small>}</span>
+      <IconButton label="Definir prazo" onClick={() => { const due = window.prompt('Prazo (AAAA-MM-DD), vazio para tirar:', goal.due || ''); if (due === null) return; ctx.commit(d => ({ ...d, goals: d.goals.map(item => item.id === goal.id ? { ...item, due: /^\d{4}-\d{2}-\d{2}$/.test(due) ? due : null } : item) }), 'Prazo atualizado.'); }}><CalendarDays size={15} /></IconButton>
+      <IconButton label="Excluir objetivo" onClick={() => ctx.commit(d => ({ ...d, goals: d.goals.filter(item => item.id !== goal.id) }), 'Objetivo excluído.')}><Trash2 size={15} /></IconButton>
+    </li>; })}</ul> : <EmptyState icon={Trophy} title="Nenhum objetivo ainda" description="Pequenos passos ajudam: puxar assunto, pegar o número, marcar um encontro." />}
+  </div>;
 }
