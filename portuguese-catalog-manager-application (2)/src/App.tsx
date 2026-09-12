@@ -1,7 +1,7 @@
-import { Component, useEffect, useState } from 'react';
+import { Component, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { ChevronRight, CloudOff, Eye, EyeOff, Heart, Loader2, LockKeyhole, Moon, Redo2, RotateCcw, Search, ShieldCheck, Sun, Undo2 } from 'lucide-react';
+import { ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Loader2, LockKeyhole, Moon, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2 } from 'lucide-react';
 import { CatalogProvider, useCatalog } from './context';
 import { formatDate } from './store';
 import { Avatar, Button, IconButton, Toast } from './components/ui';
@@ -25,11 +25,18 @@ import Guide from './components/Guide';
 import Notes from './components/Notes';
 import Folders from './components/Folders';
 import InvestigationBoardPage from './components/InvestigationBoard';
+import Dashboard from './components/Dashboard';
+import MySpace from './components/MySpace';
+import Agenda from './components/Agenda';
+import Discover from './components/Discover';
+import NotificationCenter from './components/NotificationCenter';
 
 const PAGE_NAMES: Record<string, string> = {
-  home: 'Visão geral', catalog: 'Catálogo', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
+  home: 'Visão geral', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
 };
 const SHORTCUT_PAGES = ['home', 'catalog', 'ranking', 'tierlists', 'add', 'gallery', 'stories', 'settings'];
+// Atalhos de letra: chegam rápido às telas novas sem mudar os atalhos antigos.
+const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders' };
 
 function PrivacyScreen() {
   const ctx = useCatalog();
@@ -41,6 +48,7 @@ function PrivacyScreen() {
       return;
     }
     ctx.setPrivacy(false);
+    ctx.setPanic(false);
     setPin('');
   };
   return <div className="privacy-screen" role="dialog" aria-modal="true" aria-label="Modo privacidade">
@@ -62,6 +70,10 @@ function PrivacyScreen() {
 function ActivePage() {
   const { page } = useCatalog();
   if (page === 'home') return <Home />;
+  if (page === 'dashboard') return <Dashboard />;
+  if (page === 'myspace') return <MySpace />;
+  if (page === 'agenda') return <Agenda />;
+  if (page === 'discover') return <Discover />;
   if (page === 'catalog') return <Catalog />;
   if (page === 'add') return <AddPerson />;
   if (page === 'ranking') return <Ranking />;
@@ -80,6 +92,7 @@ function ActivePage() {
 function Application() {
   const ctx = useCatalog();
   const { data, page, authenticated, ready } = ctx;
+  const escTimes = useRef<number[]>([]);
   useEffect(() => {
     document.documentElement.classList.toggle('light', data.settings.theme === 'light');
     document.documentElement.classList.toggle('large-text', !!data.settings.largeText);
@@ -87,10 +100,27 @@ function Application() {
     document.documentElement.classList.toggle('privacy-active', ctx.privacy && authenticated);
   }, [data.settings.theme, data.settings.largeText, data.settings.reducedMotion, ctx.privacy, authenticated]);
   useEffect(() => {
+    document.documentElement.classList.toggle('blur-mode', ctx.blur && authenticated);
+    document.documentElement.classList.toggle('density-compact', data.settings.density === 'compacto');
+    document.documentElement.style.setProperty('--accent', data.settings.accent || '#c786ec');
+    document.documentElement.style.setProperty('--accent-soft', `${data.settings.accent || '#c786ec'}22`);
+  }, [ctx.blur, authenticated, data.settings.density, data.settings.accent]);
+  useEffect(() => {
+    if (!ctx.splash) return;
+    const timer = setTimeout(ctx.dismissSplash, 4200);
+    return () => clearTimeout(timer);
+  }, [ctx.splash, ctx.dismissSplash]);
+  useEffect(() => {
     if (!authenticated) return;
     const key = (event: KeyboardEvent) => {
       const mod = event.ctrlKey || event.metaKey;
       const value = event.key.toLowerCase();
+      // Modo pânico: três Esc seguidos escondem tudo na hora.
+      if (event.key === 'Escape' && !mod && data.settings.panicEnabled !== false) {
+        const now = Date.now();
+        escTimes.current = [...escTimes.current.filter(time => now - time < 1200), now];
+        if (escTimes.current.length >= 3) { escTimes.current = []; ctx.setPanic(true); }
+      }
       if (mod && event.shiftKey && value === 'p') {
         event.preventDefault();
         if (ctx.privacy && data.settings.pinEnabled) document.getElementById('privacy-pin')?.focus();
@@ -104,8 +134,10 @@ function Application() {
       if (mod && value === 'z') { event.preventDefault(); if (event.shiftKey) ctx.redo(); else ctx.undo(); return; }
       if (event.altKey || mod) return;
       if (/^[1-8]$/.test(value)) ctx.navigate(SHORTCUT_PAGES[Number(value) - 1]);
+      if (LETTER_PAGES[value]) { ctx.navigate(LETTER_PAGES[value]); return; }
       if (value === 'n') ctx.setQuickOpen(true);
       if (value === 'c') ctx.setCompareIds([]);
+      if (value === 'b') { ctx.setBlur(!ctx.blur); return; }
       if (value === '?') ctx.navigate('guide');
       if (value === '/') {
         event.preventDefault();
@@ -121,7 +153,11 @@ function Application() {
   if (!authenticated) return <><Login /><Toast /></>;
   const selected = data.people.find(p => p.id === ctx.selectedId && !p.deletedAt);
   return <MotionConfig reducedMotion={data.settings.reducedMotion ? 'always' : 'user'}>
-    <div className="app-shell private-layer" aria-hidden={ctx.privacy || undefined} inert={ctx.privacy || undefined}>
+    {ctx.splash && <div className="splash-screen" role="presentation" onClick={ctx.dismissSplash}>
+      <img src={ctx.splash} alt="Uma foto do seu catálogo" />
+      <div className="splash-copy"><span className="brand-symbol"><Heart size={20} fill="currentColor" strokeWidth={0} /></span><h2>Bem-vinda de volta ao seu catálogo.</h2><p>Toque em qualquer lugar para começar.</p></div>
+    </div>}
+    <div className={`app-shell private-layer ${ctx.blur ? 'blur-mode' : ''}`} aria-hidden={ctx.privacy || undefined} inert={ctx.privacy || undefined}>
       <Sidebar />
       <div className="workspace">
         <header className="topbar">
@@ -134,6 +170,8 @@ function Application() {
               {ctx.demo ? <><CloudOff size={13} /><span>Demonstração</span></> : ctx.status === 'saved' ? <><span className="saved-dot" /><span>Tudo salvo</span></> : ctx.status === 'error' ? <button onClick={ctx.retrySave}><RotateCcw size={13} />Tentar salvar</button> : <><Loader2 size={13} className="spin" /><span>Salvando...</span></>}
             </div>
             <div className="history-buttons"><IconButton label="Desfazer última alteração (Ctrl+Z)" disabled={!ctx.canUndo} onClick={ctx.undo}><Undo2 size={16} /></IconButton><IconButton label="Refazer alteração (Ctrl+Shift+Z)" disabled={!ctx.canRedo} onClick={ctx.redo}><Redo2 size={16} /></IconButton></div>
+            <NotificationCenter />
+            <IconButton label={ctx.blur ? 'Desativar modo disfarce (B)' : 'Ativar modo disfarce (B)'} onClick={() => ctx.setBlur(!ctx.blur)}><ScanEye size={17} /></IconButton>
             <IconButton label="Ativar privacidade (Ctrl+Shift+P)" onClick={() => ctx.setPrivacy(true)}><EyeOff size={17} /></IconButton>
             <IconButton label={data.settings.theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'} onClick={() => ctx.commit(d => ({ ...d, settings: { ...d.settings, theme: d.settings.theme === 'dark' ? 'light' : 'dark' } }), undefined, false)}>{data.settings.theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</IconButton>
             <button className="topbar-profile" aria-label="Editar meu perfil" onClick={() => ctx.navigate('settings')}><Avatar src={data.settings.avatar} name={data.settings.profileName} size={32} /></button>
@@ -141,7 +179,11 @@ function Application() {
         </header>
         {ctx.demo && <div className="demo-banner"><span><ShieldCheck size={13} />Você está explorando fichas fictícias. Seus dados reais não são alterados.</span><button onClick={ctx.logout}>Sair da demonstração</button></div>}
         <main className="page-content"><AnimatePresence mode="wait"><motion.div key={page} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.19 }}><ActivePage /></motion.div></AnimatePresence></main>
-        <div className="workspace-footer"><span><LockKeyhole size={11} />Armazenado neste dispositivo</span><button onClick={() => ctx.navigate('guide')}>Atalhos e ajuda</button></div>
+        <div className="workspace-footer">
+          <span><LockKeyhole size={11} />Armazenado neste dispositivo</span>
+          <span className="footer-level"><button onClick={() => ctx.navigate('dashboard')}><Gauge size={12} />Nível {ctx.level.level} · {ctx.xp.toLocaleString('pt-BR')} XP</button>{ctx.unread > 0 && <button className="footer-alert" onClick={() => ctx.setNotificationsOpen(true)}><Sparkles size={12} />{ctx.unread} {ctx.unread === 1 ? 'aviso' : 'avisos'}</button>}</span>
+          <button onClick={() => ctx.navigate('guide')}>Atalhos e ajuda</button>
+        </div>
       </div>
     </div>
     {selected && <PersonDrawer key={selected.id} person={selected} />}

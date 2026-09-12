@@ -31,12 +31,12 @@ export function Avatar({ person, src, name, size = 44, className = '' }: { perso
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [source]);
   const label = name || person?.nome || 'Pessoa';
-  return <span className={`avatar ${className}`} style={{ width: size, height: size, fontSize: Math.max(14, size * 0.3) }}>{source && !failed ? <img src={source} alt={label} onError={() => setFailed(true)} draggable={false} /> : <span>{label.split(/\s+/).slice(0, 2).map(s => s[0]).join('').toUpperCase()}</span>}</span>;
+  return <span className={`avatar ${className}`} style={{ width: size, height: size, fontSize: Math.max(14, size * 0.3) }}>{source && !failed ? <img src={source} alt={label} onError={() => setFailed(true)} draggable={false} loading="lazy" decoding="async" /> : <span>{label.split(/\s+/).slice(0, 2).map(s => s[0]).join('').toUpperCase()}</span>}</span>;
 }
 export function PhotoView({ person, src, alt, className = '' }: { person?: Person; src?: string; alt?: string; className?: string }) {
   const source = src || (person ? getMainPhoto(person)?.url : ''); const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [source]);
-  return source && !failed ? <img className={`person-photo ${className}`} src={source} alt={alt || person?.nome || 'Foto do catálogo'} onError={() => setFailed(true)} draggable={false} /> : <div className={`photo-placeholder ${className}`}><span>{(person?.nome || '?').split(/\s+/).slice(0, 2).map(s => s[0]).join('').toUpperCase()}</span><small>Sem foto</small></div>;
+  return source && !failed ? <img className={`person-photo ${className}`} src={source} alt={alt || person?.nome || 'Foto do catálogo'} onError={() => setFailed(true)} draggable={false} loading="lazy" decoding="async" /> : <div className={`photo-placeholder ${className}`}><span>{(person?.nome || '?').split(/\s+/).slice(0, 2).map(s => s[0]).join('').toUpperCase()}</span><small>Sem foto</small></div>;
 }
 export function Tag({ name }: { name: string }) { const { data } = useCatalog(); const color = getTagColor(name, data); return <span className="tag" style={{ color, backgroundColor: `${color}15` }}>{name}</span>; }
 export function EmptyState({ icon: Icon = FolderOpen, title, description, action, onAction }: { icon?: LucideIcon; title: string; description?: string; action?: string; onAction?: () => void }) {

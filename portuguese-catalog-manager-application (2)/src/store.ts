@@ -1,10 +1,10 @@
-import type { AppData, GeneralNote, InvestigationBoard, InvestigationCard, LocationOption, Person, Photo, Rating, CatalogFilter, TierList, PersonDraft } from './types';
+import type { AppData, AppNotification, Appointment, Attachment, Folder, GeneralNote, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Person, Photo, Rating, Reminder, Story, TierList, PersonDraft } from './types';
 import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS } from './types';
 import { DEMO_PORTRAITS } from './assets';
 
 export const STORAGE_KEY = 'catalog_manager_data';
 export const JOURNAL_KEY = 'catalog_manager_pending_v3';
-export const DEFAULT_FILTER: CatalogFilter = { query: '', category: '', subcategory: '', tag: '', minimum: 0, photo: 'all', sort: 'recent', scope: 'active', incomplete: false, collection: '' };
+export const DEFAULT_FILTER: CatalogFilter = { query: '', category: '', subcategory: '', tag: '', minimum: 0, photo: 'all', sort: 'recent', scope: 'active', incomplete: false, collection: '', hair: '', height: '', ageMin: null, ageMax: null, rarity: '', folderOnly: false };
 export const RATING_FIELDS = [
   { key: 'peitos', label: 'Peitos', weight: 1, adult: true },
   { key: 'bunda', label: 'Bunda', weight: 1, adult: true },
@@ -46,12 +46,18 @@ export const isActive = (p: Person) => !p.archivedAt && !p.deletedAt;
 export const isAdult = (p: Person) => (p.idade ?? 0) >= INTIMATE_MIN_AGE;
 export const retiredSubcategory = (value: string) => RETIRED_SUBCATEGORY_VALUES.includes(value);
 export const safeImage = (url: string) => /^(data:image\/(png|jpeg|jpg|webp|gif|bmp|avif|svg\+xml);base64,|https:\/\/|\/images\/)/i.test(url) ? url : '';
+// Links externos só entram como http(s); nada de javascript: ou data: em anexos.
+export const safeLink = (url: string) => /^(https?:\/\/|mailto:|tel:)/i.test(url.trim()) ? url.trim() : '';
+export const RARITIES = ['comum', 'raro', 'epico', 'lendario'];
+export const RARITY_LABELS: Record<string, string> = { comum: 'Comum', raro: 'Raro', epico: 'Épico', lendario: 'Lendário' };
+export const RARITY_COLORS: Record<string, string> = { comum: '#9aa0ad', raro: '#7ba3dc', epico: '#c786ec', lendario: '#e6b76a' };
+export const rarityFor = (score: number) => score >= 4.8 ? 'lendario' : score >= 4.3 ? 'epico' : score >= 3.6 ? 'raro' : 'comum';
 
 export function getDefaultPerson(): Person {
-  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '' };
+  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 5, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false } };
+  return { schemaVersion: 5, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '' }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0 } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -178,6 +184,10 @@ function normalizeFilter(value: unknown): CatalogFilter {
     photo: ['all', 'with', 'without'].includes(text(f.photo)) ? f.photo as CatalogFilter['photo'] : 'all',
     sort: ['recent', 'name', 'rating', 'seen', 'updated'].includes(text(f.sort)) ? f.sort as CatalogFilter['sort'] : 'recent',
     scope: ['active', 'favorites', 'archived', 'trash'].includes(text(f.scope)) ? f.scope as CatalogFilter['scope'] : 'active',
+    hair: text(f.hair), height: text(f.height), rarity: RARITIES.includes(text(f.rarity)) ? text(f.rarity) : '',
+    ageMin: f.ageMin === null || f.ageMin === undefined || f.ageMin === '' ? null : Math.max(0, Math.min(120, Math.round(numeric(f.ageMin)))),
+    ageMax: f.ageMax === null || f.ageMax === undefined || f.ageMax === '' ? null : Math.max(0, Math.min(120, Math.round(numeric(f.ageMax)))),
+    folderOnly: f.folderOnly === true,
   };
 }
 export function normalizePhotos(photos: Photo[], personId: string | null): Photo[] {
@@ -186,7 +196,13 @@ export function normalizePhotos(photos: Photo[], personId: string | null): Photo
 }
 function photo(value: unknown, personId: string | null): Photo {
   const p = object(value);
-  return { id: text(p.id) || generateId(), url: safeImage(text(p.url)), personId, isMain: !!p.isMain, type: ['normal', 'biquini', 'sem_nada'].includes(text(p.type)) ? p.type as Photo['type'] : 'normal', name: text(p.name, 'Foto'), createdAt: text(p.createdAt, new Date().toISOString()), folderId: text(p.folderId) || null, description: text(p.description), favorite: !!p.favorite };
+  return {
+    id: text(p.id) || generateId(), url: safeImage(text(p.url)), personId, isMain: !!p.isMain,
+    type: ['normal', 'biquini', 'sem_nada'].includes(text(p.type)) ? p.type as Photo['type'] : 'normal',
+    name: text(p.name, 'Foto'), createdAt: text(p.createdAt, new Date().toISOString()), folderId: text(p.folderId) || null,
+    description: text(p.description), favorite: !!p.favorite, albumIds: [...new Set(strings(p.albumIds))],
+    hash: text(p.hash) || photoHash(text(p.url)), capturedAt: text(p.capturedAt) || null,
+  };
 }
 export function normalizePerson(value: unknown): Person {
   const p = object(value), base = getDefaultPerson();
@@ -213,6 +229,12 @@ export function normalizePerson(value: unknown): Person {
   result.tipoCorpo = text(p.tipoCorpo);
   result.estiloRoupa = text(p.estiloRoupa);
   result.observacoesGerais = text(p.observacoesGerais);
+  result.aniversario = /^\d{4}-\d{2}-\d{2}$/.test(text(p.aniversario)) ? text(p.aniversario) : null;
+  result.customFields = array(p.customFields).map(value => { const f = object(value); return { id: text(f.id) || generateId(), label: text(f.label), value: text(f.value) }; }).filter(f => f.label).slice(0, 30);
+  result.attachments = array(p.attachments).map(value => { const a = object(value); return { id: text(a.id) || generateId(), label: text(a.label, 'Anexo'), url: safeLink(text(a.url)), kind: (['link', 'video', 'pdf', 'audio', 'outro'].includes(text(a.kind)) ? a.kind : 'outro') as Attachment['kind'], createdAt: text(a.createdAt, new Date().toISOString()) }; }).slice(0, 60);
+  result.ratingHistory = array(p.ratingHistory).map(value => { const h = object(value); return { date: text(h.date, today()), overall: Math.max(0, Math.min(5, numeric(h.overall))) }; }).slice(-40);
+  result.rarity = RARITIES.includes(text(p.rarity)) ? p.rarity as Person['rarity'] : rarityFor(calculateOverallRating(result.rating));
+  result.pinned = p.pinned === true;
   return result;
 }
 
@@ -231,7 +253,12 @@ export function normalizeData(value: unknown, strict = false): AppData {
   base.settings.customTags = array(s.customTags).map(v => { const t = object(v); return { nome: text(t.nome), cor: /^#[\da-f]{6}$/i.test(text(t.cor)) ? text(t.cor) : PALETTE[0] }; }).filter(t => t.nome);
   base.settings.pin = /^\d{4,8}$/.test(text(s.pin)) ? text(s.pin) : null;
   base.settings.pinEnabled = !!s.pinEnabled && !!base.settings.pin;
-  for (const key of ['compactMode', 'rememberLogin', 'privacy', 'reducedMotion', 'largeText'] as const) base.settings[key] = s[key] === true;
+  for (const key of ['compactMode', 'rememberLogin', 'privacy', 'reducedMotion', 'largeText', 'autoTheme', 'browserNotifications', 'splash', 'panicEnabled', 'blurMode'] as const) base.settings[key] = s[key] === true;
+  base.settings.accent = /^#[\da-f]{6}$/i.test(text(s.accent)) ? text(s.accent) : PALETTE[0];
+  base.settings.notificationLeadDays = Math.max(0, Math.min(30, Math.round(numeric(s.notificationLeadDays, 3))));
+  base.settings.revisitAfterDays = Math.max(1, Math.min(180, Math.round(numeric(s.revisitAfterDays, 14))));
+  base.settings.density = s.density === 'compacto' ? 'compacto' : 'confortavel';
+  base.settings.trashAutoCleanDays = Math.max(0, Math.min(365, Math.round(numeric(s.trashAutoCleanDays, 0))));
   base.people = array(raw.people).map(normalizePerson).filter((p, i, list) => list.findIndex(q => q.id === p.id) === i);
   base.orphanPhotos = array(raw.orphanPhotos).map(v => photo(v, null)).filter(p => p.url);
   base.tierLists = array(raw.tierLists).map(v => {
@@ -244,8 +271,17 @@ export function normalizeData(value: unknown, strict = false): AppData {
       allowedSubcategories: Array.isArray(t.allowedSubcategories) ? strings(t.allowedSubcategories) : ['todas'],
     };
   });
-  base.stories = array(raw.stories).map(v => { const s = object(v); return { id: text(s.id) || generateId(), titulo: text(s.titulo), tipo: (['sexual', 'picante', 'detalhada'].includes(text(s.tipo)) ? s.tipo : 'detalhada') as AppData['stories'][number]['tipo'], personId: text(s.personId) || null, conteudo: text(s.conteudo), date: text(s.date, today()) }; });
-  base.reminders = array(raw.reminders).map(v => { const r = object(v); return { id: text(r.id) || generateId(), personId: text(r.personId) || null, titulo: text(r.titulo), data: text(r.data, today()), concluido: !!r.concluido, createdAt: text(r.createdAt, new Date().toISOString()), descricao: text(r.descricao), priority: r.priority === 'alta' ? 'alta' : 'normal' }; });
+  base.stories = array(raw.stories).map(v => {
+    const s = object(v);
+    return {
+      id: text(s.id) || generateId(), titulo: text(s.titulo),
+      tipo: (['sexual', 'picante', 'detalhada'].includes(text(s.tipo)) ? s.tipo : 'detalhada') as Story['tipo'],
+      personId: text(s.personId) || null, conteudo: text(s.conteudo), date: text(s.date, today()),
+      favorite: s.favorite === true, updatedAt: text(s.updatedAt),
+      chapters: array(s.chapters).map(value => { const c = object(value); return { id: text(c.id) || generateId(), title: text(c.title, 'Capítulo'), content: text(c.content) }; }),
+    };
+  });
+  base.reminders = array(raw.reminders).map(v => { const r = object(v); return { id: text(r.id) || generateId(), personId: text(r.personId) || null, titulo: text(r.titulo), data: text(r.data, today()), concluido: !!r.concluido, createdAt: text(r.createdAt, new Date().toISOString()), descricao: text(r.descricao), priority: r.priority === 'alta' ? 'alta' : 'normal', notifiedAt: text(r.notifiedAt) || null, repeat: (['none', 'daily', 'weekly', 'monthly', 'yearly'].includes(text(r.repeat)) ? r.repeat : 'none') as Reminder['repeat'] }; });
   base.activity = array(raw.activity).slice(0, 100).map(v => { const a = object(v); return { id: text(a.id) || generateId(), texto: text(a.texto), tipo: text(a.tipo, 'sistema') as AppData['activity'][number]['tipo'], data: text(a.data), personId: text(a.personId) || null }; });
   // Categorias do JSON são somadas às categorias do sistema, nunca substituídas.
   // Uma categoria desconhecida entra automaticamente no catálogo.
@@ -267,7 +303,21 @@ export function normalizeData(value: unknown, strict = false): AppData {
       storyIds: [...new Set(strings(folder.storyIds))],
       createdAt: text(folder.createdAt, new Date().toISOString()),
       updatedAt: text(folder.updatedAt, new Date().toISOString()),
+      parentId: text(folder.parentId) || null,
+      pinned: folder.pinned === true,
+      coverPhotoId: text(folder.coverPhotoId) || null,
+      sort: (['recent', 'name', 'manual'].includes(text(folder.sort)) ? folder.sort : 'recent') as Folder['sort'],
+      order: Math.round(numeric(folder.order)),
     };
+  });
+  // Uma pasta nunca pode ser filha de si mesma nem criar um ciclo sem saída.
+  base.folders.forEach(folder => {
+    let guard = 0, parent = folder.parentId;
+    while (parent && guard++ < 25) {
+      if (parent === folder.id) { folder.parentId = null; break; }
+      parent = base.folders.find(f => f.id === parent)?.parentId || null;
+    }
+    if (folder.parentId && !base.folders.some(f => f.id === folder.parentId)) folder.parentId = null;
   });
   // Legacy collections become people folders so existing groups remain available.
   if (!base.folders.length && base.collections.length) base.folders = base.collections.map(c => ({ id: c.id, name: c.name, color: c.color, icon: 'folder', description: 'Pasta migrada de uma coleção anterior.', personIds: c.personIds, photoIds: [], noteIds: [], storyIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }));
@@ -284,6 +334,57 @@ export function normalizeData(value: unknown, strict = false): AppData {
   });
   base.savedFilters = array(raw.savedFilters).map(v => { const f = object(v); return { id: text(f.id) || generateId(), name: text(f.name), filter: normalizeFilter(f.filter) }; });
   base.drafts = Object.fromEntries(Object.entries(object(raw.drafts)).map(([key, v]) => { const d = object(v); return [key, { id: key, kind: ['add', 'edit', 'quick'].includes(text(d.kind)) ? d.kind : 'add', personId: text(d.personId) || undefined, payload: normalizePerson(d.payload), updatedAt: text(d.updatedAt, new Date().toISOString()) } as PersonDraft]; }));
+  base.personTemplates = array(raw.personTemplates).map(value => {
+    const template = object(value);
+    return { id: text(template.id) || generateId(), name: text(template.name, 'Modelo'), category: text(template.category), subcategory: text(template.subcategory), description: text(template.description), tags: [...new Set(strings(template.tags))] };
+  });
+  base.albums = array(raw.albums).map(value => {
+    const album = object(value);
+    return { id: text(album.id) || generateId(), name: text(album.name, 'Álbum'), description: text(album.description), color: /^#[\da-f]{6}$/i.test(text(album.color)) ? text(album.color) : PALETTE[0], photoIds: [...new Set(strings(album.photoIds))], createdAt: text(album.createdAt, new Date().toISOString()), updatedAt: text(album.updatedAt, new Date().toISOString()) };
+  });
+  base.journal = array(raw.journal).map(value => {
+    const entry = object(value);
+    return { id: text(entry.id) || generateId(), date: /^\d{4}-\d{2}-\d{2}$/.test(text(entry.date)) ? text(entry.date) : today(), mood: Math.max(1, Math.min(5, Math.round(numeric(entry.mood, 3)))), title: text(entry.title), content: text(entry.content), tags: [...new Set(strings(entry.tags))], createdAt: text(entry.createdAt, new Date().toISOString()), updatedAt: text(entry.updatedAt, new Date().toISOString()) };
+  });
+  base.goals = array(raw.goals).map(value => {
+    const goal = object(value);
+    return { id: text(goal.id) || generateId(), title: text(goal.title), done: goal.done === true, personId: text(goal.personId) || null, due: /^\d{4}-\d{2}-\d{2}$/.test(text(goal.due)) ? text(goal.due) : null, kind: goal.kind === 'conexao' ? 'conexao' : 'pessoal', createdAt: text(goal.createdAt, new Date().toISOString()), doneAt: text(goal.doneAt) || null };
+  });
+  base.appointments = array(raw.appointments).map(value => {
+    const item = object(value);
+    return { id: text(item.id) || generateId(), personId: text(item.personId) || null, title: text(item.title, 'Compromisso'), date: /^\d{4}-\d{2}-\d{2}$/.test(text(item.date)) ? text(item.date) : today(), time: /^\d{2}:\d{2}$/.test(text(item.time)) ? text(item.time) : '18:00', place: text(item.place), notes: text(item.notes), durationMinutes: item.durationMinutes === null || item.durationMinutes === undefined ? null : Math.max(0, Math.min(1440, Math.round(numeric(item.durationMinutes)))), status: (['agendado', 'realizado', 'cancelado'].includes(text(item.status)) ? item.status : 'agendado') as Appointment['status'], createdAt: text(item.createdAt, new Date().toISOString()) };
+  });
+  base.conversations = array(raw.conversations).map(value => {
+    const item = object(value);
+    return { id: text(item.id) || generateId(), personId: text(item.personId) || null, date: /^\d{4}-\d{2}-\d{2}$/.test(text(item.date)) ? text(item.date) : today(), topic: text(item.topic), content: text(item.content), createdAt: text(item.createdAt, new Date().toISOString()) };
+  });
+  base.personalLinks = array(raw.personalLinks).map(value => {
+    const item = object(value);
+    return { id: text(item.id) || generateId(), label: text(item.label, 'Link'), url: safeLink(text(item.url)), group: text(item.group, 'Geral'), note: text(item.note), createdAt: text(item.createdAt, new Date().toISOString()) };
+  }).filter(item => item.url);
+  base.notifications = array(raw.notifications).slice(0, 120).map(value => {
+    const item = object(value);
+    return { id: text(item.id) || generateId(), title: text(item.title, 'Aviso'), body: text(item.body), kind: (['lembrete', 'prazo', 'revisita', 'conquista', 'sistema'].includes(text(item.kind)) ? item.kind : 'sistema') as AppNotification['kind'], date: text(item.date, new Date().toISOString()), read: item.read === true, personId: text(item.personId) || null, page: text(item.page) || undefined };
+  });
+  const progress = object(raw.progress);
+  base.progress = {
+    xp: Math.max(0, Math.round(numeric(progress.xp))),
+    achievements: Object.fromEntries(Object.entries(object(progress.achievements)).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
+    notified: Object.fromEntries(Object.entries(object(progress.notified)).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
+    duels: array(progress.duels).map(value => { const duel = object(value); return { id: text(duel.id) || generateId(), winnerId: text(duel.winnerId), loserId: text(duel.loserId), date: text(duel.date, today()) }; }).slice(-200),
+    swipes: Object.fromEntries(Object.entries(object(progress.swipes)).filter(([, v]) => v === 'like' || v === 'pass')) as Record<string, 'like' | 'pass'>,
+    streak: { last: text(object(progress.streak).last), count: Math.max(0, Math.round(numeric(object(progress.streak).count))) },
+    challenges: { week: text(object(progress.challenges).week), done: strings(object(progress.challenges).done) },
+    lastActive: text(progress.lastActive),
+  };
+  const vault = object(raw.vault);
+  base.vault = { pin: /^\d{4,8}$/.test(text(vault.pin)) ? text(vault.pin) : null, photoIds: [...new Set(strings(vault.photoIds))] };
+  base.profiles = array(raw.profiles).map(value => {
+    const profile = object(value);
+    return { id: text(profile.id) || 'principal', name: text(profile.name, 'Meu catálogo'), color: /^#[\da-f]{6}$/i.test(text(profile.color)) ? text(profile.color) : PALETTE[0], createdAt: text(profile.createdAt, new Date().toISOString()) };
+  });
+  if (!base.profiles.length) base.profiles = [{ id: 'principal', name: base.settings.profileName || 'Meu catálogo', color: PALETTE[0], createdAt: new Date().toISOString() }];
+  base.activeProfile = base.profiles.some(profile => profile.id === text(raw.activeProfile)) ? text(raw.activeProfile) : 'principal';
   base.ignoredDuplicates = strings(raw.ignoredDuplicates);
   base.noteDrafts = Object.fromEntries(Object.entries(object(raw.noteDrafts)).map(([key, value]) => {
     const note = object(value);
@@ -324,19 +425,32 @@ export function completeness(p: Person) {
   return { percent: Math.round(fields.filter(([, v]) => v).length / fields.length * 100), missing: fields.filter(([, v]) => !v).map(([label]) => label) };
 }
 export function matchesSearch(p: Person, query: string, data: AppData) {
-  const haystack = normalizeText([p.nome, p.apelido, p.redesSociais, p.localizacaoMora, locationLabel(p, data), ...p.tags].join(' '));
-  return normalizeText(query).split(/\s+/).every(q => haystack.includes(q));
+  const haystack = normalizeText([p.nome, p.apelido, p.redesSociais, p.localizacaoMora, locationLabel(p, data), p.descricao, ...(p.customFields || []).map(field => `${field.label} ${field.value}`), ...(p.attachments || []).map(item => item.label), ...p.tags].join(' '));
+  return normalizeText(query).split(/\s+/).filter(Boolean).every(q => haystack.includes(q));
 }
 export function filterPeople(data: AppData, f: CatalogFilter) {
   return data.people.filter(p => {
-    if (f.scope === 'trash' ? !p.deletedAt : f.scope === 'archived' ? !p.archivedAt || !!p.deletedAt : !isActive(p)) return false;
-    if (f.scope === 'favorites' && !p.favorite) return false;
+    // Escopo das abas: cada uma mostra exatamente o que a contagem promete.
+    if (f.scope === 'trash') { if (!p.deletedAt) return false; }
+    else if (f.scope === 'archived') { if (!p.archivedAt || p.deletedAt) return false; }
+    else if (f.scope === 'favorites') { if (!p.favorite || p.deletedAt) return false; }
+    else if (!isActive(p)) return false;
     if (!matchesSearch(p, f.query, data)) return false;
-    if (f.category && p.localizacaoOnde !== f.category || f.subcategory && p.localizacaoSub !== f.subcategory || f.tag && !p.tags.includes(f.tag)) return false;
-    if (calculateOverallRating(p.rating) < f.minimum) return false;
-    if (f.photo === 'with' && !p.fotos.length || f.photo === 'without' && !!p.fotos.length) return false;
+    if (f.category && p.localizacaoOnde !== f.category) return false;
+    if (f.subcategory && p.localizacaoSub !== f.subcategory) return false;
+    if (f.tag && !p.tags.includes(f.tag)) return false;
+    if (f.minimum && calculateOverallRating(p.rating) < f.minimum) return false;
+    if (f.photo === 'with' && !p.fotos.length) return false;
+    if (f.photo === 'without' && p.fotos.length) return false;
     if (f.incomplete && completeness(p).percent === 100) return false;
+    if (f.hair && normalizeText([p.cabeloTipo, p.cabeloCor, p.cabeloCorCustom].join(' ')).indexOf(normalizeText(f.hair)) === -1) return false;
+    if (f.height && p.altura !== f.height) return false;
+    const age = p.idade ?? ageFromBirthday(p.aniversario);
+    if (f.ageMin != null && (age === null || age < f.ageMin)) return false;
+    if (f.ageMax != null && (age === null || age > f.ageMax)) return false;
+    if (f.rarity && rarityFor(calculateOverallRating(p.rating)) !== f.rarity) return false;
     if (f.collection && !data.folders.find(folder => folder.id === f.collection)?.personIds.includes(p.id) && !data.collections.find(c => c.id === f.collection)?.personIds.includes(p.id)) return false;
+    if (f.folderOnly && !data.folders.some(folder => folder.personIds.includes(p.id))) return false;
     return true;
   }).sort((a, b) => f.sort === 'rating' ? getFinalScore(b) - getFinalScore(a) || a.nome.localeCompare(b.nome, 'pt-BR') : f.sort === 'name' ? a.nome.localeCompare(b.nome, 'pt-BR') : f.sort === 'seen' ? b.viHojeCount - a.viHojeCount : (f.sort === 'updated' ? b.updatedAt || b.createdAt : b.createdAt).localeCompare(f.sort === 'updated' ? a.updatedAt || a.createdAt : a.createdAt));
 }
@@ -368,6 +482,122 @@ export function findDuplicates(data: AppData) {
   });
   return [...pairs.values()];
 }
+
+
+// ---------------------------------------------------------------------------
+// Fotos: impressão digital barata para achar duplicatas sem ler pixel a pixel.
+// ---------------------------------------------------------------------------
+export function photoHash(url: string): string {
+  if (!url) return '';
+  const sample = `${url.length}:${url.slice(0, 96)}:${url.slice(Math.max(0, url.length >> 1), (url.length >> 1) + 96)}:${url.slice(-64)}`;
+  let h1 = 0x811c9dc5, h2 = 0x1000193;
+  for (let i = 0; i < sample.length; i++) {
+    h1 = Math.imul(h1 ^ sample.charCodeAt(i), 16777619) >>> 0;
+    h2 = Math.imul(h2 + sample.charCodeAt(i) * (i + 7), 2246822519) >>> 0;
+  }
+  return `${h1.toString(36)}${h2.toString(36)}`;
+}
+export function findDuplicatePhotos(data: AppData) {
+  const groups = new Map<string, Photo[]>();
+  for (const photo of getAllPhotos(data)) {
+    const hash = photo.hash || photoHash(photo.url);
+    if (!hash) continue;
+    groups.set(hash, [...(groups.get(hash) || []), photo]);
+  }
+  return [...groups.values()].filter(list => list.length > 1);
+}
+
+// ---------------------------------------------------------------------------
+// Pastas: árvore, caminhos e contagens.
+// ---------------------------------------------------------------------------
+export const folderChildren = (data: AppData, parentId: string | null) => data.folders
+  .filter(folder => (folder.parentId || null) === parentId)
+  .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name, 'pt-BR'));
+export function folderDescendants(data: AppData, id: string): string[] {
+  const found: string[] = []; const queue = [id]; let guard = 0;
+  while (queue.length && guard++ < 500) {
+    const current = queue.shift()!;
+    for (const folder of data.folders) if (folder.parentId === current && !found.includes(folder.id)) { found.push(folder.id); queue.push(folder.id); }
+  }
+  return found;
+}
+export function folderPath(data: AppData, id: string): Folder[] {
+  const path: Folder[] = []; let current = data.folders.find(folder => folder.id === id); let guard = 0;
+  while (current && guard++ < 25) { path.unshift(current); current = current.parentId ? data.folders.find(folder => folder.id === current!.parentId) : undefined; }
+  return path;
+}
+export function folderTotals(data: AppData, id: string) {
+  const ids = [id, ...folderDescendants(data, id)];
+  const empty = { people: 0, photos: 0, notes: 0, stories: 0 };
+  const total = ids.reduce((acc, folderId) => {
+    const items = allFolderItems(data, folderId);
+    return { people: acc.people + items.people.length, photos: acc.photos + items.photos.length, notes: acc.notes + items.notes.length, stories: acc.stories + items.stories.length };
+  }, empty);
+  return { ...total, all: total.people + total.photos + total.notes + total.stories, subfolders: ids.length - 1 };
+}
+export const folderCover = (data: AppData, folder: Folder) => {
+  const photos = allFolderItems(data, folder.id).photos;
+  return photos.find(photo => photo.id === folder.coverPhotoId) || photos[0] || null;
+};
+
+// ---------------------------------------------------------------------------
+// Datas, prazos e textos.
+// ---------------------------------------------------------------------------
+export function daysUntil(date?: string | null) {
+  if (!date) return null;
+  const target = new Date(`${date.slice(0, 10)}T12:00:00`);
+  const now = new Date(`${today()}T12:00:00`);
+  return Number.isFinite(target.getTime()) ? Math.round((target.getTime() - now.getTime()) / 86400000) : null;
+}
+export type DeadlineState = 'atrasado' | 'hoje' | 'amanha' | 'perto' | 'futuro' | 'sem-data';
+export function deadlineState(date: string | null | undefined, leadDays = 3): { state: DeadlineState; days: number | null } {
+  const days = daysUntil(date);
+  if (days === null) return { state: 'sem-data', days: null };
+  if (days < 0) return { state: 'atrasado', days };
+  if (days === 0) return { state: 'hoje', days };
+  if (days === 1) return { state: 'amanha', days };
+  if (days <= Math.max(1, leadDays)) return { state: 'perto', days };
+  return { state: 'futuro', days };
+}
+export const DEADLINE_LABELS: Record<DeadlineState, string> = { atrasado: 'Atrasado', hoje: 'Vence hoje', amanha: 'Vence amanhã', perto: 'Prazo acabando', futuro: 'Agendado', 'sem-data': 'Sem data' };
+export function ageFromBirthday(aniversario?: string | null) {
+  if (!aniversario) return null;
+  const birth = new Date(`${aniversario}T12:00:00`);
+  if (!Number.isFinite(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const before = now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
+  if (before) age -= 1;
+  return age >= 0 && age <= 120 ? age : null;
+}
+export function upcomingBirthday(aniversario?: string | null) {
+  if (!aniversario) return null;
+  const birth = new Date(`${aniversario}T12:00:00`);
+  if (!Number.isFinite(birth.getTime())) return null;
+  const now = new Date(`${today()}T12:00:00`);
+  const next = new Date(now.getFullYear(), birth.getMonth(), birth.getDate(), 12);
+  if (next < now) next.setFullYear(next.getFullYear() + 1);
+  return Math.round((next.getTime() - now.getTime()) / 86400000);
+}
+export function textStats(content: string) {
+  const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+  return { words, chars: content.length, minutes: Math.max(words ? 1 : 0, Math.round(words / 200)) };
+}
+export function storyText(story: Story) {
+  return [story.conteudo, ...(story.chapters || []).map(chapter => `${chapter.title}\n${chapter.content}`)].filter(Boolean).join('\n\n');
+}
+export function weekKey(date = new Date()) {
+  const copy = new Date(date.getTime());
+  copy.setHours(12, 0, 0, 0);
+  copy.setDate(copy.getDate() + 4 - (copy.getDay() || 7));
+  const start = new Date(copy.getFullYear(), 0, 1);
+  return `${copy.getFullYear()}-S${String(Math.ceil(((copy.getTime() - start.getTime()) / 86400000 + 1) / 7)).padStart(2, '0')}`;
+}
+export const monthLabel = (month: string) => {
+  const [year, index] = month.split('-').map(Number);
+  if (!year || !index) return month;
+  return new Date(year, index - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+};
 
 export function downloadBlob(blob: Blob, filename: string) { const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500); }
 export function downloadJson(value: unknown, filename: string) { downloadBlob(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }), filename); }

@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AppData, CatalogFilter, Person, PersonDraft } from './types';
-import { calculateOverallRating, DEFAULT_FILTER, demoData, duplicatePerson, emptyData, getAllTagNames, makeActivity, normalizePhotos, today } from './store';
-import { persistData, pushBackup, readStoredData, writeJournal } from './lib/storage';
+import type { AppData, CatalogFilter, Person, PersonDraft, Profile } from './types';
+import { calculateOverallRating, DEFAULT_FILTER, demoData, duplicatePerson, emptyData, generateId, getAllTagNames, makeActivity, normalizePhotos, PALETTE, today } from './store';
+import { DEFAULT_PROFILE, deleteProfileData, loadProfiles, persistData, pushBackup, readStoredData, saveProfiles, writeJournal } from './lib/storage';
+import { computeXp, evaluateAchievements, levelInfo } from './lib/progress';
+import { newNotifications, pushBrowserNotification } from './lib/notifications';
 
 type Notice = { message: string; error?: boolean } | null;
 type Mutator = (data: AppData) => AppData;
@@ -27,6 +29,10 @@ interface CatalogContext {
   setCommandOpen: (v: boolean) => void;
   privacy: boolean;
   setPrivacy: (v: boolean) => void;
+  panic: boolean;
+  setPanic: (v: boolean) => void;
+  blur: boolean;
+  setBlur: (v: boolean) => void;
   commit: (updater: Mutator, message?: string, undoable?: boolean) => void;
   savePerson: (p: Person, draftId?: string) => boolean;
   saveDraft: (draft: PersonDraft) => void;
@@ -37,7 +43,7 @@ interface CatalogContext {
   deletePermanently: (ids: string[], keepPhotos: boolean) => void;
   duplicate: (p: Person) => void;
   seenToday: (ids: string[]) => void;
-  login: (u: string, p: string, remember: boolean) => boolean;
+  login: (u: string, p: string, remember: boolean, profileId?: string) => boolean;
   logout: () => void;
   enterDemo: () => void;
   undo: () => void;
@@ -50,6 +56,30 @@ interface CatalogContext {
   notice: Notice;
   notify: (message: string, error?: boolean) => void;
   dismissNotice: () => void;
+  // Novidades
+  xp: number;
+  level: ReturnType<typeof levelInfo>;
+  achievements: ReturnType<typeof evaluateAchievements>;
+  unread: number;
+  notificationsOpen: boolean;
+  setNotificationsOpen: (v: boolean) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  clearNotifications: () => void;
+  checkAlerts: (announce?: boolean) => void;
+  profiles: Profile[];
+  createProfile: (name: string) => Promise<void>;
+  switchProfile: (id: string) => Promise<void>;
+  removeProfile: (id: string) => Promise<void>;
+  swipe: (personId: string, direction: 'like' | 'pass') => void;
+  duel: (winnerId: string, loserId: string) => void;
+  togglePhotoFavorite: (photoId: string) => void;
+  vaultUnlocked: boolean;
+  unlockVault: (pin: string) => boolean;
+  lockVault: () => void;
+  splash: string | null;
+  dismissSplash: () => void;
+  addXp: (amount: number, reason?: string) => void;
 }
 const Context = createContext<CatalogContext | null>(null);
 export function useCatalog() { const context = useContext(Context); if (!context) throw new Error('CatalogProvider ausente.'); return context; }
@@ -68,9 +98,15 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [compareIds, setCompareIds] = useState<string[] | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [privacy, privacyState] = useState(false);
+  const [panic, panicState] = useState(false);
+  const [blur, blurState] = useState(false);
   const [status, setStatus] = useState<SaveStatus>('saved');
   const [lastSavedAt, setLastSavedAt] = useState('');
   const [notice, setNotice] = useState<Notice>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [vaultUnlocked, setVaultUnlocked] = useState(false);
+  const [splash, setSplash] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef(false), saving = useRef(false);
@@ -92,10 +128,11 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
 
   const stage = useCallback((next: AppData) => {
     const stamp = Math.max(Date.now(), (Date.parse(current.current.updatedAt || '') || 0) + 1);
-    next = { ...next, schemaVersion: 5, updatedAt: new Date(stamp).toISOString() };
+    next = { ...next, schemaVersion: 6, updatedAt: new Date(stamp).toISOString() };
     current.current = next; setData(next);
     if (demoRef.current) { setStatus('saved'); return; }
-    pending.current = true; setStatus('pending'); writeJournal(next);
+    pending.current = true; setStatus('pending');
+    writeJournal(next); // a cópia de emergência é limitada e escrita com intervalo
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(flush, 350);
   }, [flush]);
@@ -110,25 +147,33 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    readStoredData().then(({ data, warning }) => {
+    Promise.all([readStoredData(), loadProfiles()]).then(([{ data, warning }, storedProfiles]) => {
       if (!mounted) return;
-      current.current = data; setData(data); setReady(true);
+      current.current = data; setData(data); setProfiles(storedProfiles); setReady(true);
       try { setAuthenticated(localStorage.getItem('catalog_remember') === 'true' || sessionStorage.getItem('catalog_session') === 'true'); } catch { /* Login is still available when session storage is blocked. */ }
       privacyState(!!data.settings.privacy || !!data.settings.pinEnabled);
+      blurState(!!data.settings.blurMode);
+      if (data.settings.splash) {
+        const pool = data.people.filter(person => !person.deletedAt).flatMap(person => person.fotos.map(photo => photo.url)).filter(Boolean);
+        if (pool.length) setSplash(pool[Math.floor(Math.random() * pool.length)]);
+      }
       setLastSavedAt(data.updatedAt || '');
       if (warning) notify(warning, true);
-    });
+    }).catch(() => { if (mounted) { setData(emptyData()); setReady(true); notify('Não foi possível ler os dados salvos. Comece com um catálogo vazio ou importe um backup.', true); } });
     return () => { mounted = false; };
   }, [notify]);
   useEffect(() => {
-    const hide = () => { if (document.visibilityState === 'hidden') flush(); };
+    const hide = () => { if (document.visibilityState === 'hidden') { writeJournal(current.current, true); flush(); } };
     const leave = (event: BeforeUnloadEvent) => {
-      if (!pending.current && !saving.current || demoRef.current) return;
-      if (!writeJournal(current.current)) { event.preventDefault(); event.returnValue = ''; }
+      if (demoRef.current || !pending.current) return;
+      // Só seguramos a aba enquanto a gravação principal estiver em andamento.
+      // Antes o app bloqueava o fechamento sempre que a cópia local não cabia.
+      if (saving.current) { event.preventDefault(); event.returnValue = ''; }
+      writeJournal(current.current, true);
       flush();
     };
     document.addEventListener('visibilitychange', hide); window.addEventListener('beforeunload', leave);
-    return () => { document.removeEventListener('visibilitychange', hide); window.removeEventListener('beforeunload', leave); if (timer.current) clearTimeout(timer.current); flush(); };
+    return () => { document.removeEventListener('visibilitychange', hide); window.removeEventListener('beforeunload', leave); if (timer.current) clearTimeout(timer.current); writeJournal(current.current, true); flush(); };
   }, [flush]);
   useEffect(() => {
     if (!authenticated || demo || !data.people.length) return;
@@ -138,6 +183,57 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       pushBackup(current.current).catch(() => { try { localStorage.removeItem('catalog_last_autobackup'); } catch { /* Noncritical metadata. */ } notify('O backup diário não pôde ser criado. Seus dados principais não foram alterados.', true); });
     } catch { /* The manual backup remains available. */ }
   }, [authenticated, demo, data.people.length, notify]);
+
+  // ---------------------------------------------------------------------------
+  // Sequência de dias, notificações e conquistas.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!ready || demo) return;
+    const stamp = today();
+    if (current.current.progress.lastActive === stamp) return;
+    const yesterday = new Date(`${stamp}T12:00:00`); yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = current.current.progress.lastActive === yesterday.toISOString().slice(0, 10);
+    commit(d => ({
+      ...d,
+      progress: { ...d.progress, lastActive: stamp, streak: { last: stamp, count: isYesterday ? d.progress.streak.count + 1 : 1 } },
+    }), undefined, false);
+  }, [ready, demo, commit]);
+
+  const checkAlerts = useCallback((announce = true) => {
+    if (demoRef.current) return;
+    const snapshot = current.current;
+    const { items, keys } = newNotifications(snapshot);
+    if (Object.keys(keys).length) {
+      commit(d => ({ ...d, progress: { ...d.progress, notified: { ...d.progress.notified, ...keys } } }), undefined, false);
+    }
+    if (!items.length) return;
+    commit(d => ({ ...d, notifications: [...items, ...d.notifications].slice(0, 120) }), undefined, false);
+    if (announce) {
+      const urgent = items.find(item => item.kind === 'prazo' || item.kind === 'lembrete') || items[0];
+      notify(`${items.length} ${items.length === 1 ? 'aviso novo' : 'avisos novos'}: ${urgent.title}`);
+      if (current.current.settings.browserNotifications) pushBrowserNotification(urgent.title, urgent.body);
+    }
+  }, [commit, notify]);
+
+  useEffect(() => {
+    if (!ready || !authenticated || demo) return;
+    checkAlerts(false);
+    const interval = setInterval(() => checkAlerts(false), 60000);
+    return () => clearInterval(interval);
+  }, [ready, authenticated, demo, checkAlerts]);
+
+  useEffect(() => {
+    if (!ready || demo) return;
+    const fresh = evaluateAchievements(current.current).filter(entry => entry.isNew);
+    if (!fresh.length) return;
+    const stamp = new Date().toISOString();
+    commit(d => ({
+      ...d,
+      progress: { ...d.progress, achievements: { ...d.progress.achievements, ...Object.fromEntries(fresh.map(entry => [entry.def.id, stamp])) } },
+      notifications: [...fresh.map(entry => ({ id: `conquista:${entry.def.id}`, title: `Conquista: ${entry.def.title}`, body: entry.def.description, kind: 'conquista' as const, date: stamp, read: false })), ...d.notifications].slice(0, 120),
+    }), undefined, false);
+    notify(`Conquista desbloqueada: ${fresh[0].def.title}`);
+  }, [data, ready, demo, commit, notify]);
 
   const navigate = useCallback((page: string, scope?: CatalogFilter['scope']) => { setPage(page); if (scope) setFilter({ ...DEFAULT_FILTER, scope }); window.scrollTo({ top: 0 }); }, []);
   useEffect(() => {
@@ -158,10 +254,16 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const savePerson = useCallback((p: Person, draftId?: string) => {
     if (!p.nome.trim() || !p.descricao.trim()) { notify('Preencha o nome e a descrição.', true); return false; }
     if (p.idade !== null && (!Number.isInteger(p.idade) || p.idade < 0 || p.idade > 120)) { notify('Informe uma idade inteira entre 0 e 120 anos, ou deixe em branco.', true); return false; }
+    const before = calculateOverallRating(p.rating);
     commit(d => {
-      const person = { ...p, nome: p.nome.trim(), descricao: p.descricao.trim(), rating: { ...p.rating, overall: calculateOverallRating(p.rating) }, fotos: normalizePhotos(p.fotos, p.id), updatedAt: new Date().toISOString() };
+      const previous = d.people.find(x => x.id === p.id);
+      const historyChanged = previous && Math.abs(calculateOverallRating(previous.rating) - before) >= 0.1;
+      const person: Person = {
+        ...p, nome: p.nome.trim(), descricao: p.descricao.trim(), rating: { ...p.rating, overall: before }, fotos: normalizePhotos(p.fotos, p.id), updatedAt: new Date().toISOString(),
+        ratingHistory: historyChanged ? [...(p.ratingHistory || []), { date: today(), overall: before }].slice(-40) : (p.ratingHistory || []),
+      };
       const drafts = { ...d.drafts }; if (draftId) delete drafts[draftId];
-      return { ...d, drafts, people: d.people.some(x => x.id === person.id) ? d.people.map(x => x.id === person.id ? person : x) : [person, ...d.people], locations: [...new Set([...d.locations, person.localizacaoMora].filter(Boolean))] };
+      return { ...d, drafts, people: previous ? d.people.map(x => x.id === person.id ? person : x) : [person, ...d.people], locations: [...new Set([...d.locations, person.localizacaoMora].filter(Boolean))] };
     }, 'Ficha salva com sucesso.');
     return true;
   }, [commit, notify]);
@@ -178,24 +280,111 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const undo = useCallback(() => { const previous = past.current.pop(); if (!previous) return; future.current.push(current.current); stage({ ...previous, drafts: current.current.drafts }); setHistoryVersion(v => v + 1); notify('Última alteração desfeita.'); }, [stage, notify]);
   const redo = useCallback(() => { const next = future.current.pop(); if (!next) return; past.current.push(current.current); stage({ ...next, drafts: current.current.drafts }); setHistoryVersion(v => v + 1); notify('Alteração refeita.'); }, [stage, notify]);
   const setPrivacy = useCallback((v: boolean) => { privacyState(v); commit(d => ({ ...d, settings: { ...d.settings, privacy: v } }), undefined, false); }, [commit]);
-  const login = (username: string, password: string, remember: boolean) => {
+  const setPanic = useCallback((v: boolean) => { panicState(v); if (v) { setSelectedId(null); setQuickOpen(false); setCommandOpen(false); setCompareIds(null); setNotificationsOpen(false); privacyState(true); } }, []);
+  const setBlur = useCallback((v: boolean) => { blurState(v); commit(d => ({ ...d, settings: { ...d.settings, blurMode: v } }), undefined, false); }, [commit]);
+
+  const login = (username: string, password: string, remember: boolean, profileId?: string) => {
     const settings = current.current.settings;
     if (username.trim() !== settings.username || password !== settings.password) return false;
-    try { sessionStorage.setItem('catalog_session', 'true'); if (remember) localStorage.setItem('catalog_remember', 'true'); else localStorage.removeItem('catalog_remember'); } catch { notify('Não foi possível lembrar esta sessão.', true); }
-    commit(d => ({ ...d, settings: { ...d.settings, rememberLogin: remember } }), undefined, false); setAuthenticated(true); return true;
+    try { sessionStorage.setItem('catalog_session', 'true'); if (remember) localStorage.setItem('catalog_remember', 'true'); else localStorage.removeItem('catalog_remember'); if (profileId) sessionStorage.setItem('catalog_profile', profileId); } catch { notify('Não foi possível lembrar esta sessão.', true); }
+    commit(d => ({ ...d, settings: { ...d.settings, rememberLogin: remember } }), undefined, false);
+    setAuthenticated(true);
+    return true;
   };
   const logout = () => {
-    if (!demoRef.current && (pending.current || saving.current) && !writeJournal(current.current)) {
+    if (!demoRef.current && pending.current && saving.current) {
       flush();
       notify('Aguarde a gravação terminar antes de sair. Se houver falha, baixe um backup em Ajustes.', true);
       return;
     }
-    flush(); setAuthenticated(false); setQuickOpen(false); setCompareIds(null); setCommandOpen(false); setSelectedId(null); setPage('home');
+    writeJournal(current.current, true); flush();
+    setAuthenticated(false); setQuickOpen(false); setCompareIds(null); setCommandOpen(false); setSelectedId(null); setPage('home');
+    setVaultUnlocked(false); setNotificationsOpen(false); setSplash(null);
     if (demoRef.current && original.current) { current.current = original.current; setData(original.current); demoRef.current = false; setDemo(false); pending.current = false; setStatus('saved'); }
-    past.current = []; future.current = []; privacyState(false);
+    past.current = []; future.current = []; privacyState(false); panicState(false);
     try { sessionStorage.removeItem('catalog_session'); localStorage.removeItem('catalog_remember'); } catch { /* The in-memory session has already ended. */ }
   };
   const enterDemo = () => { original.current = current.current; demoRef.current = true; setDemo(true); const sample = demoData(); current.current = sample; setData(sample); setAuthenticated(true); privacyState(false); setStatus('saved'); };
 
-  return <Context.Provider value={{ data, ready, authenticated, demo, page, filter, setFilter, navigate, selectedId, openPerson, closePerson: () => setSelectedId(null), quickOpen, setQuickOpen, compareIds, setCompareIds, commandOpen, setCommandOpen, privacy, setPrivacy, commit, savePerson, saveDraft, discardDraft, changePeople, trashPeople, restorePeople, deletePermanently, duplicate, seenToday, login, logout, enterDemo, undo, redo, canUndo: !!past.current.length, canRedo: !!future.current.length, status, lastSavedAt, retrySave: flush, notice, notify, dismissNotice: () => setNotice(null) }}>{children}</Context.Provider>;
+  // ---------------------------------------------------------------------------
+  // Multi-perfis reais: cada perfil tem seu próprio catálogo no IndexedDB.
+  // ---------------------------------------------------------------------------
+  const createProfile = useCallback(async (name: string) => {
+    const clean = name.trim() || 'Novo catálogo';
+    const profile: Profile = { id: generateId(), name: clean, color: PALETTE[(profiles.length) % PALETTE.length], createdAt: new Date().toISOString() };
+    const fresh = { ...emptyData(), activeProfile: profile.id, profiles: [...profiles, profile], settings: { ...emptyData().settings, profileName: clean } };
+    await persistData(fresh);
+    const next = [...profiles, profile];
+    setProfiles(next); await saveProfiles(next);
+    notify(`Perfil "${clean}" criado. Ele começa vazio e separado do atual.`);
+  }, [profiles, notify]);
+
+  const switchProfile = useCallback(async (id: string) => {
+    if (id === current.current.activeProfile || demoRef.current) return;
+    writeJournal(current.current, true); flush();
+    await chain.current.catch(() => undefined);
+    const { data: loaded, warning } = await readStoredData(id);
+    const withProfile = { ...loaded, activeProfile: id, profiles: profiles.length ? profiles : loaded.profiles };
+    current.current = withProfile; setData(withProfile);
+    past.current = []; future.current = []; setHistoryVersion(v => v + 1);
+    pending.current = false; setStatus('saved'); setLastSavedAt(withProfile.updatedAt || '');
+    setVaultUnlocked(false); setSelectedId(null); setPage('home');
+    notify(warning ? `${warning} Perfil carregado com a cópia disponível.` : `Você agora está em "${withProfile.profiles.find(p => p.id === id)?.name || 'outro perfil'}".`);
+  }, [flush, profiles, notify]);
+
+  const removeProfile = useCallback(async (id: string) => {
+    if (id === DEFAULT_PROFILE || id === current.current.activeProfile || profiles.length <= 1) { notify('Este perfil não pode ser removido agora.', true); return; }
+    await deleteProfileData(id);
+    const next = profiles.filter(profile => profile.id !== id);
+    setProfiles(next); await saveProfiles(next);
+    notify('Perfil removido deste dispositivo.');
+  }, [profiles, notify]);
+
+  // ---------------------------------------------------------------------------
+  // Interações rápidas: swipe, duelos, fotos favoritas e XP.
+  // ---------------------------------------------------------------------------
+  const swipe = useCallback((personId: string, direction: 'like' | 'pass') => {
+    commit(d => ({ ...d, progress: { ...d.progress, swipes: { ...d.progress.swipes, [personId]: direction } }, people: direction === 'like' ? d.people.map(p => p.id === personId ? { ...p, favorite: true } : p) : d.people }), direction === 'like' ? 'Adicionada aos favoritos.' : undefined, false);
+  }, [commit]);
+  const duel = useCallback((winnerId: string, loserId: string) => {
+    commit(d => ({ ...d, progress: { ...d.progress, duels: [...d.progress.duels, { id: generateId(), winnerId, loserId, date: today() }].slice(-200) } }), undefined, false);
+  }, [commit]);
+  const togglePhotoFavorite = useCallback((photoId: string) => {
+    commit(d => {
+      const flip = (photos: typeof d.orphanPhotos) => photos.map(photo => photo.id === photoId ? { ...photo, favorite: !photo.favorite } : photo);
+      return { ...d, orphanPhotos: flip(d.orphanPhotos), people: d.people.map(person => ({ ...person, fotos: flip(person.fotos) })) };
+    }, undefined, false);
+  }, [commit]);
+  const addXp = useCallback((amount: number, reason?: string) => {
+    if (!amount) return;
+    commit(d => ({ ...d, progress: { ...d.progress, xp: Math.max(0, d.progress.xp + amount) } }), reason, false);
+  }, [commit]);
+  const unlockVault = useCallback((pin: string) => {
+    const vault = current.current.vault;
+    if (!vault.pin) { setVaultUnlocked(true); return true; }
+    if (vault.pin === pin.replace(/\D/g, '')) { setVaultUnlocked(true); return true; }
+    return false;
+  }, []);
+  const lockVault = useCallback(() => setVaultUnlocked(false), []);
+  const dismissSplash = useCallback(() => setSplash(null), []);
+  const markNotificationRead = useCallback((id: string) => commit(d => ({ ...d, notifications: d.notifications.map(item => item.id === id ? { ...item, read: true } : item) }), undefined, false), [commit]);
+  const markAllNotificationsRead = useCallback(() => commit(d => ({ ...d, notifications: d.notifications.map(item => ({ ...item, read: true })) }), undefined, false), [commit]);
+  const clearNotifications = useCallback(() => commit(d => ({ ...d, notifications: [] }), 'Avisos limpos.', false), [commit]);
+
+  const achievements = useMemo(() => evaluateAchievements(data), [data]);
+  const xp = useMemo(() => computeXp(data) + data.progress.xp, [data]);
+  const level = useMemo(() => levelInfo(xp), [xp]);
+  const unread = useMemo(() => data.notifications.filter(item => !item.read).length, [data.notifications]);
+
+  return <Context.Provider value={{
+    data, ready, authenticated, demo, page, filter, setFilter, navigate, selectedId, openPerson, closePerson: () => setSelectedId(null),
+    quickOpen, setQuickOpen, compareIds, setCompareIds, commandOpen, setCommandOpen, privacy, setPrivacy, panic, setPanic, blur, setBlur,
+    commit, savePerson, saveDraft, discardDraft, changePeople, trashPeople, restorePeople, deletePermanently, duplicate, seenToday,
+    login, logout, enterDemo, undo, redo, canUndo: !!past.current.length, canRedo: !!future.current.length, status, lastSavedAt, retrySave: flush,
+    notice, notify, dismissNotice: () => setNotice(null),
+    xp, level, achievements, unread, notificationsOpen, setNotificationsOpen, markNotificationRead, markAllNotificationsRead, clearNotifications, checkAlerts,
+    profiles, createProfile, switchProfile, removeProfile, swipe, duel, togglePhotoFavorite,
+    vaultUnlocked, unlockVault, lockVault, splash, dismissSplash, addXp,
+  }}>{children}</Context.Provider>;
 }
+

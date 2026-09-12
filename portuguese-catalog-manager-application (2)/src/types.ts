@@ -9,6 +9,9 @@ export interface Photo {
   folderId?: string | null;
   description?: string;
   favorite?: boolean;
+  albumIds?: string[];
+  hash?: string;
+  capturedAt?: string | null;
 }
 
 export interface BrokenNote {
@@ -67,7 +70,18 @@ export interface Person {
   tipoCorpo?: string;
   estiloRoupa?: string;
   observacoesGerais?: string;
+  aniversario?: string | null;
+  customFields?: CustomField[];
+  attachments?: Attachment[];
+  ratingHistory?: RatingSnapshot[];
+  rarity?: Rarity;
+  pinned?: boolean;
 }
+
+export interface CustomField { id: string; label: string; value: string }
+export interface Attachment { id: string; label: string; url: string; kind: 'link' | 'video' | 'pdf' | 'audio' | 'outro'; createdAt: string }
+export interface RatingSnapshot { date: string; overall: number }
+export type Rarity = 'comum' | 'raro' | 'epico' | 'lendario';
 
 export interface Reminder {
   id: string;
@@ -78,6 +92,8 @@ export interface Reminder {
   createdAt: string;
   descricao?: string;
   priority?: 'normal' | 'alta';
+  notifiedAt?: string | null;
+  repeat?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 }
 
 export interface ActivityItem {
@@ -100,6 +116,7 @@ export interface BackupVersion {
   snapshot: string;
 }
 
+export interface StoryChapter { id: string; title: string; content: string }
 export interface Story {
   id: string;
   titulo: string;
@@ -107,6 +124,9 @@ export interface Story {
   personId: string | null;
   conteudo: string;
   date: string;
+  chapters?: StoryChapter[];
+  favorite?: boolean;
+  updatedAt?: string;
 }
 
 export interface TierListItem {
@@ -136,6 +156,13 @@ export interface CatalogFilter {
   scope: 'active' | 'favorites' | 'archived' | 'trash';
   incomplete: boolean;
   collection: string;
+  // Busca avançada combinada: vários critérios ao mesmo tempo.
+  hair?: string;
+  height?: string;
+  ageMin?: number | null;
+  ageMax?: number | null;
+  rarity?: string;
+  folderOnly?: boolean;
 }
 
 export interface SavedFilter {
@@ -163,6 +190,11 @@ export interface Folder {
   storyIds: string[];
   createdAt: string;
   updatedAt: string;
+  parentId?: string | null;
+  pinned?: boolean;
+  coverPhotoId?: string | null;
+  sort?: 'recent' | 'name' | 'manual';
+  order?: number;
 }
 
 export interface GeneralNote {
@@ -216,6 +248,27 @@ export interface PersonTemplate {
   tags: string[];
 }
 
+export interface Album { id: string; name: string; description: string; color: string; photoIds: string[]; createdAt: string; updatedAt: string }
+export interface Goal { id: string; title: string; done: boolean; personId: string | null; due: string | null; kind: 'pessoal' | 'conexao'; createdAt: string; doneAt?: string | null }
+export interface Appointment { id: string; personId: string | null; title: string; date: string; time: string; place: string; notes: string; durationMinutes: number | null; status: 'agendado' | 'realizado' | 'cancelado'; createdAt: string }
+export interface Conversation { id: string; personId: string | null; date: string; topic: string; content: string; createdAt: string }
+export interface JournalEntry { id: string; date: string; mood: number; title: string; content: string; tags: string[]; createdAt: string; updatedAt: string }
+export interface PersonalLink { id: string; label: string; url: string; group: string; note: string; createdAt: string }
+export interface AppNotification { id: string; title: string; body: string; kind: 'lembrete' | 'prazo' | 'revisita' | 'conquista' | 'sistema'; date: string; read: boolean; personId?: string | null; page?: string }
+export interface Profile { id: string; name: string; color: string; createdAt: string }
+export interface Duel { id: string; winnerId: string; loserId: string; date: string }
+export interface Progress {
+  xp: number;
+  achievements: Record<string, string>;
+  notified: Record<string, string>;
+  duels: Duel[];
+  swipes: Record<string, 'like' | 'pass'>;
+  streak: { last: string; count: number };
+  challenges: { week: string; done: string[] };
+  lastActive: string;
+}
+export interface Vault { pin: string | null; photoIds: string[] }
+
 export interface AppData {
   schemaVersion?: number;
   updatedAt?: string;
@@ -236,6 +289,17 @@ export interface AppData {
   investigationBoards: InvestigationBoard[];
   personTemplates?: PersonTemplate[];
   noteDrafts?: Record<string, GeneralNote>;
+  albums: Album[];
+  journal: JournalEntry[];
+  goals: Goal[];
+  appointments: Appointment[];
+  conversations: Conversation[];
+  personalLinks: PersonalLink[];
+  notifications: AppNotification[];
+  progress: Progress;
+  vault: Vault;
+  profiles: Profile[];
+  activeProfile: string;
   settings: {
     username: string;
     password: string;
@@ -250,6 +314,16 @@ export interface AppData {
     privacy?: boolean;
     reducedMotion?: boolean;
     largeText?: boolean;
+    accent?: string;
+    autoTheme?: boolean;
+    browserNotifications?: boolean;
+    notificationLeadDays?: number;
+    revisitAfterDays?: number;
+    splash?: boolean;
+    panicEnabled?: boolean;
+    blurMode?: boolean;
+    density?: 'confortavel' | 'compacto';
+    trashAutoCleanDays?: number;
   };
 }
 
