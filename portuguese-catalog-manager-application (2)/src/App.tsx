@@ -32,6 +32,7 @@ import Discover from './components/Discover';
 import NotificationCenter from './components/NotificationCenter';
 import QuickTools from './components/QuickTools';
 import { AchievementToast, ConfettiBurst, LevelUpBadge, RouletteModal } from './components/Celebrations';
+import OnboardingTour from './components/OnboardingTour';
 import { playSound } from './lib/sound';
 
 const PAGE_NAMES: Record<string, string> = {
@@ -113,11 +114,25 @@ function Application() {
     document.documentElement.classList.toggle('disco-mode', !!data.progress.konami && authenticated && !ctx.privacy);
   }, [data.progress.konami, authenticated, ctx.privacy]);
   useEffect(() => {
-    document.documentElement.classList.toggle('light', data.settings.theme === 'light');
+    let autoTheme = false;
+    if (data.settings.autoTheme && typeof window !== 'undefined' && window.matchMedia) {
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.classList.toggle('light', prefersLight);
+      autoTheme = true;
+    } else {
+      document.documentElement.classList.toggle('light', data.settings.theme === 'light');
+    }
     document.documentElement.classList.toggle('large-text', !!data.settings.largeText);
     document.documentElement.classList.toggle('reduce-motion', !!data.settings.reducedMotion);
     document.documentElement.classList.toggle('privacy-active', ctx.privacy && authenticated);
-  }, [data.settings.theme, data.settings.largeText, data.settings.reducedMotion, ctx.privacy, authenticated]);
+    if (data.settings.autoTheme && typeof window !== 'undefined' && window.matchMedia) {
+      const mql = window.matchMedia('(prefers-color-scheme: light)');
+      const handler = (e: MediaQueryListEvent) => document.documentElement.classList.toggle('light', e.matches);
+      mql.addEventListener?.('change', handler);
+      return () => mql.removeEventListener?.('change', handler);
+    }
+    void autoTheme;
+  }, [data.settings.theme, data.settings.largeText, data.settings.reducedMotion, data.settings.autoTheme, ctx.privacy, authenticated]);
   useEffect(() => {
     document.documentElement.classList.toggle('blur-mode', ctx.blur && authenticated);
     document.documentElement.classList.toggle('density-compact', data.settings.density === 'compacto');
@@ -201,7 +216,7 @@ function Application() {
             <button className="global-search" onClick={() => ctx.setCommandOpen(true)}><Search size={16} /><span>Buscar pessoas, tags e muito mais...</span><kbd>Ctrl K</kbd></button>
           </div>
           <div className="topbar-actions">
-            <IconButton label="Abrir ações rápidas (Q)" className="quick-tools-trigger" onClick={() => setQuickTools(true)}><Zap size={17} /></IconButton>
+            <IconButton label="Abrir ações rápidas (Q)" className="quick-tools-trigger" onClick={() => setQuickTools(true)} data-tour="quick"><Zap size={17} /></IconButton>
             <div className={`save-status ${ctx.status === 'error' ? 'save-error' : ''}`} title={ctx.demo ? 'As alterações da demonstração não são gravadas.' : `Última gravação: ${formatDate(ctx.lastSavedAt, true)}`}>
               {ctx.demo ? <><CloudOff size={13} /><span>Demonstração</span></> : ctx.status === 'saved' ? <><span className="saved-dot" /><span>Tudo salvo</span></> : ctx.status === 'error' ? <button onClick={ctx.retrySave}><RotateCcw size={13} />Tentar salvar</button> : <><Loader2 size={13} className="spin" /><span>Salvando...</span></>}
             </div>
@@ -241,6 +256,7 @@ function Application() {
       : <AchievementToast key={ctx.celebration.id} title={ctx.celebration.title} description={ctx.celebration.description} onClose={ctx.dismissCelebration} />)}</AnimatePresence>
     {ctx.privacy && <PrivacyScreen />}
     {!ctx.privacy && <Toast />}
+    {!ctx.privacy && <OnboardingTour />}
   </MotionConfig>;
 }
 
