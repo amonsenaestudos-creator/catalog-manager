@@ -11,6 +11,8 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 
 ## Onde encontrar
 
+- **Celular e tablet:** barra inferior para Início, Catálogo, cadastro rápido, busca e menu; menu lateral deslizante; modais em painel inferior; grades, formulários, tierlists e abas responsivas; suporte às áreas seguras do aparelho.
+- **Ações rápidas:** toque no botão de raio no cabeçalho (ou pressione `Q`) para abrir mais de vinte utilidades: filtros prontos, surpresa, roleta, comparação, agenda de hoje, avisos, CSV, resumo copiável/compartilhável, tela cheia, privacidade, tema e densidade.
 - **Catálogo:** favoritos, arquivo, lixeira, seleção em lote, filtros, buscas salvas e CSV.
 - **Notas gerais:** ideias, observações, referências e lembretes vinculáveis a pessoas e pastas.
 - **Pastas:** grupos mistos de pessoas, fotos, notas e histórias, sem duplicar os itens.
