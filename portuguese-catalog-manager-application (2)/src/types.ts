@@ -35,6 +35,18 @@ export interface Rating {
   quadril: number;
 }
 
+/**
+ * Vínculo familiar ou de convivência entre duas fichas do catálogo.
+ * Serve para a conversa simulada poder falar da mãe, da filha, da irmã etc.
+ */
+export type VinculoPapel =
+  | 'mae' | 'pai' | 'filha' | 'filho' | 'irma' | 'irmao' | 'avo' | 'avoh'
+  | 'tia' | 'tio' | 'prima' | 'primo' | 'sobrinha' | 'sobrinho'
+  | 'esposa' | 'marido' | 'namorada' | 'namorado' | 'sogra' | 'sogro' | 'nora' | 'genro'
+  | 'amiga' | 'vizinho' | 'outro';
+
+export interface Vinculo { id: string; personId: string; papel: VinculoPapel }
+
 export interface Person {
   id: string;
   nome: string;
@@ -80,6 +92,10 @@ export interface Person {
   ratingHistory?: RatingSnapshot[];
   rarity?: Rarity;
   pinned?: boolean;
+  /** Familiares e pessoas próximas dela que também estão no catálogo. */
+  vinculos?: Vinculo[];
+  /** O que ela é sua: tia, prima, líder, colega... Muda a dinâmica da conversa. */
+  vinculoComigo?: string;
 }
 
 export interface CustomField { id: string; label: string; value: string }
@@ -409,6 +425,10 @@ export interface AppData {
     chatEmojis?: boolean;
     chatMeter?: boolean;
     chatAuto?: boolean;
+    chatDoNada?: boolean;
+    // Quem está usando o catálogo: a idade muda o jeito que ela fala com você.
+    ownerAge?: number | null;
+    ownerBirthday?: string | null;
   };
 }
 
@@ -488,6 +508,70 @@ export const FRIENDSHIP_LEVELS = [
   { value: 4, label: 'Amiga próxima' },
   { value: 5, label: 'Amizade muito próxima' },
 ];
+
+/**
+ * Papéis de família usados nos vínculos entre fichas. `inverso` descreve a
+ * relação na ficha da outra pessoa (ex.: se ela é mãe da Ana, a Ana é filha dela).
+ */
+export const VINCULO_PAPEIS: { value: VinculoPapel; label: string; inverso: string; familia: boolean }[] = [
+  { value: 'mae', label: 'mãe', inverso: 'filha', familia: true },
+  { value: 'pai', label: 'pai', inverso: 'filho', familia: true },
+  { value: 'filha', label: 'filha', inverso: 'mãe', familia: true },
+  { value: 'filho', label: 'filho', inverso: 'pai', familia: true },
+  { value: 'irma', label: 'irmã', inverso: 'irmã(o)', familia: true },
+  { value: 'irmao', label: 'irmão', inverso: 'irmã(o)', familia: true },
+  { value: 'avo', label: 'avó', inverso: 'neta(o)', familia: true },
+  { value: 'avoh', label: 'avô', inverso: 'neta(o)', familia: true },
+  { value: 'tia', label: 'tia', inverso: 'sobrinha(o)', familia: true },
+  { value: 'tio', label: 'tio', inverso: 'sobrinha(o)', familia: true },
+  { value: 'prima', label: 'prima', inverso: 'prima(o)', familia: true },
+  { value: 'primo', label: 'primo', inverso: 'prima(o)', familia: true },
+  { value: 'sobrinha', label: 'sobrinha', inverso: 'tia(o)', familia: true },
+  { value: 'sobrinho', label: 'sobrinho', inverso: 'tia(o)', familia: true },
+  { value: 'esposa', label: 'esposa', inverso: 'esposo(a)', familia: true },
+  { value: 'marido', label: 'marido', inverso: 'esposo(a)', familia: true },
+  { value: 'namorada', label: 'namorada', inverso: 'namorado(a)', familia: false },
+  { value: 'namorado', label: 'namorado', inverso: 'namorado(a)', familia: false },
+  { value: 'sogra', label: 'sogra', inverso: 'genro/nora', familia: true },
+  { value: 'sogro', label: 'sogro', inverso: 'genro/nora', familia: true },
+  { value: 'nora', label: 'nora', inverso: 'sogra(o)', familia: true },
+  { value: 'genro', label: 'genro', inverso: 'sogra(o)', familia: true },
+  { value: 'amiga', label: 'amiga', inverso: 'amiga(o)', familia: false },
+  { value: 'vizinho', label: 'vizinha(o)', inverso: 'vizinha(o)', familia: false },
+  { value: 'outro', label: 'parente / conhecida', inverso: 'parente / conhecida', familia: false },
+];
+
+export const vinculoLabel = (papel: string) => VINCULO_PAPEIS.find(item => item.value === papel)?.label || papel;
+export const vinculoInverso = (papel: string) => VINCULO_PAPEIS.find(item => item.value === papel)?.inverso || 'parente';
+export const vinculoEhFamilia = (papel: string) => !!VINCULO_PAPEIS.find(item => item.value === papel)?.familia;
+
+/**
+ * O que ela é sua. A opção vazia deixa o simulador decidir pela idade:
+ * acima de 35 anos ela entra na dinâmica de tia, e 20 anos de diferença
+ * fazem ela te tratar como criança.
+ */
+export const VINCULO_COMIGO_OPTIONS: { value: string; label: string; familia: boolean; romance: boolean }[] = [
+  { value: '', label: 'Automático (pela idade)', familia: false, romance: true },
+  { value: 'tia', label: 'Minha tia', familia: true, romance: false },
+  { value: 'tio', label: 'Meu tio', familia: true, romance: false },
+  { value: 'mae', label: 'Minha mãe', familia: true, romance: false },
+  { value: 'pai', label: 'Meu pai', familia: true, romance: false },
+  { value: 'prima', label: 'Minha prima', familia: true, romance: false },
+  { value: 'primo', label: 'Meu primo', familia: true, romance: false },
+  { value: 'irma', label: 'Minha irmã', familia: true, romance: false },
+  { value: 'irmao', label: 'Meu irmão', familia: true, romance: false },
+  { value: 'avo', label: 'Minha avó', familia: true, romance: false },
+  { value: 'amiga_da_familia', label: 'Amiga da família', familia: true, romance: false },
+  { value: 'lider', label: 'Líder / igreja', familia: false, romance: false },
+  { value: 'professora', label: 'Professora', familia: false, romance: false },
+  { value: 'vizinha', label: 'Vizinha', familia: false, romance: true },
+  { value: 'colega', label: 'Colega de trabalho / estudo', familia: false, romance: true },
+  { value: 'crush', label: 'Interesse romântico', familia: false, romance: true },
+];
+
+export const vinculoComigoLabel = (value?: string) => VINCULO_COMIGO_OPTIONS.find(item => item.value === (value || ''))?.label || 'Automático (pela idade)';
+export const vinculoComigoEhFamilia = (value?: string) => !!VINCULO_COMIGO_OPTIONS.find(item => item.value === (value || ''))?.familia;
+export const vinculoComigoPermiteRomance = (value?: string) => VINCULO_COMIGO_OPTIONS.find(item => item.value === (value || ''))?.romance !== false;
 
 export const ADULT_APPEARANCE_TAGS = ['gostosa', 'bonita', 'bonitinha', 'cavala', 'gata', 'gatinha', 'dá pra ir', 'da pra ir'];
 

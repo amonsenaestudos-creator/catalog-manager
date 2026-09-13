@@ -1157,3 +1157,73 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .setting-row strong { display: block; font-size: 12.5px; font-weight: 550; }
 .setting-row small { display: block; font-size: 10.5px; color: var(--muted); margin-top: 2px; max-width: 460px; }
 .setting-row select { min-width: 220px; }
+
+/* ---------------------------------------------------------------------------
+   Aba Conversas: lista limpa de papos e o chat em tela cheia.
+   --------------------------------------------------------------------------- */
+.conversations-page { display: grid; gap: 16px; }
+.conversations-page.open { gap: 0; }
+.conversation-summary { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.conversation-summary span { display: inline-flex; align-items: center; gap: 6px; }
+.conversation-summary b { color: var(--text); font-weight: 600; }
+.conversation-summary .adult-on { color: var(--accent); }
+.conversation-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.conversation-search { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--surface); }
+.conversation-search input { flex: 1; border: 0; background: transparent; color: var(--text); font-size: 13px; }
+.conversation-tools select { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); padding: 9px 12px; font-size: 12.5px; }
+.conversation-filters { margin: 0; }
+.conversation-list-cards { display: grid; gap: 10px; }
+.conversation-card { display: flex; align-items: stretch; gap: 8px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); transition: border-color .15s ease, transform .15s ease; }
+.conversation-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.conversation-card.empty { background: var(--surface-2); }
+.conversation-card-main { flex: 1; display: flex; align-items: center; gap: 12px; padding: 11px 13px; text-align: left; background: none; }
+.conversation-avatar { position: relative; flex: none; }
+.chat-status-dot { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--faint); border: 2px solid var(--surface); }
+.chat-status-dot.online { background: var(--success, #86bfa1); }
+.conversation-card-text { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.conversation-card-text strong { font-size: 13.5px; font-weight: 600; }
+.conversation-relation { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: 10.5px; color: var(--muted); }
+.relation-chip { font-style: normal; border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; }
+.relation-chip.crianca { color: #e89499; border-color: #e8949955; }
+.relation-chip.tia { color: #e6ad77; border-color: #e6ad7755; }
+.relation-chip.familia { color: var(--accent); border-color: var(--accent); }
+.conversation-preview { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-meta { display: grid; justify-items: end; gap: 5px; flex: none; }
+.conversation-meta time { font-size: 10px; color: var(--faint); }
+.conversation-stage { font-style: normal; font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.conversation-stage.stage-confiante, .conversation-stage.stage-proxima { color: var(--accent); }
+.conversation-meter { display: block; width: 74px; height: 4px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.conversation-meter i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), #e89499); }
+.conversation-card-actions { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px; border-left: 1px solid var(--line); }
+.conversation-heart { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); }
+.chat-relation-line { display: block; font-style: normal; font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+.chat-relation-line.crianca { color: #e89499; }
+.chat-relation-line.tia { color: #e6ad77; }
+.chat-relation-line.familia { color: var(--accent); }
+
+/* Pacotes de categoria (Ajustes → Dados) */
+.pack-review { display: grid; gap: 10px; }
+.pack-numbers { font-size: 12.5px; }
+.pack-people { display: grid; gap: 6px; max-height: 300px; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+.pack-people li { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; border-bottom: 1px solid var(--line); padding: 6px 2px; font-size: 12px; }
+.pack-people span { color: var(--muted); font-size: 11px; text-align: right; }
+
+/* Menu lateral com “+”: mantém a barra curta sem esconder nada de vez */
+.nav-expand { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; padding: 7px 10px; border-radius: 8px; color: var(--muted); font-size: 11.5px; border: 1px dashed var(--line); }
+.nav-expand:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Família e vínculos na ficha */
+.family-section .family-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.family-section .family-add select { flex: 1 1 190px; }
+.family-age { font-size: 12.5px; color: var(--muted); }
+.family-list { display: grid; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
+.family-list li { display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12px; background: var(--surface-2); }
+.family-list li > span { flex: 1; display: grid; gap: 2px; }
+.family-list li small { color: var(--faint); font-size: 10.5px; }
+.family-list li.muted { border-style: dashed; color: var(--muted); display: block; }
+@media (max-width: 720px) {
+  .conversation-card { flex-direction: column; }
+  .conversation-card-main { flex-wrap: wrap; }
+  .conversation-card-actions { flex-direction: row; border-left: 0; border-top: 1px solid var(--line); }
+  .conversation-meta { justify-items: start; }
+}

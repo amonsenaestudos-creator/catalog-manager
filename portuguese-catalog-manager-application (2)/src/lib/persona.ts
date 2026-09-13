@@ -8,11 +8,14 @@
  */
 import type { Person } from '../types';
 import { isAdult, normalizeText } from '../store';
+import { analisarRelacao, type Familiar, type Relacao } from './relacao';
 
 /** Compara sempre no mesmo formato do texto analisado: minúsculo e sem acento. */
 function rx(fonte: string, flags = 'i') { return new RegExp(fonte.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), flags); }
 export type Genero = 'feminino' | 'masculino' | 'neutro';
 export type Intimidade = 'nova' | 'conhecendo' | 'confiante' | 'proxima' | 'especial';
+/** Voz da persona: muda vocabulário, risadas, abreviações e assuntos. */
+export type EstiloVoz = 'adolescente' | 'jovem' | 'adulta' | 'madura' | 'tia';
 
 export interface PersonaTraits {
   /** Abertura e afeto no jeito de falar. */
@@ -64,6 +67,8 @@ export interface SpeechProfile {
   vocativos: [string, string, string, string];
   /** Nível de informalidade (0 = escreve tudo, 1 = abrevia muito). */
   informalidade: number;
+  /** Abreviações que a persona usa de verdade: vc, pq, mds, bjs... */
+  abreviacoes: string[];
 }
 
 export interface Persona {
@@ -88,6 +93,21 @@ export interface Persona {
   vaidade: number;
   /** Texto curto que explica como ela conversa. */
   resumo: string;
+  /** Voz da persona, definida pela idade (adolescente, adulta, tia...). */
+  estilo: EstiloVoz;
+  /** Como ela te vê: diferença de idade, tia, criança, amizade e vínculo. */
+  relacao: Relacao;
+  /** Familiares dela que também estão no catálogo, com nome e papel. */
+  familiares: Familiar[];
+  /** Como ela te chama nesta relação (menino, meu bem, querida...). */
+  tratamento: string[];
+}
+
+export interface PersonaContexto {
+  /** Catálogo completo, para resolver os vínculos familiares. */
+  people?: Person[];
+  /** Idade de quem usa o catálogo (Ajustes → Meu perfil). */
+  settings?: { ownerAge?: number | null; ownerBirthday?: string | null } | null;
 }
 
 /** Gerador pseudoaleatório semeado (mulberry32): a mesma persona conversa igual. */
@@ -186,6 +206,19 @@ const INTERESSES: Record<string, Interesse> = {
   rotina: { id: 'rotina', label: 'a rotina', temas: ['semana corrida', 'trânsito', 'mercado', 'casa para arrumar'] },
   trabalho: { id: 'trabalho', label: 'o trabalho', temas: ['reunião chata', 'cliente complicado', 'hora extra', 'café do escritório'] },
   clima: { id: 'clima', label: 'o tempo', temas: ['calor insuportável', 'chuva de tarde', 'frio na minha cidade'] },
+  // Assuntos que aparecem mais na vida adulta. Entram sozinhos conforme a idade
+  // e o jeito da ficha — é o que deixa a conversa de gente grande convincente.
+  filhos: { id: 'filhos', label: 'os filhos', temas: ['levar as crianças na escola', 'a lição de casa', 'o filho que não quer dormir', 'a consulta do pediatra', 'o aniversário do pequeno'] },
+  casa: { id: 'casa', label: 'a casa', temas: ['a louça que se acumulou', 'mercado do mês', 'a reforma da cozinha', 'as plantas da varanda', 'a faxina de sábado'] },
+  autocuidado: { id: 'autocuidado', label: 'o autocuidado', temas: ['cabelo novo', 'unha feita', 'a academia no fim do dia', 'máscara de hidratação', 'um banho demorado', 'dia de spa'] },
+  trabalho_adulto: { id: 'trabalho_adulto', label: 'a vida profissional', temas: ['o chefe que muda tudo em cima da hora', 'o cliente difícil', 'a reunião que podia ser um e-mail', 'o salário no fim do mês', 'plano de carreira'] },
+  vinho: { id: 'vinho', label: 'um vinho e um café', temas: ['um vinho no fim do dia', 'café passado na hora', 'a sobremesa de domingo', 'um restaurante novo', 'petiscar com as amigas'] },
+  seriados: { id: 'seriados', label: 'novelas e séries', temas: ['a novela das nove', 'a série que maratonei', 'aquele podcast', 'o filme de domingo'] },
+  familia_grande: { id: 'familia_grande', label: 'a família', temas: ['almoço de domingo na casa da mãe', 'o grupo da família no WhatsApp', 'as tias que perguntam tudo', 'a visita no fim de semana'] },
+  saude: { id: 'saude', label: 'cuidar da saúde', temas: ['a consulta que eu adiei', 'exame de rotina', 'dormir melhor', 'a caminhada de manhã', 'a terapia da semana'] },
+  contas: { id: 'contas', label: 'a vida financeira', temas: ['a conta de luz', 'o boleto que venceu', 'guardar um dinheiro', 'o cartão estourou'] },
+  igreja_adulto: { id: 'igreja_adulto', label: 'a ala e o serviço da igreja', temas: ['a escala do domingo', 'o chamado novo', 'a visita à irmã doente', 'a reunião de liderança', 'a limpeza da capela'] },
+  viagem_adulto: { id: 'viagem_adulto', label: 'descansar e viajar', temas: ['um fim de semana fora', 'hotel com café da manhã bom', 'praia fora de temporada', 'estrada com música alta'] },
 };
 
 function interessesDe(person: Person, texto: string, rand: () => number): Interesse[] {
@@ -195,17 +228,27 @@ function interessesDe(person: Person, texto: string, rand: () => number): Intere
   if (person.signo) ids.add('clima');
   if (person.aniversario || person.tags.includes('amiga')) ids.add('amigos');
   if ((person.idade ?? 0) >= 30) ids.add('trabalho');
+  // Vida adulta: casa, filhos, trabalho de verdade, autocuidado e afazeres.
+  const idade = person.idade ?? 0;
+  if (idade >= 25) { ids.add('trabalho_adulto'); ids.add('autocuidado'); }
+  if (idade >= 30) { ids.add('casa'); ids.add('contas'); ids.add('saude'); }
+  if (idade >= 35) { ids.add('familia_grande'); ids.add('seriados'); }
+  if (/\b(mãe|mae|maternidade|filh|gestante|grávida|esposa|marido|casada|casado)\b/.test(texto)) { ids.add('filhos'); ids.add('casa'); }
+  if (/\b(igreja|ala|bispo|chamado|missão|missao|templo)\b/.test(texto)) ids.add('igreja_adulto');
+  if (/\b(vinho|café|restaurante|jantar|receita|cozinha)\b/.test(texto)) ids.add('vinho');
+  if (/\b(viagem|hotel|praia|estrada|férias)\b/.test(texto)) ids.add('viagem_adulto');
   if (person.fotos.length > 3) ids.add('arte');
   if (!ids.size) ids.add('rotina');
   // Complete com assuntos genéricos, mas sempre mantendo os ganchos reais.
-  const extras = ['comida', 'musica', 'arte', 'rotina', 'viagem', 'amigos', 'clima', 'familia', 'pets'];
+  const extras = ['comida', 'musica', 'arte', 'rotina', 'viagem', 'amigos', 'clima', 'familia', 'pets',
+    'vinho', 'casa', 'autocuidado', 'seriados', 'trabalho_adulto', 'familia_grande', 'saude'];
   const embaralhados = [...extras].sort(() => rand() - 0.5);
-  for (const id of embaralhados) { if (ids.size >= 4) break; ids.add(id); }
-  return [...ids].slice(0, 5).map(id => INTERESSES[id]).filter(Boolean);
+  for (const id of embaralhados) { if (ids.size >= 6) break; ids.add(id); }
+  return [...ids].slice(0, 6).map(id => INTERESSES[id]).filter(Boolean);
 }
 
-/** Monta a persona completa a partir da ficha. */
-export function buildPersona(person: Person): Persona {
+/** Monta a persona completa a partir da ficha (e, quando houver, das outras fichas). */
+export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Persona {
   const texto = normalizeText([
     person.comportamento, person.descricao, person.observacoesGerais, person.descricaoCorporal,
     person.tags.join(' '), person.estiloRoupa, person.tipoCorpo, person.comoConheceu,
@@ -218,6 +261,13 @@ export function buildPersona(person: Person): Persona {
   const idade = person.idade ?? null;
   const faixa: Persona['faixa'] = idade === null ? 'indefinida' : idade < 18 ? 'menor' : idade < 25 ? 'jovem' : idade < 35 ? 'adulta' : idade < 50 ? 'madura' : 'senior';
   const genero = generoDe(person);
+  // Quem é você para ela: idade sua, diferença, tia, criança, vínculo e amizade.
+  const relacao = analisarRelacao(person, catalogo.people?.length ? catalogo.people : [person], catalogo.settings);
+  const estilo: EstiloVoz = idade !== null && idade < 18 ? 'adolescente'
+    : relacao.veCrianca || (relacao.ehTia && (relacao.diferenca === null || relacao.diferenca >= 8)) ? 'tia'
+      : idade !== null && idade >= 35 ? 'madura'
+        : idade !== null && idade < 25 ? 'jovem'
+          : 'adulta';
 
   const traits: PersonaTraits = {
     calor: 0.5, ousadia: 0.42, brincadeira: 0.45, reserva: 0.42, verbosidade: 0.5, emojis: 0.5,
@@ -226,6 +276,15 @@ export function buildPersona(person: Person): Persona {
   // A idade muda o ritmo e o vocabulário: mais jovem escreve mais rápido e mais solto.
   if (faixa === 'menor' || faixa === 'jovem') { traits.girias += 0.2; traits.agilidade += 0.12; traits.verbosidade += 0.08; }
   if (faixa === 'madura' || faixa === 'senior') { traits.girias -= 0.18; traits.reserva += 0.08; traits.agilidade -= 0.04; traits.calor += 0.05; }
+  if (faixa === 'menor') { traits.emojis += 0.18; traits.ousadia -= 0.16; traits.brincadeira += 0.12; traits.timidez += 0.1; }
+  // Dinâmica de tia: mais carinho, conselho e cuidado; menos ousadia.
+  if (estilo === 'tia') { traits.calor += 0.16; traits.reserva += 0.12; traits.ousadia -= 0.3; traits.verbosidade += 0.1; traits.ciumenta -= 0.12; traits.romantica -= 0.1; }
+  if (relacao.veCrianca) { traits.ousadia -= 0.25; traits.reserva += 0.15; traits.calor += 0.12; }
+  if (relacao.familiar && !relacao.veCrianca) { traits.calor += 0.14; traits.brincadeira += 0.08; }
+  // Amizade declarada na ficha pesa de verdade na conversa.
+  traits.calor += relacao.amizade * 0.03;
+  if (relacao.amizade >= 4) { traits.brincadeira += 0.1; traits.curiosidade += 0.08; traits.timidez -= 0.08; }
+  if (relacao.amizade <= 1) { traits.timidez += 0.08; traits.verbosidade -= 0.06; }
 
   const marcadores: string[] = [];
   const contexto: string[] = [];
@@ -262,23 +321,42 @@ export function buildPersona(person: Person): Persona {
   const emojis = traits.emojis > 0.72 ? ['😂', '🥰', '😍', '💕', '😅', '✨', '😜', '🙈', '😘', '🤭']
     : traits.emojis > 0.45 ? ['😊', '😅', '🙂', '💛', '😄', '😏', '🙃', '😉']
       : ['🙂', '😅', '😉', ''];
-  const risadas = traits.girias > 0.66 ? ['kkkk', 'kkkkk', 'kk', 'hahaha'] : traits.girias > 0.4 ? ['kkk', 'haha', 'rs'] : ['haha', 'rs'];
-  const girias = traits.girias > 0.7 ? ['né', 'tipo assim', 'sla', 'mó', 'mano', 'pô', 'vixe', 'oxe', 'nossa', 'sério?', 'caraca']
-    : traits.girias > 0.45 ? ['né', 'nossa', 'pô', 'sério?', 'cara', 'juro'] : ['nossa', 'que legal', 'sério?'];
+  // Risada escrita é obrigatória nesse tipo de conversa: todo mundo ri por mensagem.
+  const risadas = estilo === 'adolescente' ? ['kkk', 'kkkk', 'kkkkk', 'sksksk', 'hahaha', 'risos']
+    : estilo === 'tia' ? ['kkk', 'rs', 'hahaha', 'risos']
+      : traits.girias > 0.66 ? ['kkkk', 'kkkkk', 'kk', 'hahaha']
+        : traits.girias > 0.4 ? ['kkk', 'haha', 'rs'] : ['haha', 'rs'];
+  const girias = estilo === 'adolescente'
+    ? ['né', 'tipo assim', 'sla', 'mó', 'mn', 'pô', 'vixe', 'oxe', 'nossa', 'sério?', 'caraca', 'aff', 'mds']
+    : estilo === 'tia'
+      ? ['né', 'nossa', 'vixe', 'credo', 'meu Deus', 'imagina', 'sério?', 'olha só', 'que coisa']
+      : traits.girias > 0.7 ? ['né', 'tipo assim', 'sla', 'mó', 'mano', 'pô', 'vixe', 'oxe', 'nossa', 'sério?', 'caraca']
+        : traits.girias > 0.45 ? ['né', 'nossa', 'pô', 'sério?', 'cara', 'juro'] : ['nossa', 'que legal', 'sério?'];
+  // Abreviações de quem digita no celular: adolescentes abreviam mais, tias usam as clássicas.
+  const abreviacoes = estilo === 'adolescente' ? ['vc', 'tb', 'pq', 'qdo', 'mds', 'aff', 'sqn', 'pfv', 'dps', 'hj', 'n', 'blz', 'vlw', 'td', 'cmg']
+    : estilo === 'tia' ? ['vc', 'tb', 'pq', 'dps', 'blz', 'bjs', 'qdo', 'msg']
+      : traits.girias > 0.55 ? ['vc', 'tb', 'pq', 'dps', 'blz', 'hj', 'qdo'] : ['vc', 'tb', 'pq'];
 
+  // Como ela te chama: criança e tia chamam de "meu bem"/"meu filho" mesmo.
+  const vocativos: [string, string, string, string] = relacao.veCrianca
+    ? [relacao.tratamento[0] || 'menino', 'meu filho', 'meu bem', 'criança']
+    : estilo === 'tia'
+      ? ['meu bem', 'meu filho', 'querido', 'você']
+      : ['você', 'vamos', traits.calor > 0.6 ? 'meu bem' : 'amiga', traits.romantica > 0.6 ? 'amor' : 'querida'];
   const fala: SpeechProfile = {
-    emojis, risadas, girias,
+    emojis, risadas, girias, abreviacoes,
     tamanho: Math.round(38 + traits.verbosidade * 105 + traits.girias * 12),
     bolhas: traits.verbosidade > 0.68 ? [2, 3] : traits.verbosidade > 0.4 ? [1, 2] : [1, 1],
     porCaractere: traits.agilidade > 0.75 ? 22 : traits.agilidade > 0.5 ? 34 : 52,
     erro: traits.reserva > 0.7 ? 0.02 : traits.girias > 0.6 ? 0.13 : 0.07,
-    vocativos: ['você', 'vamos', traits.calor > 0.6 ? 'meu bem' : 'amiga', traits.romantica > 0.6 ? 'amor' : 'querida'],
-    informalidade: clamp01(traits.girias * 0.6 + (traits.reserva < 0.4 ? 0.25 : 0) + (faixa === 'jovem' ? 0.15 : 0)),
+    vocativos,
+    informalidade: clamp01(traits.girias * 0.6 + (traits.reserva < 0.4 ? 0.25 : 0) + (faixa === 'jovem' ? 0.15 : 0) + (estilo === 'adolescente' ? 0.3 : 0) - (estilo === 'tia' ? 0.12 : 0)),
   };
 
   const primeiro = (person.apelido?.trim() || person.nome.trim().split(/\s+/)[0] || 'você');
   const interesses = interessesDe(person, texto, rand);
-  const resumo = montarResumo({ traits, marcadores, interesses, idade, categoria: person.localizacaoOnde, subcategoria: person.localizacaoSub, contexto });
+  const familiares = relacao.familiares;
+  const resumo = montarResumo({ traits, marcadores, interesses, idade, categoria: person.localizacaoOnde, subcategoria: person.localizacaoSub, contexto, relacao });
 
   return {
     id: person.id,
@@ -300,13 +378,18 @@ export function buildPersona(person: Person): Persona {
     fala,
     vaidade: clamp01(0.4 + (traits.emojis - 0.5) * 0.5 + (person.tags.includes('gostosa') || person.tags.includes('gata') ? 0.15 : 0) + (/\b(vaidos|arrumad|maquiagem|perfume|look)/.test(texto) ? 0.25 : 0)),
     resumo,
+    estilo,
+    relacao,
+    familiares,
+    tratamento: relacao.tratamento,
   };
 }
 
-function montarResumo(input: { traits: PersonaTraits; marcadores: string[]; interesses: Interesse[]; idade: number | null; categoria: string; subcategoria: string; contexto: string[] }) {
+function montarResumo(input: { traits: PersonaTraits; marcadores: string[]; interesses: Interesse[]; idade: number | null; categoria: string; subcategoria: string; contexto: string[]; relacao: Relacao }) {
   const partes: string[] = [];
-  const { traits } = input;
+  const { traits, relacao } = input;
   if (input.idade !== null) partes.push(`${input.idade} anos`);
+  partes.push(relacao.rotulo.toLowerCase());
   const ritmo = traits.agilidade > 0.7 ? 'responde rápido' : traits.agilidade < 0.4 ? 'responde devagar, quando sobra tempo' : 'responde quando dá';
   const tamanho = traits.verbosidade > 0.7 ? 'escreve mensagens longas' : traits.verbosidade < 0.38 ? 'escreve curto e direto' : 'escreve no tamanho normal';
   partes.push(`${ritmo} e ${tamanho}`);

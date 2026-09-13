@@ -7,9 +7,10 @@ import { Avatar, Button, IconButton, Modal } from './ui';
 import { downloadBlob, formatDate, generateId } from '../store';
 import { buildPersona } from '../lib/persona';
 import {
-  HUMORES, analisarConversa, cartaoDaPersona, conversaParaMarkdown, estadoDe, estagioAtual, planOpening, planReply,
+  HUMORES, analisarConversa, cartaoDaPersona, conversaParaMarkdown, estadoDe, estagioAtual, planDoNada, planOpening, planReply,
   planSpontaneous, sugerirAberturas, sugerirRespostas, type Tone,
 } from '../lib/dialogue';
+import { seloDaRelacao } from '../lib/relacao';
 
 /** Emojis de uso rápido no campo de mensagem. */
 const EMOJIS = ['😊', '😍', '😂', '😏', '🥰', '😅', '🙈', '😉', '💕', '🔥', '😢', '😳', '🤔', '👏', '💛', '😴', '🍕', '☕', '🌙', '✨'];
@@ -18,7 +19,8 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const ctx = useCatalog();
   const { data } = ctx;
   const s = data.settings;
-  const persona = useMemo(() => buildPersona(person), [person]);
+  const persona = useMemo(() => buildPersona(person, { people: data.people, settings: data.settings }), [person, data.people, data.settings]);
+  const relacao = persona.relacao;
   const estado = estadoDe(data, person);
   const mensagens = useMemo(() => data.chats.filter(mensagem => mensagem.personId === person.id).sort((a, b) => a.timestamp.localeCompare(b.timestamp)), [data.chats, person.id]);
   const [input, setInput] = useState('');
@@ -34,15 +36,17 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rapido = s.chatSpeed === 'rapido';
-  const adulto = !!s.adultMode && persona.adulta;
-  const nomeUsuario = (s.profileName || 'você').split(' ')[0];
+  const adulto = !!s.adultMode && persona.adulta && relacao.adultoPermitido;
+  // Ela te chama pelo nome de usuário — é o apelido que a pessoa conhece.
+  const nomeUsuario = (s.username || s.profileName || 'você').split(/[@.\s]+/)[0];
+  // Contexto comum a toda mensagem: catálogo (família), sua idade e estilo.
+  const contextoDeConversa = { pessoas: data.people, dono: s, abreviar: s.chatSlang !== false };
   const estagio = estagioAtual(estado);
   const tom: Tone = estado.tom;
   const humor = estado.humor;
   const humorAtual = HUMORES.find(item => item.id === humor) || HUMORES[HUMORES.length - 1];
 
   const limparTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; if (autoTimer.current) clearTimeout(autoTimer.current); };
-
   useEffect(() => {
     if (!mensagens.length) abrirConversa();
     return () => { timers.current.forEach(clearTimeout); autoTimer.current && clearTimeout(autoTimer.current); };
@@ -86,7 +90,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   };
 
   const abrirConversa = () => {
-    const plano = planOpening({ person, persona, state: estadoDe(data, person), adulto, rand: Math.random, rapido, nomeUsuario, primeiraVez: true });
+    const plano = planOpening({ person, persona, state: estadoDe(data, person), adulto, rand: Math.random, rapido, nomeUsuario, primeiraVez: true, ...contextoDeConversa });
     salvarEstado(plano.state);
     tocarPlano(plano);
   };
@@ -96,7 +100,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
     if (!limpo && !foto) return;
     const base = estadoDe(data, person);
     const plano = planReply({
-      person, persona, state: base, message: limpo, historico: mensagens, adulto, rand: Math.random, rapido, nomeUsuario, fotoEnviada: !!foto,
+      person, persona, state: base, message: limpo, historico: mensagens, adulto, rand: Math.random, rapido, nomeUsuario, fotoEnviada: !!foto, ...contextoDeConversa,
     });
     adicionarMensagem({ id: generateId(), personId: person.id, role: 'user', text: limpo, timestamp: new Date().toISOString(), tom, foto });
     salvarEstado(plano.state);
@@ -108,11 +112,20 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
     tocarPlano(plano);
   };
 
+  /** Mensagem que chega do nada: ela lembra de algo que você nem fez. */
+  const doNada = () => {
+    if (typing) return;
+    const base = estadoDe(data, person);
+    const plano = planDoNada({ person, persona, state: base, adulto, rand: Math.random, rapido, nomeUsuario, ...contextoDeConversa });
+    salvarEstado(plano.state);
+    tocarPlano(plano);
+  };
+
   /** Mensagem espontânea (modo automático ou botão de "deixa ela puxar"). */
   const espontanea = (motivo?: 'saudade' | 'lembranca' | 'assunto') => {
     if (typing) return;
     const base = estadoDe(data, person);
-    const plano = planSpontaneous({ person, persona, state: base, adulto, rand: Math.random, rapido, nomeUsuario, motivo });
+    const plano = planSpontaneous({ person, persona, state: base, adulto, rand: Math.random, rapido, nomeUsuario, motivo, ...contextoDeConversa });
     salvarEstado(plano.state);
     tocarPlano(plano);
   };
@@ -120,10 +133,14 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   useEffect(() => {
     if (!auto || typing) return;
     if (autoTimer.current) clearTimeout(autoTimer.current);
-    autoTimer.current = setTimeout(() => { if (!typing) espontanea(); }, 22000 + Math.random() * 16000);
+    autoTimer.current = setTimeout(() => {
+      if (typing) return;
+      // De vez em quando chega aquela mensagem do nada: ela lembra de algo que você nem fez.
+      if (data.settings.chatDoNada !== false && Math.random() < 0.35) doNada(); else espontanea();
+    }, 22000 + Math.random() * 16000);
     return () => { if (autoTimer.current) clearTimeout(autoTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auto, typing, mensagens.length, person.id]);
+  }, [auto, typing, mensagens.length, person.id, data.settings.chatDoNada]);
 
   const limparConversa = () => {
     limparTimers();
@@ -150,9 +167,12 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const analise = useMemo(() => analisarConversa(mensagens), [mensagens]);
   const ultimaDela = [...mensagens].reverse().find(mensagem => mensagem.role === 'them');
   const sugestoesProntas = useMemo(() => sugerirRespostas({
-    person, persona, state: estado, mensagemDela: ultimaDela?.text || '', adulto, quantas: 3, tom,
-  }), [person, persona, estado, ultimaDela?.text, adulto, tom]);
-  const aberturas = useMemo(() => sugerirAberturas({ person, persona, state: estado, historico: mensagens, adulto, quantas: 4 }), [person, persona, estado, mensagens, adulto]);
+    person, persona, state: estado, mensagemDela: ultimaDela?.text || '', adulto, quantas: 3, tom, ...contextoDeConversa,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [person, persona, estado, ultimaDela?.text, adulto, tom, data.people, s.ownerAge, s.ownerBirthday]);
+  const aberturas = useMemo(() => sugerirAberturas({ person, persona, state: estado, historico: mensagens, adulto, quantas: 4, ...contextoDeConversa }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [person, persona, estado, mensagens, adulto, data.people, s.ownerAge, s.ownerBirthday]);
   const online = !!(person.ultimoVisto && Date.now() - Date.parse(person.ultimoVisto) < 3 * 86400000) || mensagens.length % 2 === 1;
   const statusLinha = typing ? 'digitando...' : online ? 'online agora' : `visto por último ${formatDate(person.ultimoVisto || person.updatedAt)}`;
   const mostrarMedidor = s.chatMeter !== false;
@@ -190,6 +210,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
               <strong>{person.nome}</strong>
               <small>{statusLinha}</small>
               <em className="chat-persona-line" title={cartao.resumo}>{cartao.resumo}</em>
+              <em className={`chat-relation-line ${relacao.veCrianca ? 'crianca' : relacao.ehTia ? 'tia' : relacao.familiar ? 'familia' : ''}`} title={relacao.descricao}>{seloDaRelacao(relacao)}</em>
             </div>
           </div>
           <div className="chat-header-actions">
@@ -207,7 +228,8 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
             <span className="chat-status-label">Humor</span>
             <b>{humorAtual.label}</b>
           </span>
-          {!adulto && persona.adulta && <span className="chat-status-line muted-line" title="Ajustes → Conversas"><Lock size={12} />Adulto desligado</span>}
+          {!adulto && persona.adulta && !relacao.adultoPermitido && <span className="chat-status-line muted-line" title={relacao.descricao}><Lock size={12} />Sem clima adulto nesta relação</span>}
+          {!adulto && persona.adulta && relacao.adultoPermitido && !s.adultMode && <span className="chat-status-line muted-line" title="Ajustes → Conversas"><Lock size={12} />Adulto desligado</span>}
           <button className={`chat-auto-toggle ${auto ? 'active' : ''}`} onClick={() => { setAuto(!auto); ctx.notify(!auto ? 'Modo automático: ela vai puxar assunto sozinha enquanto você conversa.' : 'Modo automático desligado.'); }} title="Ela puxa assunto sozinha depois de um tempo">
             <Timer size={13} />{auto ? 'Puxando sozinha' : 'Deixar puxar'}
           </button>
@@ -217,6 +239,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
           <button onClick={() => { setCardOpen(true); setMenuOpen(false); }}><Info size={15} />Como ela conversa</button>
           <button onClick={() => { setSugestoes(true); setMenuOpen(false); }}><Sparkles size={15} />Puxar assunto</button>
           <button onClick={() => { espontanea(); setMenuOpen(false); }}><MessageCircle size={15} />Ela mandar mensagem agora</button>
+          <button onClick={() => { doNada(); setMenuOpen(false); }}><Sparkles size={15} />Mensagem do nada</button>
           <button onClick={() => exportar('copiar')}><Brain size={15} />Copiar conversa</button>
           <button onClick={() => exportar('baixar')}><Download size={15} />Baixar conversa (.md)</button>
           <button onClick={limparMemoria}><Eraser size={15} />Limpar memória dela</button>
@@ -299,12 +322,15 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
         <div className="persona-card">
           <p className="persona-resumo">{cartao.resumo}</p>
           <dl>
+            <div><dt>Como ela te vê</dt><dd>{cartao.relacao} — {cartao.relacaoDescricao}</dd></div>
+            <div><dt>Como ela te chama</dt><dd>{cartao.tratamento.join(', ')}</dd></div>
+            <div><dt>Família dela no catálogo</dt><dd>{cartao.familiares.length ? cartao.familiares.join(' · ') : 'nenhum vínculo cadastrado na ficha'}</dd></div>
             <div><dt>Intimidade hoje</dt><dd>{estagio.label} ({Math.round(estado.afinidade)}% de química) — {estagio.descricao}</dd></div>
             <div><dt>Marcadores de personalidade</dt><dd>{cartao.marcadores.length ? cartao.marcadores.join(', ') : 'nenhum marcador forte na ficha'}</dd></div>
             <div><dt>Assuntos que ela puxa</dt><dd>{cartao.interesses.join(', ')}</dd></div>
             <div><dt>Contexto</dt><dd>{cartao.contexto.length ? cartao.contexto.join(' · ') : 'rotina não anotada'}</dd></div>
             <div><dt>Assunto que ela deve lembrar</dt><dd>{estado.lembrancas.length ? estado.lembrancas.map(item => item.valor).join(' · ') : 'nada anotado ainda'}</dd></div>
-            <div><dt>Conteúdo adulto</dt><dd>{persona.adulta ? (adulto ? 'liberado para esta ficha' : 'bloqueado: ligue o modo adulto em Ajustes → Conversas') : 'não se aplica (ficha com menos de 18 anos)'}</dd></div>
+            <div><dt>Conteúdo adulto</dt><dd>{!persona.adulta ? 'não se aplica (ficha com menos de 18 anos)' : !relacao.adultoPermitido ? `bloqueado por causa da relação: ${cartao.relacao}` : adulto ? 'liberado para esta ficha' : 'bloqueado: ligue o modo adulto em Ajustes → Conversas'}</dd></div>
           </dl>
         </div>
         {mensagens.length > 1 && <div className="chat-analise">
@@ -334,7 +360,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
       )}
 
       <p className="chat-footnote">
-        <Flame size={11} />Conversa simulada com base na ficha. O clima (papo leve, flerte ou mais) muda sozinho conforme a intimidade de vocês. Ela lembra do que você conta ({estado.lembrancas.length} anotação(ões)) e o conteúdo adulto só aparece para fichas 18+ com o modo adulto ligado.
+        <Flame size={11} />Conversa simulada com base na ficha, na idade e no vínculo entre vocês. Ela te chama de {nomeUsuario} e trata do jeito que a relação permite ({cartao.relacao.toLowerCase()}). O clima sobe sozinho com a intimidade; nada é oferecido do nada. Ela lembra do que você conta ({estado.lembrancas.length} anotação(ões)).
         {!person.fotos.length && <button onClick={() => { onClose(); ctx.openPerson(person); }}> Adicionar foto à ficha</button>}
       </p>
     </div>

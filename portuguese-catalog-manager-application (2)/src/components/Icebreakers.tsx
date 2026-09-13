@@ -72,7 +72,7 @@ function embaralhar<T>(lista: T[], quantidade = 4): T[] {
 export default function Icebreakers({ person, onClose, onStartChat }: Props) {
   const ctx = useCatalog();
   const { data } = ctx;
-  const persona = useMemo(() => buildPersona(person), [person]);
+  const persona = useMemo(() => buildPersona(person, { people: data.people, settings: data.settings }), [person, data.people, data.settings]);
   const estado = estadoDe(data, person);
   const estagio = estagioAtual(estado);
   const podePicante = persona.adulta && !!data.settings.adultMode;
@@ -84,7 +84,7 @@ export default function Icebreakers({ person, onClose, onStartChat }: Props) {
 
   const sugestoes = useMemo(() => {
     if (categoria === 'sugeridas') {
-      return sugerirAberturas({ person, persona, state: estado, historico: data.chats.filter(mensagem => mensagem.personId === person.id), adulto: !!data.settings.adultMode, quantas: 5 }).map(sugestao => ({ texto: sugestao.texto, tom: sugestao.tom, motivo: sugestao.motivo }));
+      return sugerirAberturas({ person, persona, state: estado, historico: data.chats.filter(mensagem => mensagem.personId === person.id), adulto: !!data.settings.adultMode, quantas: 5, pessoas: data.people, dono: data.settings, }).map(sugestao => ({ texto: sugestao.texto, tom: sugestao.tom, motivo: sugestao.motivo }));
     }
     if (categoria === 'picante') {
       const ganchos = [ganchoDe(persona, Math.random), ganchoDe(persona, Math.random), ganchoDe(persona, Math.random)];

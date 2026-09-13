@@ -17,6 +17,7 @@ import type { AppData, ChatMessage, ChatMood, ChatState, ChatTone, Person } from
 import { INTIMATE_MIN_AGE } from '../types';
 import { isAdult, normalizeText } from '../store';
 import { buildPersona, ganchoDe, type Genero, type Persona } from './persona';
+import { analisarRelacao, motivoDoLimite, type Relacao } from './relacao';
 
 /** Compara sempre no mesmo formato do texto analisado: minúsculo e sem acento. */
 function rx(fonte: string, flags = 'i') { return new RegExp(fonte.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), flags); }
@@ -88,21 +89,29 @@ export function estagioAtual(state: ChatState): { id: Intimidade; label: string;
 const ajusteDeLimite = (persona: Persona) => (persona.traits.reserva - 0.5) * 26 - (persona.traits.ousadia - 0.5) * 14;
 
 export interface TomDisponivel { id: Tone; ok: boolean; motivo: string }
-export function tonsDisponiveis(persona: Persona, state: ChatState, adulto: boolean): TomDisponivel[] {
+
+/**
+ * Quais climas a conversa aceita agora. Além da química, a relação manda:
+ * criança, tia ou vínculo de família fecham o flerte de vez.
+ */
+export function tonsDisponiveis(persona: Persona, state: ChatState, adulto: boolean, relacao?: Relacao): TomDisponivel[] {
   const estagio = estagioAtual(state).id;
   const ajuste = ajusteDeLimite(persona);
   const limiteFlerte = 24 + ajuste;
   const limiteProvocante = 50 + ajuste;
   const limiteIntenso = 72 + ajuste;
   const motivoAdulto = 'Só para fichas com 18 anos ou mais.';
+  const bloqueioRelacao = relacao && !relacao.flertePermitido ? motivoDoLimite(relacao) : '';
   return TONS.map(tom => {
     if (tom.id === 'amizade') return { id: tom.id, ok: true, motivo: 'Sempre disponível.' };
+    if (bloqueioRelacao) return { id: tom.id, ok: false, motivo: bloqueioRelacao };
     if (!persona.adulta) return { id: tom.id, ok: false, motivo: motivoAdulto };
     if (tom.id === 'flerte') {
       const ok = state.afinidade >= limiteFlerte || estagio !== 'nova';
       return { id: tom.id, ok, motivo: ok ? 'Ela já retribui o flerte.' : `Falta química: conversem mais um pouco (${Math.round(state.afinidade)}/${Math.round(limiteFlerte)}).` };
     }
     if (!adulto) return { id: tom.id, ok: false, motivo: 'Ligue o modo adulto em Ajustes → Conversas.' };
+    if (relacao && !relacao.adultoPermitido) return { id: tom.id, ok: false, motivo: relacao.familiar || relacao.veCrianca ? motivoDoLimite(relacao) : 'Nesta relação o papo fica no flerte, sem passar disso.' };
     const limite = tom.id === 'provocante' ? limiteProvocante : limiteIntenso;
     const ok = state.afinidade >= limite;
     return { id: tom.id, ok, motivo: ok ? 'Liberado pela química entre vocês.' : `Falta química (${Math.round(state.afinidade)}/${Math.round(limite)}). Continue conversando no tom atual.` };
@@ -110,8 +119,8 @@ export function tonsDisponiveis(persona: Persona, state: ChatState, adulto: bool
 }
 
 /** Tom mais alto que a relação permite hoje — usado para desviar com naturalidade. */
-export function tomEfetivo(escolhido: Tone, persona: Persona, state: ChatState, adulto: boolean): Tone {
-  const permitidos = tonsDisponiveis(persona, state, adulto).filter(tom => tom.ok).map(tom => tom.id);
+export function tomEfetivo(escolhido: Tone, persona: Persona, state: ChatState, adulto: boolean, relacao?: Relacao): Tone {
+  const permitidos = tonsDisponiveis(persona, state, adulto, relacao).filter(tom => tom.ok).map(tom => tom.id);
   if (permitidos.includes(escolhido)) return escolhido;
   const ordem: Tone[] = ['amizade', 'flerte', 'provocante', 'intenso'];
   return [...ordem].reverse().find(tom => permitidos.includes(tom)) || 'amizade';
@@ -126,12 +135,21 @@ export type IntentId =
   | 'pergunta_fato' | 'pergunta_sobre_mim' | 'declaracao' | 'saudade' | 'flerte_leve' | 'flerte_forte'
   | 'pedido_foto' | 'apoio' | 'alegria' | 'piada' | 'provocacao' | 'ciumes' | 'desculpa' | 'agradecimento'
   | 'resposta_curta' | 'mudanca_assunto' | 'tedio' | 'cotidiano' | 'cotidiano_trabalho' | 'cotidiano_estudo'
-  | 'cotidiano_comida' | 'foto' | 'desconhecido';
+  | 'cotidiano_comida' | 'foto' | 'desconhecido'
+  // Novos: família, idade, igreja, vida adulta e as mensagens que chegam do nada.
+  | 'pergunta_familiar' | 'pergunta_idade' | 'igreja' | 'vida_adulta' | 'confusao' | 'conselho';
 
 interface RegraIntencao { id: IntentId; padrao: RegExp; peso: number; sentimento?: Sentimento }
 
 // A ordem é a prioridade: o primeiro que casar define a intenção principal.
 const REGRAS_INTENCAO: RegraIntencao[] = [
+  // Mensagens que chegam do nada: quando você corrige que não foi você.
+  { id: 'confusao', padrao: rx("\\b(não fui eu|nao fui eu|não deixei|nao deixei|não fui|nao fui|não fiz|nao fiz|não é meu|nao e meu|confundiu|não lembro disso|nao lembro disso|deve ser outra pessoa|troquei de igreja|nunca te pedi)\\b", "i"), peso: 2.9, sentimento: 'neutro' },
+  { id: 'pergunta_familiar', padrao: rx("\\b(sua mãe|sua mae|sua mãezinha|seu pai|sua filha|seu filho|seus filhos|sua irmã|sua irma|seu irmão|seu irmao|sua vó|sua avó|sua avo|sua tia|seu tio|sua prima|seu primo|sua família|sua familia|a família tá|como tá sua|como ta sua|fala da sua|manda um abraço pra|manda um abraco pra)\\b", "i"), peso: 2.8, sentimento: 'positivo' },
+  { id: 'pergunta_idade', padrao: rx("\\b(quantos anos|que idade|sua idade|idade você tem|idade voce tem|mais velha que eu|mais nova que eu|mais novo que você|mais velho que você|diferença de idade|diferenca de idade|já é adulta|ja e adulta)\\b", "i"), peso: 2.5, sentimento: 'neutro' },
+  { id: 'igreja', padrao: rx("\\b(igreja|capela|culto|reunião de domingo|reuniao de domingo|ala|bispo|bispa|presidente de estaca|chamado|missão|missao|templo|sacramento|soc soc|sociedade de socorro|moças|mocas|rapazes|semana do jovem|mutirão|mutirao|limpeza da capela|escalei|escala do mês|escala do mes)\\b", "i"), peso: 1.7, sentimento: 'neutro' },
+  { id: 'vida_adulta', padrao: rx("\\b(vinho|jantar|cama|massagem|hotel|banho|final de semana fora|fim de semana fora|noite sozinha|noite sozinho|depois do trabalho|chegando em casa cansada|checklist|mercado|boleto|aluguel|terapia|remédio|remedio|escola das crianças|escola das criancas|filhos|marido|ex-marido|namorado)\b", "i"), peso: 1.6, sentimento: 'neutro' },
+  { id: 'conselho', padrao: rx("\\b(o que você acha|que que você acha|você me aconselha|voce me aconselha|devo fazer|você acha que eu devo|voce acha que eu devo|me dá um conselho|me da um conselho|tô na dúvida|to na duvida|preciso de opinião|preciso de opiniao)\\b", "i"), peso: 2.0, sentimento: 'neutro' },
   { id: 'foto', padrao: rx("^(\\[foto\\]|mandei uma foto|foto enviada|segue a foto|olha a foto)\\b", "i"), peso: 2.6, sentimento: 'positivo' },
   { id: 'pedido_foto', padrao: rx("\\b(manda|envia|me manda|quero)\\s+(uma\\s+)?(foto|selfie|nudes?|pic|imagem)|foto\\s+(sem roupa|pelada|nua)|nudes?\\b", "i"), peso: 3, sentimento: 'neutro' },
   { id: 'flerte_forte', padrao: rx("\\b(transar|sexo|trepar|nua|pelada|tesao|tesão|safadeza|na cama|cama|beijo de lingua|pegação|pegar você|te pegar|gozar|sentar|gemer|morder)\\b", "i"), peso: 3 },
@@ -173,6 +191,34 @@ export function sentimentoDe(texto: string): Sentimento {
   if (positivo > negativo) return 'positivo';
   if (negativo > positivo) return 'negativo';
   return 'neutro';
+}
+
+/**
+ * Descobre de qual parente a pessoa está falando ("como tá sua mãe?", "e a sua
+ * filha?"). Sem correspondência, devolve o primeiro familiar cadastrado.
+ */
+export function familiarDaMensagem(texto: string, familiares: { nome: string; papel: string }[]): { nome: string; papel: string } | null {
+  if (!familiares.length) return null;
+  const normal = normalizeText(texto || '');
+  const mapa: [RegExp, string[]][] = [
+    [/\b(mae|mãe|mamae|mainha)\b/, ['mãe']],
+    [/\b(pai|papai|painho)\b/, ['pai']],
+    [/\b(filha|filhas|menina|garota)\b/, ['filha']],
+    [/\b(filho|filhos|menino|garoto)\b/, ['filho']],
+    [/\b(irma|irmã|mano)\b/, ['irmã', 'irmão']],
+    [/\b(avo|avó|avô|vovozinha|vovo)\b/, ['avó', 'avô']],
+    [/\b(tia|tias)\b/, ['tia']],
+    [/\b(tio|tios)\b/, ['tio']],
+    [/\b(prima|primas)\b/, ['prima']],
+    [/\b(primo|primos)\b/, ['primo']],
+    [/\b(esposa|marido|namorada|namorado|noivo|noiva)\b/, ['esposa', 'marido', 'namorada', 'namorado']],
+  ];
+  for (const [padrao, papeis] of mapa) {
+    if (!padrao.test(normal)) continue;
+    const achado = familiares.find(item => papeis.includes(item.papel));
+    if (achado) return achado;
+  }
+  return familiares[0] || null;
 }
 
 export function detectarIntencao(texto: string): { id: IntentId; sentimento: Sentimento } {
@@ -346,6 +392,13 @@ const RESPOSTAS: Record<IntentId, Banco> = {
     [F]: ['Se você cozinha assim, me chama pro jantar 😏', 'Comida boa e companhia boa é o combo perfeito 😉'],
     [P]: ['Jantar e depois? 😏 você escolhe a sobremesa'],
   },
+  // Estes seis são preenchidos logo abaixo, pelos reforços de relacionamento.
+  pergunta_familiar: {},
+  pergunta_idade: {},
+  igreja: {},
+  vida_adulta: {},
+  conselho: {},
+  confusao: {},
   desconhecido: {
     [A]: ['Faz sentido 😊 me conta mais sobre você e isso', 'Interessante, nunca tinha pensado por esse lado', 'Gostei disso. Como você chegou nessa conclusão?'],
     [F]: ['Hmm 😏 você fala bem, isso é perigoso', 'Tô gostando desse papo. Continua', 'Sabe puxar assunto, né 😉'],
@@ -482,7 +535,76 @@ const REFORCO: Record<string, Partial<Record<Familia, string[]>>> = {
   },
 };
 
-for (const [id, familias] of Object.entries(REFORCO)) {
+// ---------------------------------------------------------------------------
+// Novos assuntos: família, idade, igreja, vida adulta, conselho e as mensagens
+// que chegam do nada (aquela cobrança sobre algo que você nem fez).
+// {familiar} vira o nome do parente cadastrado, {papel} o grau e {idade} a idade dela.
+// ---------------------------------------------------------------------------
+const REFORCO_RELACOES: Record<string, Partial<Record<Familia, string[]>>> = {
+  pergunta_familiar: {
+    [A]: ['{familiar} tá bem, graças a Deus 😊 ela vive perguntando de você', 'Tá tudo ótimo com {familiar}, obrigada por lembrar 💛', 'Ah, {familiar} tá bem! Esses dias ela até falou de você', 'Vou te contar: {familiar} anda meio cansada, mas nada demais'],
+    [F]: ['{familiar} tá bem 😊 e ela já me perguntou quem é você, viu?', 'Tá ótima. Você perguntando assim me deixa com uma ideia na cabeça 😏'],
+    [P]: ['{familiar} tá bem 😏 mas o que eu quero te contar não é sobre ela'],
+  },
+  pergunta_idade: {
+    [A]: ['Tenho {idade} anos 😅 e você, quantos?', 'Depois de certa idade a gente para de contar, viu kkk tenho {idade}', '{idade}, e contando. Por que a curiosidade?', 'Tenho {idade} anos. Isso te incomoda?'],
+    [F]: ['{idade} 😏 gosta de mulher mais velha?', 'Tenho {idade}, e você tem cara de que aguenta o papo 👀'],
+    [P]: ['{idade} 😏 idade não é problema quando a conversa encaixa assim'],
+  },
+  igreja: {
+    [A]: ['A igreja tá movimentada esse mês 😅 a escala tá cheia', 'O culto de domingo foi muito bom, você não foi?', 'Aqui a semana da igreja sempre rende história, viu', 'A reunião de hoje foi longa, mas valeu 🙏', 'Sabe o que aconteceu na igreja hoje? Preciso te contar kkk'],
+    [F]: ['Se você fosse na igreja todo domingo eu ia mais cedo só pra te ver 😏', 'A igreja é o lugar mais perigoso pra gente conversar, viu 😅'],
+    [P]: ['Levando a vida com fé e com pensamento errado, viu 😏'],
+  },
+  vida_adulta: {
+    [A]: ['Vida adulta é isso: chegar em casa cansada e ainda ter louça na pia 😅', 'Hoje o dia foi cheio. Você tá dando conta do seu?', 'Semana adulta é semana corrida, viu. Amanhã eu resolvo o resto', 'Preciso de um fim de semana inteiro só pra mim 😅'],
+    [F]: ['Depois de um dia desses, o que eu queria era companhia boa e um vinho 😏', 'Você fala desse jeito e eu esqueço o cansaço 😄'],
+    [P]: ['Chegando em casa, banho demorado, vinho na mão e uma conversa dessas... 😏', 'Se eu contasse o que penso depois do trabalho você ia ficar sem palavras 🔥', 'Final de semana fora, hotel com café da manhã bom e sem pressa nenhuma 😏', 'Massagem, silêncio e você aparecendo no meio do pensamento 🔥', 'Fim de semana as crianças na casa da avó e a casa fica silenciosa demais, sabe? 😏'],
+  },
+  conselho: {
+    [A]: ['Olha, eu vou te falar com carinho: resolve isso conversando', 'Se eu fosse você, eu não deixava passar, não. Fala logo', 'Meu conselho: respira, pensa dois dias e depois decide 😊', 'Eu já vivi coisa parecida. Dá pra resolver, mas sem pressa'],
+    [F]: ['Meu conselho é meio fora do sério: esquece o problema e pensa em mim 😏'],
+    [P]: ['Eu tenho dois conselhos. Um eu posso escrever, o outro não 😏'],
+  },
+  confusao: {
+    [A]: ['Nossa, então eu confundi kkkkk desculpa! Deve ser outra pessoa', 'Jura? Então esquece, minha cabeça tá a mil hoje 😅', 'Ahhh, então era outra pessoa kkk foi mal, que vergonha', 'Ué, então eu devo ter sonhado 🤔 esquece isso', 'Era coisa da minha cabeça então, tá bom kkkkk'],
+    [F]: ['Ai, que mico kkkkk então ignora... mas você não escapa de mim fácil', 'Confundi, foi mal 😅 fica só a parte boa da conversa'],
+    [P]: ['Confundi mesmo 😏 mas continua falando comigo que eu gosto'],
+  },
+};
+
+// Mais conteúdo com a cara de quem já é adulta — sugestivo, sem descrição explícita.
+const REFORCO_ADULTO: Record<string, Partial<Record<Familia, string[]>>> = {
+  elogio: {
+    [P]: ['Você elogia assim e eu fico olhando a tela feito boba 😏', 'Elogio de quem sabe falar é perigoso, viu 🔥'],
+  },
+  convite: {
+    [P]: ['Jantar naquele lugar calmo, depois um vinho e conversa sem relógio. Eu topo 😏', 'Você escolhe: um fim de semana fora ou uma noite inteira sem pressa 😏'],
+  },
+  flerte_leve: {
+    [P]: ['Vem cá me dar esse abraço, mas com calma que eu ainda tenho trabalho amanhã 😏', 'Eu queria que você estivesse aqui na hora do banho... tô brincando 😏 quer dizer, nem tanto'],
+  },
+  flerte_forte: {
+    [P]: ['Você fala assim e eu já penso em coisa que não escrevo aqui 🔥', 'Devagar, meu bem. Quem tem pressa não aproveita o clima 😏', 'Olha, eu sou mulher feita: conversa boa, jantar bom e cama arrumada. Você aguenta? 😏'],
+  },
+  pedido_foto: {
+    [P]: ['Foto? Depois de um jantar como esse eu penso, viu 😏', 'Calma lá, isso a gente negocia pessoalmente 🔥'],
+  },
+  cotidiano: {
+    [P]: ['Me conta do seu dia direito, sem pressa. À noite eu tenho tempo 😏'],
+  },
+  saudade: {
+    [P]: ['Saudade é pouco. Tô aqui deitada pensando em você, sabia? 😏'],
+  },
+  desconhecido: {
+    [P]: ['Você escreve desse jeito e eu começo a imaginar a conversa de perto 🔥'],
+  },
+  despedida: {
+    [P]: ['Boa noite, meu bem 😏 sonha com coisa boa', 'Vai dormir, senão eu te conto o que eu tô pensando e você não dorme 🔥'],
+  },
+};
+
+for (const [id, familias] of Object.entries({ ...REFORCO, ...REFORCO_ADULTO, ...REFORCO_RELACOES })) {
   const banco = RESPOSTAS[id as IntentId];
   const alvo = banco || (RESPOSTAS[id as IntentId] = {});
   for (const familia of [A, F, P] as Familia[]) {
@@ -507,11 +629,20 @@ const PERGUNTAS: Record<string, string[]> = {
   futuro: ['O que você quer pra você esse ano?', 'Você tá planejando algo grande?'],
   arte: ['Você viu alguma coisa boa essa semana?', 'Me indica uma série que eu confie na sua opinião'],
   treino: ['Você tá treinando?', 'Como você cuida de você?'],
+  filhos: ['Como estão as crianças?', 'Você tem filhos? Como é a rotina aí?', 'Quem cuida dos pequenos quando você trabalha?', 'Criança dá trabalho, né? Me conta uma coisa boa deles'],
+  casa: ['Como tá a casa essa semana?', 'Você já resolveu aquilo da casa?', 'Sobrou um tempo pra você hoje ou foi tudo obrigação?', 'O que você tem pra fazer amanhã?'],
+  descanso: ['Você tem dormido bem?', 'Quando foi a última vez que você descansou de verdade?', 'O que você faz pra relaxar?', 'Se você tivesse um dia livre amanhã, o que faria?'],
+  fe: ['Você foi na igreja ontem?', 'Como tá o seu chamado?', 'Você tem lido algo que te edificou?', 'Me conta uma coisa boa da semana'],
+  casa_adulta: ['Como você faz pra dar conta de tudo?', 'Você cozinha ou pede comida?', 'Sobrou algum tempo pra você hoje?'],
 };
 const TEMAS_POR_INTERESSE: Record<string, keyof typeof PERGUNTAS> = {
   treino: 'treino', musica: 'musica', estudo: 'estudo', fe: 'futuro', viagem: 'viagem', arte: 'arte',
   games: 'arte', pets: 'pet', comida: 'comida', familia: 'familia', amigos: 'dia', rotina: 'dia',
   trabalho: 'trabalho', clima: 'clima',
+  // Vida adulta
+  filhos: 'filhos', casa: 'casa', autocuidado: 'descanso', trabalho_adulto: 'trabalho',
+  vinho: 'comida', seriados: 'arte', familia_grande: 'familia', saude: 'descanso',
+  contas: 'trabalho', igreja_adulto: 'fe', viagem_adulto: 'viagem',
 };
 
 /** Complementos para respostas longas (personalidade falante). */
@@ -546,6 +677,70 @@ const DESVIOS_AMIZADE: string[] = [
   'Vou fingir que você não escreveu isso 😅 tem assunto melhor',
 ];
 
+/** Quando não há parente cadastrado na ficha: resposta honesta, sem inventar nome. */
+const SEM_FAMILIAR: string[] = [
+  'Minha família tá bem, obrigada por perguntar 😊',
+  'Tá tudo bem por aqui, amém 🙏 e a sua?',
+  'Sem novidade grande, mas obrigada por lembrar 💛',
+  'Tudo em paz por aqui. Você é atencioso, viu?',
+];
+
+/** Quando ela te vê como criança: nenhum assunto romântico passa por aqui. */
+const LIMITES_CRIANCA: string[] = [
+  'Ei, você ainda é um menino 😅 guarda esse assunto pra quando você tiver idade',
+  'Nada disso, garoto. Eu tenho idade pra ser sua tia, lembra? kkk',
+  'Olha o respeito comigo, criança 😄 fica na conversa de gente nova',
+  'Você é novinho, filho. Conversa assim você leva pra outra pessoa, não pra mim',
+  'Não, não e não 😅 eu cuido de você, não é desse jeito',
+  'Vou fingir que não li e vou te dizer o que sua mãe diria: respeito 😄',
+];
+
+/** Dinâmica de tia: carinho, conselho e nenhum romance. */
+const LIMITES_TIA: string[] = [
+  'Menino, eu já sou quase uma tia pra você 😅 conversa assim não combina comigo',
+  'Fica quieto 😄 eu sou de outra geração, e essa conversa não é pra mim',
+  'Olha, deixa eu te dar um conselho de gente mais velha: pisa no freio',
+  'Eu gosto de você como quem cuida, meu bem. E é assim que vai ficar 😊',
+  'Você é muito novo e eu sou muito velha pra esse tipo de papo 😅',
+];
+
+/** Vínculo de família declarado na ficha. */
+const LIMITES_FAMILIA: string[] = [
+  'Ei, ei! Eu sou {vinculo} de você, lembra? kkkk fala sério',
+  'Olha o assunto, que eu conto pra sua mãe 😄',
+  'Não, isso não é jeito de falar com quem te conhece desde novo 😅',
+  'Vou fingir que não li isso. Como está o seu dia hoje? 😄',
+];
+
+/** Complementos na voz de tia: conselho, família e comparações de época. */
+const COMPLEMENTOS_TIA: string[] = [
+  'Quando eu tinha a sua idade eu era igual, viu 😄',
+  'Aproveita que você é novo, isso passa rápido',
+  'Já comeu de verdade hoje? Me responde com sinceridade',
+  'Se precisar de conselho, eu tô aqui, viu? Comigo não precisa ter vergonha',
+  'Você tá crescendo rápido. Sua mãe deve ter orgulho de você',
+  'Na minha época o povo namorava de outro jeito, hoje é tudo mensagem kkk',
+  'Vou te falar como a gente fala na igreja: guarda o seu tempo',
+];
+
+/** O que ela pergunta quando te vê como criança. */
+const PAPO_CRIANCA: string[] = [
+  'E o estudo, como tá indo?',
+  'Você tem comido direito? Casa de solteiro é assim mesmo 😅',
+  'Sua mãe tá bem? Manda um abraço pra ela',
+  'Você vai dormir que horas? Amanhã tem compromisso',
+  'Você anda indo na igreja? Noto a sua falta',
+  'Não vai fazer besteira por aí, viu? Me escuta',
+];
+
+/** Puxadas de família: quando ela lembra de casa e dos filhos. */
+const FALAS_FAMILIA: string[] = [
+  'Você não vai acreditar no que {familiar} me contou hoje kkk',
+  'Tive um dia de família: {familiar} deu trabalho, mas no fim deu tudo certo',
+  'Gente, {familiar} me perguntou de você 😳 o que eu respondo?',
+  'Depois te conto como foi o almoço de domingo com {familiar} 😊',
+];
+
 /** Ponte de memória: ela puxa o que você já contou. */
 const PONTES: { tipo: string; modelos: string[] }[] = [
   { tipo: 'preferencia', modelos: ['Você comentou que ama {valor}, lembrei agora 😄', 'Aliás, aquele negócio de {valor} continua rendendo?', 'Lembrei de você quando vi algo sobre {valor}'] },
@@ -561,7 +756,7 @@ const SOMBRAS: Record<Familia, string[]> = {
 
 /** Sugestões de abertura na voz de quem está usando o app. */
 export interface Sugestao { texto: string; motivo: string; tom: Tone }
-const ABERTURAS: Record<'primeira' | 'retorno' | 'proxima' | 'especial' | 'aniversario' | 'interesse' | 'convite', Sugestao[]> = {
+const ABERTURAS: Record<'primeira' | 'retorno' | 'proxima' | 'especial' | 'aniversario' | 'interesse' | 'convite' | 'familia', Sugestao[]> = {
   primeira: [
     { texto: 'Oi! Vi que você curte {interesse} — me indica uma coisa boa de lá?', motivo: 'Abre com o interesse real da ficha', tom: 'amizade' },
     { texto: 'Oi, tudo bem? Que coincidência a gente se falar hoje, tava lembrando de você 😊', motivo: 'Casual e sem pressão', tom: 'amizade' },
@@ -590,6 +785,11 @@ const ABERTURAS: Record<'primeira' | 'retorno' | 'proxima' | 'especial' | 'anive
     { texto: 'Como tá {gancho}? Lembrei de você falando disso', motivo: 'Gancho do dia a dia', tom: 'amizade' },
     { texto: 'Achei uma coisa sobre {interesse} que é a sua cara, quer que eu mande?', motivo: 'Assunto novo, sem repetir o de sempre', tom: 'amizade' },
     { texto: 'A gente nunca falou sobre {interesse}. Corre risco de descobrir que a gente combina', motivo: 'Abre assunto inédito', tom: 'flerte' },
+  ],
+  familia: [
+    { texto: 'Oi! Como está {familiar}? Manda um abraço pra ela 😊', motivo: 'Pergunta por quem ela ama', tom: 'amizade' },
+    { texto: 'Tudo bem por aí? Como tá a sua família toda?', motivo: 'Assunto de quem convive com a família dela', tom: 'amizade' },
+    { texto: 'Lembrei de você hoje. E aí, como estão as coisas em casa?', motivo: 'Natural e sem cobrança', tom: 'amizade' },
   ],
   convite: [
     { texto: 'Bora tomar um café essa semana? Escolhe o dia', motivo: 'Convite sem rodeio', tom: 'flerte' },
@@ -672,6 +872,36 @@ export interface EstiloContexto {
   rand: () => number;
   rapido?: boolean;
   nomeUsuario: string;
+  /** Proporção de abreviações (vc, pq, mds). Desligado em Ajustes → Conversas. */
+  abreviar?: boolean;
+}
+
+const TROCAS_ABREVIACAO: [RegExp, string][] = [
+  [/\bvocê\b/gi, 'vc'],
+  [/\btambém\b/gi, 'tb'],
+  [/\bporque\b/gi, 'pq'],
+  [/\bpor que\b/gi, 'pq'],
+  [/\bdepois\b/gi, 'dps'],
+  [/\bhoje\b/gi, 'hj'],
+  [/\bbeleza\b/gi, 'blz'],
+  [/\bquando\b/gi, 'qdo'],
+  [/\bminha nossa\b/gi, 'mn'],
+  [/\bmensagem\b/gi, 'msg'],
+  [/\bfavor\b/gi, 'pfv'],
+];
+
+/** Abreviações de quem digita rápido no celular. Nada de exagero: 1 a 3 por mensagem. */
+function abreviar(texto: string, ctx: EstiloContexto) {
+  if (ctx.abreviar === false) return texto;
+  const chancePorBolha = 0.12 + ctx.persona.fala.informalidade * 0.4;
+  let saida = texto;
+  const candidatos = TROCAS_ABREVIACAO.filter(([padrao]) => padrao.test(saida));
+  const quantas = Math.min(candidatos.length, ctx.rand() < chancePorBolha ? (ctx.rand() < 0.3 ? 2 : 1) : 0);
+  for (let i = 0; i < quantas; i++) {
+    const [padrao, abreviado] = candidatos[i];
+    saida = saida.replace(padrao, abreviado);
+  }
+  return saida;
 }
 
 /** Aplica emoji, risada, gíria, vocativo, erros de digitação e gênero. */
@@ -712,6 +942,8 @@ function estilizar(texto: string, ctx: EstiloContexto) {
       saida += ` ${a}`;
     }
   }
+
+  saida = abreviar(saida, ctx);
 
   // Erro de digitação: humano, pequeno e sem exagero.
   if (rand() < persona.fala.erro * 0.5) {
@@ -775,6 +1007,25 @@ export interface ChatInput {
   agora?: Date;
   /** A mensagem do usuário veio acompanhada de uma foto. */
   fotoEnviada?: boolean;
+  /** Catálogo completo: resolve quem é mãe, filha, irmã na hora de falar da família. */
+  pessoas?: Person[];
+  /** Idade de quem usa o catálogo (Ajustes → Meu perfil). */
+  dono?: { ownerAge?: number | null; ownerBirthday?: string | null } | null;
+  /** Relação já calculada, quando a tela quiser evitar recalcular. */
+  relacao?: Relacao;
+  /** Contagem de abreviações ligada/desligada (Ajustes → Conversas). */
+  abreviar?: boolean;
+}
+
+/**
+ * Resolve a relação: usa a que veio pronta, o catálogo quando disponível ou a
+ * persona já construída. Nunca lança — sem dados, a relação fica neutra.
+ */
+function relacaoDe(input: { person: Person; persona?: Persona; pessoas?: Person[]; dono?: { ownerAge?: number | null; ownerBirthday?: string | null } | null; relacao?: Relacao }): Relacao {
+  if (input.relacao) return input.relacao;
+  if (input.pessoas?.length) return analisarRelacao(input.person, input.pessoas, input.dono);
+  if (input.persona) return input.persona.relacao;
+  return analisarRelacao(input.person, [input.person], input.dono);
 }
 
 export interface ChatPlan {
@@ -807,11 +1058,16 @@ function escolher(opcoes: string[], usados: string[], rand: () => number) {
   return lista[Math.floor(rand() * lista.length)];
 }
 
-function preencher(texto: string, ctx: EstiloContexto, extras: { valor?: string } = {}) {
+function preencher(texto: string, ctx: EstiloContexto, extras: { valor?: string; familiar?: string; papel?: string; idade?: string; vinculo?: string; genero?: 'o' | 'a' } = {}) {
   let saida = texto.replace(/\{x\}/g, ganchoDe(ctx.persona, ctx.rand));
   saida = saida.replace(/\{interesse\}/g, ctx.persona.interesses[Math.floor(ctx.rand() * ctx.persona.interesses.length)]?.label || 'coisa boa');
   saida = saida.replace(/\{musica\}/g, ctx.musica || ctx.persona.nome || 'essa música');
   saida = saida.replace(/\{valor\}/g, extras.valor || '');
+  saida = saida.replace(/\{familiar\}/g, extras.familiar || 'minha família');
+  saida = saida.replace(/\{papel\}/g, extras.papel || 'família');
+  saida = saida.replace(/\{idade\}/g, extras.idade || String(ctx.persona.idade ?? ''));
+  saida = saida.replace(/\{vinculo\}/g, extras.vinculo || 'gente da família');
+  saida = saida.replace(/\{tia_ou_nao\}/g, ctx.persona.relacao.ehTia ? 'tia' : 'amiga');
   saida = saida.replace(/\s{2,}/g, ' ').trim();
   return estilizar(saida, ctx);
 }
@@ -828,6 +1084,9 @@ const MAPA_TEMAS: [RegExp, string][] = [
     [/\b(treino|academia|corrida|dieta)/, 'treino'],
     [/\b(frio|calor|chuva|tempo)/, 'clima'],
     [/\b(ano|futuro|sonho|plano|meta)/, 'futuro'],
+    [/\b(igreja|culto|ala|chamado|templo|missão|missao|escala)/, 'igreja'],
+    [/\b(filho|filha|criança|crianca|escola do|pediatra)/, 'filhos'],
+    [/\b(vinho|jantar|hotel|massagem|banho|cama|noite)/, 'vida adulta'],
 ];
 
 /** Temas citados em um texto, sem depender de persona (usado nas estatísticas). */
@@ -906,23 +1165,103 @@ function montarAtrasos(bolhas: string[], persona: Persona, rand: () => number, r
   });
 }
 
+// ---------------------------------------------------------------------------
+// Mensagens que chegam do nada.
+// Gente de verdade manda mensagem lembrando de coisa que você nem fez: o papel
+// que ficou na igreja, o recado que você não deu, o caderno esquecido. Aqui
+// cada categoria tem os seus assuntos, e a ficha ainda usa o nome dos parentes.
+// ---------------------------------------------------------------------------
+const DO_NADA_POR_CATEGORIA: Record<string, string[]> = {
+  igreja: [
+    'Ei, e o papel que você ia levar na igreja hoje? Esqueceu, né 😅',
+    'Falaram de você na reunião hoje. Eu falei que você ia domingo, não me deixa mal',
+    'Você esqueceu o seu caderno na capela, viu? Deixei guardado',
+    'A irmã do Soc. Soc. perguntou se você vai no mutirão. Eu respondi por você 😬',
+    'Você não foi no ensaio e a gente ficou sem a sua parte kkkk',
+  ],
+  fsy: [
+    'Ei, você esqueceu de me mandar aquela foto do FSY! Eu quero ela',
+    'O povo do FSY tá marcando encontro e eu falei que você ia. Você vai, né?',
+    'Deixei a sua camiseta do FSY com a líder, passa lá pra pegar',
+    'Você saiu sem falar comigo no último dia do FSY, hein 😤',
+  ],
+  trabalho: [
+    'Você mandou aquele arquivo? Ainda não chegou aqui 😅',
+    'Falaram de você na reunião hoje, viu? Melhor você se explicar kkk',
+    'Você deixou a sua caneca na minha mesa de novo 😅',
+    'O café acabou e você foi o culpado do dia, sabia?',
+  ],
+  escola: [
+    'Você não me passou aquele trabalho e a professora cobrou 💀',
+    'Deixei sua apostila na sala, ó se você vai pegar',
+    'Você faltou hoje? Eu tive que responder por você na chamada kkk',
+    'Guardei seu lugar, mas você não apareceu 😒',
+  ],
+  academia: [
+    'Você faltou hoje, né? Eu vi kkk',
+    'Deixei a sua garrafa na recepção, passa lá',
+    'Amanhã eu te espero no treino, sem desculpa',
+  ],
+  comunidade: [
+    'Ei, você deixou a chave do portão comigo, lembra?',
+    'Passei na sua rua hoje e não te vi. Tá fugindo de mim? kkk',
+    'O pessoal daqui perguntou de você no fim de semana',
+    'Você esqueceu o bolo da festa, viu? O povo reparou kkk',
+  ],
+  conhecida: [
+    'Ei, você sumiu. Tá tudo bem mesmo?',
+    'Achei uma coisa sua aqui em casa, precisa pegar',
+    'Lembrei de você hoje do nada. Não sei por quê',
+    'Aquele assunto que a gente combinou você não me contou o resto',
+  ],
+  padrao: [
+    'Ei, e aquilo que você ia me mandar? Ainda tô esperando 😅',
+    'Você lembrou daquilo que eu te pedi? Não, né? kkk',
+    'Passei pra ver se você tá vivo 😄',
+    'Hoje eu acordei lembrando de você, do nada',
+    'Tem uma coisa que você precisa resolver, viu? Fica de olho',
+  ],
+};
+
+/** Recado de quem cuida: quando ela te vê como criança ou como tia. */
+const DO_NADA_CUIDADO: string[] = [
+  'Você já almoçou direito hoje? Não me responde mentira',
+    'Sua mãe me disse que você anda dormindo tarde 👀 resolve isso',
+  'Oi, tudo bem por aí? Passando pra saber se você tá comendo',
+  'Você foi na igreja domingo? Eu olhei e não te vi',
+  'Vou passar aí amanhã, quero ver se você tá bem',
+];
+
+/** Recado que usa um parente dela de verdade, tirado dos vínculos da ficha. */
+const DO_NADA_FAMILIA: string[] = [
+  '{familiar} perguntou de você hoje 😳 o que eu respondo?',
+  'Tive um dia com {familiar} e lembrei de você no meio da bagunça',
+  '{familiar} viu você passando e quis saber quem é você kkk',
+  'Estou com {familiar} aqui, ele/ela manda um abraço',
+];
+
 /** Saudação de abertura quando a conversa ainda está vazia. */
 export function planOpening(input: Omit<ChatInput, 'message'> & { primeiraVez?: boolean }): ChatPlan {
   const rand = input.rand || Math.random;
-  const persona = input.persona || buildPersona(input.person);
+  const persona = input.persona || buildPersona(input.person, { people: input.pessoas, settings: input.dono });
+  const relacao = relacaoDe(input);
   const adulto = !!input.adulto;
   const state = input.state;
   const tom = input.tom || 'amizade';
-  const efetivo = tomEfetivo(tom, persona, state, adulto);
+  const efetivo = tomEfetivo(tom, persona, state, adulto, relacao);
   const hora = (input.agora || new Date()).getHours();
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar };
   const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
   const primeiraVez = input.primeiraVez !== false;
   const familia = familiaDe(efetivo, 'saudacao');
   const opcoes = primeiraVez
     ? [`${periodo}! Tudo bem? 😊`, `${periodo}, tudo bem? Vi que você apareceu por aqui 🙂`, `${periodo}! Que surpresa boa, tudo certo?`]
     : [`${periodo} de novo 😄`, `${periodo}! Você voltou, gostei disso`, `${periodo} 😊 continuo por aqui`];
-  if (primeiraVez && rand() < 0.4) opcoes.push(`${periodo}! Acabei de pensar em você e você apareceu 😳`);
+  // Quem te vê como criança ou como tia cumprimenta do jeito dela.
+  if (relacao.veCrianca) opcoes.push(`${periodo}, menino! Tudo bem por aí? Já comeu? 😊`, `${periodo}! Como tá a sua mãe?`);
+  else if (relacao.ehTia) opcoes.push(`${periodo}, meu bem! Tudo bem com você?`, `${periodo}! Tava lembrando de você esses dias 😊`);
+  if (relacao.familiar) opcoes.push(`${periodo}! Olha quem apareceu por aqui 😊`, `${periodo}, tudo bem? A família toda bem?`);
+  if (primeiraVez && rand() < 0.4 && relacao.flertePermitido) opcoes.push(`${periodo}! Acabei de pensar em você e você apareceu 😳`);
   const base = escolher(efetivo === 'amizade' ? opcoes : [...(RESPOSTAS.saudacao[familia] || []), ...opcoes], state.usados, rand);
   const texto = preencher(base, ctx);
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
@@ -931,32 +1270,38 @@ export function planOpening(input: Omit<ChatInput, 'message'> & { primeiraVez?: 
 }
 
 /** Mensagem espontânea da pessoa (quando o app fica parado ou no modo automático). */
-export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: 'saudade' | 'lembranca' | 'assunto' }): ChatPlan {
+export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: 'saudade' | 'lembranca' | 'assunto' | 'do_nada' }): ChatPlan {
   const rand = input.rand || Math.random;
-  const persona = input.persona || buildPersona(input.person);
+  const persona = input.persona || buildPersona(input.person, { people: input.pessoas, settings: input.dono });
+  const relacao = relacaoDe(input);
   const state = input.state;
   const adulto = !!input.adulto;
-  const efetivo = tomEfetivo(input.tom || state.tom, persona, state, adulto);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita };
+  const efetivo = tomEfetivo(input.tom || state.tom, persona, state, adulto, relacao);
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar };
   const motivo = input.motivo || (['saudade', 'lembranca', 'assunto'] as const)[Math.floor(rand() * 3)];
   const familia = familiaDe(efetivo, 'cotidiano');
   let texto: string;
-  if (motivo === 'lembranca' && state.lembrancas.length) {
+  if (motivo === 'do_nada') {
+    return planDoNada(input);
+  } else if (motivo === 'lembranca' && state.lembrancas.length) {
     const lembranca = state.lembrancas[Math.floor(rand() * state.lembrancas.length)];
     const modelos = PONTES.find(ponte => ponte.tipo === lembranca.tipo)?.modelos || PONTES[0].modelos;
     texto = preencher(escolher(modelos, state.usados, rand), ctx, { valor: lembranca.valor });
   } else if (motivo === 'saudade') {
-    texto = preencher(escolher(familia === A
+    // Ela nunca chega querendo algo do nada: sem flerte liberado, a saudade é de amizade.
+    texto = preencher(escolher(familia === A || !relacao.flertePermitido
       ? ['Tô pensando em você aqui 😊', 'Você sumiu, tá tudo bem?', 'Bom te ver por aqui, tava com saudade do papo', 'Acabei de lembrar de uma coisa que você disse e ri sozinha']
       : ['Tô com saudade de você, não vou mentir 😏', 'Você tá na minha cabeça, resolve isso', 'Passei pra ver se você aparecia 😉', 'Se você tivesse aqui agora... deixa, melhor não escrever 😏'],
-    state.usados, rand), ctx);
+    state.usados, rand), ctx, { familiar: relacao.familiares[0]?.nome, vinculo: relacao.vinculoComigo.toLowerCase() });
   } else {
     texto = preencher(escolher([
       `Vi uma coisa sobre ${ganchoDe(persona, rand)} hoje e lembrei de você`,
       'Como tá seu dia? Tô com tempo livre agora',
       'Adivinha quem apareceu na minha cabeça junto com uma música?',
       'Me conta uma novidade que eu tô precisando de assunto bom',
-    ], state.usados, rand), ctx);
+      ...(relacao.veCrianca || relacao.ehTia ? PAPO_CRIANCA.slice(0, 3) : []),
+      ...(relacao.familiares.length ? [FALAS_FAMILIA[Math.floor(rand() * FALAS_FAMILIA.length)]] : []),
+    ], state.usados, rand), ctx, { familiar: relacao.familiares[0]?.nome });
   }
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
   const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor);
@@ -964,15 +1309,64 @@ export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: '
   return { bolhas: bolhas.map((t, i) => ({ texto: t, atraso: atrasos[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: input.tom || state.tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: ['espontanea'], desviado: false };
 }
 
+/**
+ * Mensagem que chega do nada.
+ *
+ * Gente de verdade manda mensagem lembrando de coisa que você nem fez: o papel
+ * que "ficou na igreja", o recado que você "não deu", o caderno esquecido, o
+ * pedido que você "não mandou". Ela usa a categoria da ficha, os parentes
+ * cadastrados e, quando é o caso, o jeito de quem cuida de você.
+ */
+export function planDoNada(input: Omit<ChatInput, 'message'>): ChatPlan {
+  const rand = input.rand || Math.random;
+  const persona = input.persona || buildPersona(input.person, { people: input.pessoas, settings: input.dono });
+  const relacao = relacaoDe(input);
+  const state = input.state;
+  const efetivo = tomEfetivo(input.tom || 'amizade', persona, state, !!input.adulto, relacao);
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar };
+  const familiares = relacao.familiares;
+  const opcoes: string[] = [
+    ...(familiares.length ? DO_NADA_FAMILIA : []),
+    ...(relacao.veCrianca || relacao.ehTia ? DO_NADA_CUIDADO : []),
+    ...(DO_NADA_POR_CATEGORIA[persona.categoria] || []),
+    ...DO_NADA_POR_CATEGORIA.padrao,
+  ];
+  const escolhido = escolher(opcoes, state.usados, rand);
+  const texto = preencher(escolhido, ctx, { familiar: familiares[Math.floor(rand() * familiares.length)]?.nome });
+  const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
+  const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor);
+  const proximo = {
+    ...state,
+    humor: state.humor === 'fechada' || state.humor === 'neutral' ? 'happy' as Mood : state.humor,
+    recentes: [...state.recentes, texto].slice(-16),
+    usados: [...state.usados, escolhido].slice(-60),
+    ultimaMensagem: new Date().toISOString(),
+  };
+  return {
+    bolhas: bolhas.map((t, i) => ({ texto: t, atraso: atrasos[i] })),
+    state: proximo,
+    humor: proximo.humor,
+    tom: efetivo,
+    tomPedido: input.tom || 'amizade',
+    intencao: 'igreja',
+    sentimento: 'neutro',
+    afinidade: proximo.afinidade,
+    estagio: estagioAtual(proximo),
+    eventos: ['espontanea', 'do-nada'],
+    desviado: false,
+  };
+}
+
 /** Monta a resposta completa para uma mensagem do usuário. */
 export function planReply(input: ChatInput): ChatPlan {
   const rand = input.rand || Math.random;
-  const persona = input.persona || buildPersona(input.person);
+  const persona = input.persona || buildPersona(input.person, { people: input.pessoas, settings: input.dono });
+  const relacao = relacaoDe(input);
   const adulto = !!input.adulto;
   const state = input.state;
   const tomPedido = input.tom || state.tom;
-  const permissao = tonsDisponiveis(persona, state, adulto).reduce((acc, item) => ({ ...acc, [item.id]: item.ok }), {} as Record<Tone, boolean>);
-  const efetivo = tomEfetivo(tomPedido, persona, state, adulto);
+  const permissao = tonsDisponiveis(persona, state, adulto, relacao).reduce((acc, item) => ({ ...acc, [item.id]: item.ok }), {} as Record<Tone, boolean>);
+  const efetivo = tomEfetivo(tomPedido, persona, state, adulto, relacao);
   const eventos: string[] = [];
   const desviadoTom = efetivo !== tomPedido;
 
@@ -987,43 +1381,65 @@ export function planReply(input: ChatInput): ChatPlan {
   let humor = input.humor || state.humor;
   humor = humorDerivado(humor, intencao, sentimento, persona, rand);
 
+  // A relação manda antes da química: criança, tia e família não entram em romance.
+  const INTENCOES_ROMANTICAS: IntentId[] = ['cantada', 'declaracao', 'saudade', 'flerte_leve', 'flerte_forte', 'elogio_corpo', 'pedido_foto', 'convite', 'pergunta_sobre_mim'];
+  // Com quem te vê como criança, até elogio vira conversa de gente grande: ela responde como quem cuida.
+  const elogioDeCrianca = relacao.veCrianca && (intencao === 'elogio' || intencao === 'elogio_corpo');
+  const romanceBloqueado = !relacao.flertePermitido && (INTENCOES_ROMANTICAS.includes(intencao) || elogioDeCrianca) && !input.fotoEnviada;
+
   const delta = ajusteDeAfinidade(intencao, sentimento, persona, { ousadiaOk, flerteOk }, estagioAntes)
+    * (romanceBloqueado ? 0.35 : 1)
     * (humor === 'fechada' ? 0.55 : 1)
     * (humor === 'carinhosa' ? 1.15 : 1);
   const afinidade = Math.max(0, Math.min(100, state.afinidade + delta));
 
   const familia = familiaDe(efetivo, intencao);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar };
   const bolhas: string[] = [];
   const usados = [...state.usados];
   const modelosUsados: string[] = [];
+  /** Familiar citado na pergunta (mãe, filha, irmã...) ou o primeiro cadastrado. */
+  const familiarCitado = familiarDaMensagem(pessoa, relacao.familiares);
+  const extrasBase = {
+    familiar: familiarCitado?.nome || relacao.familiares[0]?.nome,
+    papel: familiarCitado?.papel,
+    idade: relacao.idadeDela !== null ? String(relacao.idadeDela) : undefined,
+    vinculo: relacao.vinculoComigo.toLowerCase(),
+  };
   /** Escolhe evitando repetição e registra o modelo para as próximas mensagens. */
   const preencherEscolhido = (opcoes: string[], gerador: () => number, extras: { valor?: string; lembranca?: string } = {}) => {
     const escolhido = escolher(opcoes, usados, gerador);
     usados.push(escolhido);
     modelosUsados.push(escolhido);
-    return preencher(escolhido, ctx, extras);
+    return preencher(escolhido, ctx, { ...extrasBase, ...extras });
   };
 
   const picanteBloqueado = picante && !permissao.provocante && !permissao.intenso && !input.fotoEnviada;
-  const desviado = desviadoTom || picanteBloqueado;
+  const desviado = desviadoTom || picanteBloqueado || romanceBloqueado;
 
   // 1. Desvio de limite: ela não responde o que foi pedido, ela marca o limite.
   if (desviado) {
-    const banco = !persona.adulta || (!permissao.flerte && tomPedido !== 'amizade') ? DESVIOS_AMIZADE : DESVIOS;
+    const banco = romanceBloqueado
+      ? (relacao.veCrianca ? LIMITES_CRIANCA : relacao.familiar ? LIMITES_FAMILIA : relacao.ehTia ? LIMITES_TIA : DESVIOS_AMIZADE)
+      : (!persona.adulta || (!permissao.flerte && tomPedido !== 'amizade') ? DESVIOS_AMIZADE : DESVIOS);
     bolhas.push(preencherEscolhido(banco, rand));
-    eventos.push(`limite:${picanteBloqueado && !desviadoTom ? intencao : tomPedido}`);
+    eventos.push(`limite:${romanceBloqueado ? relacao.dinamica : picanteBloqueado && !desviadoTom ? intencao : tomPedido}`);
   }
 
-  // 2. Reação curta.
+  // 2. Reação curta — com quem te vê como criança, até o "😳" sai de cena.
+  const criancaLimitada = romanceBloqueado && relacao.veCrianca;
   const chanceReacao = 0.42 + persona.traits.verbosidade * 0.35 + (sentimento !== 'neutro' ? 0.12 : 0);
-  if (rand() < chanceReacao) {
+  if (!criancaLimitada && rand() < chanceReacao) {
     bolhas.push(preencherEscolhido(RECEPCOES[sentimento], rand));
   }
 
   // 3. Conteúdo principal.
   const banco = RESPOSTAS[intencao] || RESPOSTAS.desconhecido;
-  const opcoes = banco[familia]?.length ? banco[familia]! : (banco[A] || RESPOSTAS.desconhecido[A]!);
+  const opcoes = criancaLimitada
+    ? PAPO_CRIANCA
+    : intencao === 'pergunta_familiar' && !relacao.familiares.length
+      ? SEM_FAMILIAR
+      : banco[familia]?.length ? banco[familia]! : (banco[A] || RESPOSTAS.desconhecido[A]!);
   let principal = preencherEscolhido(opcoes, rand);
 
   // 3b. Ponte de memória: puxa algo que você contou, de vez em quando.
@@ -1043,8 +1459,16 @@ export function planReply(input: ChatInput): ChatPlan {
     bolhas.push(preencherEscolhido(COMPLEMENTOS_FECHADA, rand));
   }
 
+  // 3d. Voz da relação: tia dá conselho, quem cuida pergunta da rotina e a
+  // família entra no papo de vez em quando (só com o vínculo cadastrado).
+  if ((relacao.ehTia || relacao.veCrianca) && rand() < 0.34) bolhas.push(preencherEscolhido(COMPLEMENTOS_TIA, rand));
+  if (relacao.veCrianca && rand() < 0.32) bolhas.push(preencherEscolhido(PAPO_CRIANCA, rand));
+  if (relacao.familiares.length && rand() < 0.24) bolhas.push(preencherEscolhido(FALAS_FAMILIA, rand));
+
   // 4. Pergunta de volta, com assunto novo (nunca repetindo a mesma pergunta).
-  const temaBase = temas[Math.floor(rand() * temas.length)] || 'dia';
+  let temaBase = temas[Math.floor(rand() * temas.length)] || 'dia';
+  if (relacao.veCrianca && rand() < 0.5) temaBase = 'casa_adulta';
+  else if (relacao.ehTia && rand() < 0.3) temaBase = 'descanso';
   const poolPerguntas = (PERGUNTAS[temaBase] || PERGUNTAS.dia).filter(pergunta => !state.perguntas.includes(pergunta));
   const chancePergunta = 0.3 + persona.traits.curiosidade * 0.42 - (humor === 'fechada' ? 0.3 : 0);
   let perguntaNova: string | undefined;
@@ -1120,12 +1544,17 @@ export interface SugestaoContexto {
   quantas?: number;
   rand?: () => number;
   agora?: Date;
+  /** Catálogo e idade do dono: deixam as sugestões coerentes com a relação. */
+  pessoas?: Person[];
+  dono?: { ownerAge?: number | null; ownerBirthday?: string | null } | null;
+  relacao?: Relacao;
 }
 
 /** Aberturas prontas para começar (ou recomeçar) a conversa. */
 export function sugerirAberturas(ctx: SugestaoContexto): Sugestao[] {
   const rand = ctx.rand || Math.random;
-  const persona = ctx.persona || buildPersona(ctx.person);
+  const persona = ctx.persona || buildPersona(ctx.person, { people: ctx.pessoas, settings: ctx.dono });
+  const relacao = ctx.relacao || persona.relacao;
   const historico = ctx.historico || [];
   const estado = ctx.state;
   const diasSemFalar = historico.length ? Math.floor((Date.now() - Date.parse(historico[historico.length - 1].timestamp || new Date().toISOString())) / 86400000) : 0;
@@ -1137,10 +1566,11 @@ export function sugerirAberturas(ctx: SugestaoContexto): Sugestao[] {
   if (estado.afinidade >= 62) chaves.push('especial');
   else if (estado.afinidade >= 30) chaves.push('proxima');
   chaves.push('interesse', 'convite');
-  const permitido = tonsDisponiveis(persona, estado, !!ctx.adulto);
+  if (relacao.familiar || relacao.ehTia || relacao.veCrianca) chaves.push('familia');
+  const permitido = tonsDisponiveis(persona, estado, !!ctx.adulto, relacao);
   const sugestoes: Sugestao[] = [];
   for (const chave of chaves) {
-    for (const sugestao of ABERTURAS[chave]) {
+    for (const sugestao of ABERTURAS[chave] || []) {
       const tomOk = permitido.find(tom => tom.id === sugestao.tom)?.ok;
       if (!tomOk) continue;
       sugestoes.push(sugestao);
@@ -1154,11 +1584,12 @@ export function sugerirAberturas(ctx: SugestaoContexto): Sugestao[] {
 const interessesDoTexto = (persona: Persona) => persona.interesses[0]?.label || 'coisas boas';
 
 /** Sugestões de resposta com base no que ela acabou de mandar. */
-export function sugerirRespostas(input: { person: Person; persona?: Persona; state: ChatState; mensagemDela: string; adulto?: boolean; quantas?: number; rand?: () => number; tom?: Tone }): Sugestao[] {
+export function sugerirRespostas(input: { person: Person; persona?: Persona; state: ChatState; mensagemDela: string; adulto?: boolean; quantas?: number; rand?: () => number; tom?: Tone; pessoas?: Person[]; dono?: { ownerAge?: number | null; ownerBirthday?: string | null } | null; relacao?: Relacao }): Sugestao[] {
   const rand = input.rand || Math.random;
-  const persona = input.persona || buildPersona(input.person);
+  const persona = input.persona || buildPersona(input.person, { people: input.pessoas, settings: input.dono });
+  const relacao = input.relacao || persona.relacao;
   const adulto = !!input.adulto;
-  const permitido = tonsDisponiveis(persona, input.state, adulto);
+  const permitido = tonsDisponiveis(persona, input.state, adulto, relacao);
   const texto = normalizeText(input.mensagemDela);
   let chave: keyof typeof RESPOSTAS_SUGERIDAS = 'ela-neutra';
   if (input.state.humor === 'fechada') chave = 'ela-fechada';
@@ -1262,6 +1693,7 @@ export function conversaParaMarkdown(person: Person, messages: ChatMessage[]) {
 
 /** Cartão de leitura rápida da persona (mostrado no cabeçalho do chat). */
 export function cartaoDaPersona(persona: Persona) {
+  const { relacao } = persona;
   return {
     titulo: `${persona.nome}${persona.idade ? `, ${persona.idade}` : ''}`,
     resumo: persona.resumo,
@@ -1269,6 +1701,24 @@ export function cartaoDaPersona(persona: Persona) {
     interesses: persona.interesses.map(interesse => interesse.label),
     contexto: persona.contexto,
     adulta: persona.adulta,
+    estilo: persona.estilo,
+    relacao: relacao.rotulo,
+    relacaoDescricao: relacao.descricao,
+    tratamento: relacao.tratamento,
+    familiares: relacao.familiares.map(item => `${item.papel}: ${item.nome}`),
+    flertePermitido: relacao.flertePermitido,
+    adultoPermitido: relacao.adultoPermitido,
+  };
+}
+
+/** Resumo pronto da relação, usado em telas e no cartão da conversa. */
+export function resumoDaRelacao(relacao: Relacao) {
+  return {
+    rotulo: relacao.rotulo,
+    descricao: relacao.descricao,
+    motivoLimite: motivoDoLimite(relacao),
+    tratamento: relacao.tratamento.join(', '),
+    familiares: relacao.familiares.map(item => `${item.papel}: ${item.nome}`),
   };
 }
 

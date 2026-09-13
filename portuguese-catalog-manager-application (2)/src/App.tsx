@@ -32,16 +32,17 @@ import Discover from './components/Discover';
 import NotificationCenter from './components/NotificationCenter';
 import QuickTools from './components/QuickTools';
 import Toolbox from './components/Toolbox';
+import Conversations from './components/Conversations';
 import { AchievementToast, ConfettiBurst, LevelUpBadge, RouletteModal } from './components/Celebrations';
 import OnboardingTour from './components/OnboardingTour';
 import { playSound } from './lib/sound';
 
 const PAGE_NAMES: Record<string, string> = {
-  home: 'Visão geral', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
+  home: 'Visão geral', conversas: 'Conversas', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
 };
 const SHORTCUT_PAGES = ['home', 'catalog', 'ranking', 'tierlists', 'add', 'gallery', 'stories', 'settings'];
 // Atalhos de letra: chegam rápido às telas novas sem mudar os atalhos antigos.
-const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox' };
+const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox', p: 'conversas' };
 // Código Konami: ↑ ↑ ↓ ↓ ← → ← → B A liga (ou desliga) o tema disco.
 const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
 
@@ -81,6 +82,7 @@ function ActivePage() {
   if (page === 'myspace') return <MySpace />;
   if (page === 'agenda') return <Agenda />;
   if (page === 'toolbox') return <Toolbox />;
+  if (page === 'conversas') return <Conversations />;
   if (page === 'discover') return <Discover />;
   if (page === 'catalog') return <Catalog />;
   if (page === 'add') return <AddPerson />;
@@ -166,7 +168,12 @@ function Application() {
       if (ctx.privacy) return;
       if (mod && value === 'k') { event.preventDefault(); ctx.setCommandOpen(!ctx.commandOpen); return; }
       const target = event.target as HTMLElement;
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable || document.querySelector('[role="dialog"]')) return;
+      const focado = document.activeElement as HTMLElement | null;
+      const digitando = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+        || (!!focado && ['INPUT', 'TEXTAREA', 'SELECT'].includes(focado.tagName))
+        || target.isContentEditable || !!focado?.isContentEditable;
+      // Quem está escrevendo (inclusive na conversa aberta fora de modal) não dispara atalhos.
+      if (digitando || document.querySelector('[role="dialog"]')) return;
       if (!mod && !event.altKey) {
         konamiKeys.current = [...konamiKeys.current, value].slice(-KONAMI.length);
         // O "B" do código não pode ligar o disfarce no meio da sequência.
@@ -231,7 +238,7 @@ function Application() {
           </div>
         </header>
         {ctx.demo && <div className="demo-banner"><span><ShieldCheck size={13} />Você está explorando fichas fictícias. Seus dados reais não são alterados.</span><button onClick={ctx.logout}>Sair da demonstração</button></div>}
-        <main className="page-content"><AnimatePresence mode="wait"><motion.div key={page} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.19 }}><ActivePage /></motion.div></AnimatePresence></main>
+        <main className="page-content"><motion.div key={page} className="page-fade" initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.19 }}><ActivePage /></motion.div></main>
         <div className="workspace-footer">
           <span><LockKeyhole size={11} />Armazenado neste dispositivo</span>
           <span className="footer-level"><button onClick={() => ctx.navigate('dashboard')}><Gauge size={12} />Nível {ctx.level.level} · {ctx.xp.toLocaleString('pt-BR')} XP</button>{ctx.unread > 0 && <button className="footer-alert" onClick={() => ctx.setNotificationsOpen(true)}><Sparkles size={12} />{ctx.unread} {ctx.unread === 1 ? 'aviso' : 'avisos'}</button>}</span>
