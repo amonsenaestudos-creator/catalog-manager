@@ -1,5 +1,5 @@
-import type { AppData, Person } from '../types';
-import { calculateOverallRating, downloadBlob, formatNumber, getFinalScore, getMainPhoto, locationLabel, today } from '../store';
+import type { AppData, Person, TierList } from '../types';
+import { calculateOverallRating, downloadBlob, formatNumber, getFinalScore, getMainPhoto, locationLabel, PALETTE, tierAllows, today } from '../store';
 
 async function image(url?: string): Promise<HTMLImageElement | null> {
   if (!url) return null;
@@ -77,4 +77,37 @@ export async function exportRankingPng(people: Person[], data: AppData, full: bo
     ctx.textAlign = 'left'; write(ctx, `Salvo em ${today().split('-').reverse().join('/')}  ·  ${people.length} pessoas${pageCount > 1 ? `  ·  Página ${page + 1}/${pageCount}` : ''}`, 60, c.height - 30, 14, '#8f8599');
     await saveCanvas(c, `catalog-${full ? 'ranking' : 'podio'}-${today()}${pageCount > 1 ? `-${page + 1}` : ''}.png`);
   }
+}
+/** Tierlist em imagem: uma faixa colorida por linha, retratos redondos e o nome de cada pessoa. */
+export async function exportTierListPng(list: TierList, data: AppData) {
+  await document.fonts.ready;
+  const allowed = data.people.filter(p => tierAllows(p, list));
+  const rows = list.tiers.map((tier, index) => {
+    const storedColor = list.colors?.[tier];
+    const color = typeof storedColor === 'string' && /^#[\da-f]{6}$/i.test(storedColor) ? storedColor : PALETTE[index % PALETTE.length];
+    const members = list.items.filter(item => item.tier === tier).map(item => allowed.find(p => p.id === item.personId)).filter((p): p is Person => !!p);
+    return { tier, color, members };
+  });
+  const perRow = 8, cell = 128, labelWidth = 170, padding = 48;
+  const heights = rows.map(row => Math.max(1, Math.ceil(row.members.length / perRow)) * (cell + 40) + 24);
+  const c = document.createElement('canvas'); c.width = labelWidth + perRow * cell + padding * 2; c.height = 150 + heights.reduce((sum, h) => sum + h, 0) + 70;
+  const ctx = c.getContext('2d'); if (!ctx) throw new Error('Exportação de imagem indisponível.');
+  ctx.fillStyle = '#121116'; ctx.fillRect(0, 0, c.width, c.height);
+  write(ctx, 'catalog.', padding, 62, 30, '#d4a5ed', 700); write(ctx, list.nome, padding, 112, 36, '#f1edf5', 600, c.width - padding * 2);
+  let y = 150;
+  for (const [index, row] of rows.entries()) {
+    const height = heights[index];
+    rounded(ctx, padding, y, c.width - padding * 2, height - 12, 14, index % 2 ? '#16141b' : '#1b1821');
+    rounded(ctx, padding, y, labelWidth, height - 12, 14, `${row.color}33`);
+    ctx.textAlign = 'center'; write(ctx, row.tier, padding + labelWidth / 2, y + (height - 12) / 2 + 12, row.tier.length > 6 ? 22 : 34, row.color, 700, labelWidth - 20); ctx.textAlign = 'left';
+    for (const [position, person] of row.members.entries()) {
+      const x = padding + labelWidth + 16 + (position % perRow) * cell, top = y + 14 + Math.floor(position / perRow) * (cell + 40);
+      portrait(ctx, await image(getMainPhoto(person)?.url), person, x, top, cell - 28, 18);
+      ctx.textAlign = 'center'; write(ctx, person.nome.split(' ')[0], x + (cell - 28) / 2, top + cell + 2, 15, '#e8e2ee', 500, cell - 24); ctx.textAlign = 'left';
+    }
+    if (!row.members.length) write(ctx, 'Faixa vazia', padding + labelWidth + 22, y + (height - 12) / 2 + 6, 16, '#6f6779', 400);
+    y += height;
+  }
+  write(ctx, `Salvo em ${today().split('-').reverse().join('/')}  ·  ${rows.reduce((sum, row) => sum + row.members.length, 0)} pessoas organizadas`, padding, c.height - 28, 14, '#8f8599');
+  await saveCanvas(c, `catalog-tierlist-${list.nome.replace(/[^a-z\d]/gi, '-').toLowerCase()}.png`);
 }

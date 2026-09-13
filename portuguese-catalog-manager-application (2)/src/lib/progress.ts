@@ -79,7 +79,7 @@ export function weeklyChallenges(data: AppData): { week: string; challenges: Cha
   const journal = data.journal.filter(entry => entry.date >= weekStart.slice(0, 10)).length;
   const duels = data.progress.duels.filter(duel => duel.date >= weekStart.slice(0, 10)).length;
   const doneReminders = data.reminders.filter(r => r.concluido && r.createdAt >= weekStart).length;
-  const incomplete = people(data).filter(p => completeness(p).percent < 100).length;
+  const completedThisWeek = people(data).filter(p => completeness(p).percent === 100 && (p.updatedAt || p.createdAt) >= weekStart).length;
   return {
     week,
     challenges: [
@@ -88,7 +88,7 @@ export function weeklyChallenges(data: AppData): { week: string; challenges: Cha
       { id: 'diario-1', title: 'Escreva 1 página no seu espaço', target: 1, progress: Math.min(1, journal) },
       { id: 'duelos-3', title: 'Faça 3 duelos no This or That', target: 3, progress: Math.min(3, duels) },
       { id: 'lembretes-2', title: 'Conclua 2 lembretes', target: 2, progress: Math.min(2, doneReminders) },
-      { id: 'completar-3', title: incomplete ? 'Complete 3 fichas incompletas' : 'Mantenha suas fichas completas', target: 3, progress: incomplete ? 0 : 3 },
+      { id: 'completar-3', title: 'Deixe 3 fichas 100% completas', target: 3, progress: Math.min(3, completedThisWeek) },
     ],
   };
 }

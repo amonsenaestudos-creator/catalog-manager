@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, Check, Copy, GripVertical, Layers, MoreHorizontal, Plus, Settings2, SlidersHorizontal, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, Check, Copy, Download, GripVertical, Layers, MoreHorizontal, Plus, Settings2, SlidersHorizontal, Trash2, Users } from 'lucide-react';
 import type { Person, TierList } from '../types';
 import { useCatalog } from '../context';
 import { generateId, isActive, locationLabel, PALETTE, tierAllows } from '../store';
+import { exportTierListPng } from '../lib/export';
 import { Avatar, Button, CheckBox, Confirm, EmptyState, Field, IconButton, Modal, PageTitle } from './ui';
 
 export default function TierLists() {
@@ -15,6 +16,8 @@ export default function TierLists() {
   const [deleteList, setDeleteList] = useState<string | null>(null); const [deleteRow, setDeleteRow] = useState<string | null>(null);
   const [dragId, setDragId] = useState(''); const [dropTarget, setDropTarget] = useState(''); const [query, setQuery] = useState('');
   const [movePerson, setMovePerson] = useState<Person | null>(null); const [moveTier, setMoveTier] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const exportPng = async (source: TierList) => { if (ctx.privacy || exporting) return; setExporting(true); try { await exportTierListPng(source, data); ctx.notify('Imagem da tierlist exportada.'); } catch (error) { ctx.notify((error as Error).message, true); } finally { setExporting(false); } };
 
   const updateList = (updater: (t: TierList) => TierList, message?: string) => { if (!list) return; ctx.commit(d => ({ ...d, tierLists: d.tierLists.map(t => t.id === list.id ? { ...updater(t), updatedAt: new Date().toISOString() } : t) }), message); };
   const create = () => { if (!name.trim()) return; const tiers = [...new Set(rows.split(',').map(s => s.trim()).filter(Boolean))]; if (!tiers.length) { ctx.notify('Crie pelo menos uma faixa.', true); return; } const newList: TierList = { id: generateId(), nome: name.trim(), tiers, items: [], allowedCategories: ['todas'], allowedSubcategories: ['todas'], colors: Object.fromEntries(tiers.map((t, i) => [t, PALETTE[i % PALETTE.length]])) }; ctx.commit(d => ({ ...d, tierLists: [...d.tierLists, newList] }), 'Tierlist criada. Agora escolha seus participantes.'); setActiveId(newList.id); setCreating(false); };
@@ -48,7 +51,7 @@ export default function TierLists() {
     </div>;
   }
 
-  return <div className="tierlists-page">{list ? <><button className="back-link" onClick={() => setActiveId(null)}><ArrowLeft size={16} />Todas as tierlists</button><PageTitle eyebrow="Uma organização que é só sua" title={list.nome} description={`${allowed.length} pessoas disponíveis. Arraste para organizar ou use a opção Mover.`}><Button onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={16} />Participantes</Button><div className="menu-anchor"><details className="details-menu"><summary className="btn btn-secondary"><MoreHorizontal size={19} />Mais</summary><div className="dropdown-menu"><button onClick={() => { setName(list.nome); setEditingName(true); }}><Settings2 size={16} />Renomear tierlist</button><button onClick={() => duplicateList(list)}><Copy size={16} />Duplicar tierlist</button><button className="danger-text" onClick={() => setDeleteList(list.id)}><Trash2 size={16} />Excluir tierlist</button></div></details></div></PageTitle>
+  return <div className="tierlists-page">{list ? <><button className="back-link" onClick={() => setActiveId(null)}><ArrowLeft size={16} />Todas as tierlists</button><PageTitle eyebrow="Uma organização que é só sua" title={list.nome} description={`${allowed.length} pessoas disponíveis. Arraste para organizar ou use a opção Mover.`}><Button onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={16} />Participantes</Button><div className="menu-anchor"><details className="details-menu"><summary className="btn btn-secondary"><MoreHorizontal size={19} />Mais</summary><div className="dropdown-menu"><button onClick={() => { setName(list.nome); setEditingName(true); }}><Settings2 size={16} />Renomear tierlist</button><button onClick={() => duplicateList(list)}><Copy size={16} />Duplicar tierlist</button><button onClick={() => exportPng(list)} disabled={exporting}><Download size={16} />{exporting ? 'Exportando...' : 'Exportar tierlist PNG'}</button><button className="danger-text" onClick={() => setDeleteList(list.id)}><Trash2 size={16} />Excluir tierlist</button></div></details></div></PageTitle>
       {hiddenCount > 0 && <div className="inline-notice"><Layers size={17} /><span>{hiddenCount} posição(ões) fora dos filtros ou no arquivo. Elas permanecem preservadas e voltarão ao restaurar os participantes.</span></div>}
       <div className="tier-board">
         <div className="tier-board-main">{list.tiers.map((tier, index) => {

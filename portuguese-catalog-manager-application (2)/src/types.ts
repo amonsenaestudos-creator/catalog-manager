@@ -152,7 +152,7 @@ export interface CatalogFilter {
   tag: string;
   minimum: number;
   photo: 'all' | 'with' | 'without';
-  sort: 'recent' | 'name' | 'rating' | 'seen' | 'updated';
+  sort: 'recent' | 'name' | 'rating' | 'seen' | 'updated' | 'completeness' | 'age' | 'lastSeen' | 'birthday';
   scope: 'active' | 'favorites' | 'archived' | 'trash';
   incomplete: boolean;
   collection: string;
@@ -266,6 +266,9 @@ export interface Progress {
   streak: { last: string; count: number };
   challenges: { week: string; done: string[] };
   lastActive: string;
+  // Marcos já comemorados (níveis, cinturão do duelo) para não repetir a festa.
+  celebrated?: Record<string, string>;
+  konami?: boolean;
 }
 export interface Vault { pin: string | null; photoIds: string[] }
 
@@ -324,6 +327,11 @@ export interface AppData {
     blurMode?: boolean;
     density?: 'confortavel' | 'compacto';
     trashAutoCleanDays?: number;
+    // Sons de interface gerados por código (ligados por padrão) e extras divertidos.
+    sounds?: boolean;
+    soundVolume?: number;
+    haptics?: boolean;
+    confetti?: boolean;
   };
 }
 

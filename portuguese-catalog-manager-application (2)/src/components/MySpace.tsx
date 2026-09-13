@@ -4,6 +4,7 @@ import type { Goal, JournalEntry, PersonalLink } from '../types';
 import { useCatalog } from '../context';
 import { daysUntil, formatDate, generateId, normalizeText, textStats, today } from '../store';
 import { streakInfo } from '../lib/progress';
+import { playMood } from '../lib/sound';
 import { Avatar, Button, Confirm, EmptyState, Field, IconButton, Modal, PageTitle, SectionHeading } from './ui';
 
 const MOODS = [{ value: 1, label: 'Difícil', emoji: '😔' }, { value: 2, label: 'Baixo', emoji: '😕' }, { value: 3, label: 'Ok', emoji: '🙂' }, { value: 4, label: 'Bom', emoji: '😊' }, { value: 5, label: 'Ótimo', emoji: '🤩' }];
@@ -27,7 +28,7 @@ export default function MySpace() {
       <Button onClick={() => ctx.navigate('agenda')}><Sparkles size={16} />Agenda</Button>
     </PageTitle>
     <div className="myspace-header">
-      <div><p className="eyebrow">Seu momento</p><h2>{data.journal.length ? `Você já escreveu ${data.journal.length} ${data.journal.length === 1 ? 'página' : 'páginas'} aqui.` : 'Sua primeira página espera por você.'}</h2><p>Humor médio: {data.journal.length ? `${(data.journal.reduce((sum, entry) => sum + entry.mood, 0) / data.journal.length).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} de 5` : 'registre seu primeiro dia'} · {streak.count} {streak.count === 1 ? 'dia seguido' : 'dias seguidos'} no catálogo</p></div>
+      <div><p className="eyebrow">Seu momento</p><h2>{data.journal.length ? `Você já escreveu ${data.journal.length} ${data.journal.length === 1 ? 'página' : 'páginas'} aqui.` : 'Sua primeira página espera por você.'}</h2><p>Humor médio: {data.journal.length ? `${(data.journal.reduce((sum, entry) => sum + entry.mood, 0) / data.journal.length).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} de 5` : 'registre seu primeiro dia'} · <span className={`streak-flame level-${streak.count >= 30 ? 3 : streak.count >= 7 ? 2 : streak.count >= 3 ? 1 : 0}`} title={`Próximo marco: ${streak.nextMilestone} dias`}>🔥 {streak.count} {streak.count === 1 ? 'dia seguido' : 'dias seguidos'}</span> no catálogo{streak.count >= 3 ? ` · faltam ${streak.nextMilestone - streak.count} para o marco de ${streak.nextMilestone}` : ''}</p></div>
       <div className="mood-strip">{MOODS.map(mood => { const count = data.journal.filter(entry => entry.mood === mood.value).length; return <span key={mood.value} title={`${mood.label}: ${count}`}><b>{mood.emoji}</b><small>{count}</small></span>; })}</div>
     </div>
     <div className="scope-tabs">{tabs.map(item => <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><item.icon size={15} />{item.label}<span>{item.count}</span></button>)}</div>
@@ -72,7 +73,7 @@ function Journal() {
     {!entries.length && <EmptyState icon={BookHeart} title="Um espaço para o que é seu" description="Anote o dia, o humor e o que você não quer esquecer. Nada aqui aparece nas fichas." action="Escrever primeira página" onAction={create} />}</div>
     {editing && <Modal title={data.journal.some(item => item.id === editing.id) ? 'Editar página' : 'Nova página'} description="Só você lê isto aqui." onClose={() => setEditing(null)} wide footer={<><span className="muted small">{textStats(editing.content).words} palavras</span><Button onClick={() => setEditing(null)}>Cancelar</Button><Button variant="primary" onClick={save}><Check size={16} />Salvar página</Button></>}>
       <div className="form-grid"><Field label="Data"><input type="date" value={editing.date} onChange={e => setEditing({ ...editing, date: e.target.value })} /></Field>
-        <Field label="Como foi o dia?"><div className="mood-picker">{MOODS.map(mood => <button key={mood.value} type="button" className={editing.mood === mood.value ? 'active' : ''} onClick={() => setEditing({ ...editing, mood: mood.value })} aria-pressed={editing.mood === mood.value} title={mood.label}>{mood.emoji}</button>)}</div></Field></div>
+        <Field label="Como foi o dia?"><div className="mood-picker">{MOODS.map(mood => <button key={mood.value} type="button" className={editing.mood === mood.value ? 'active' : ''} onClick={() => { setEditing({ ...editing, mood: mood.value }); playMood(mood.value); }} aria-pressed={editing.mood === mood.value} title={mood.label}>{mood.emoji}</button>)}</div></Field></div>
       <Field label="Título"><input value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })} placeholder="Ex.: Um dia bom" maxLength={120} /></Field>
       <Field label="Sua página"><textarea rows={10} value={editing.content} onChange={e => setEditing({ ...editing, content: e.target.value })} placeholder="Escreva livremente..." /></Field>
       <Field label="Etiquetas" hint="Separe por vírgula"><input value={editing.tags.join(', ')} onChange={e => setEditing({ ...editing, tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean) })} placeholder="trabalho, família, ideias" /></Field>
@@ -91,7 +92,7 @@ function Goals() {
   const done = data.goals.filter(goal => goal.done).length;
   const create = (kind: Goal['kind']) => setEditing({ id: generateId(), title: '', done: false, personId: null, due: null, kind, createdAt: new Date().toISOString() });
   const save = () => { if (!editing?.title.trim()) { ctx.notify('Dê um nome à meta.', true); return; } ctx.commit(d => ({ ...d, goals: d.goals.some(goal => goal.id === editing.id) ? d.goals.map(goal => goal.id === editing.id ? editing : goal) : [...d.goals, editing] }), 'Meta salva.'); setEditing(null); };
-  const toggle = (goal: Goal) => ctx.commit(d => ({ ...d, goals: d.goals.map(item => item.id === goal.id ? { ...item, done: !item.done, doneAt: !item.done ? new Date().toISOString() : null } : item) }), goal.done ? 'Meta reaberta.' : 'Meta concluída. Parabéns!');
+  const toggle = (goal: Goal) => { ctx.commit(d => ({ ...d, goals: d.goals.map(item => item.id === goal.id ? { ...item, done: !item.done, doneAt: !item.done ? new Date().toISOString() : null } : item) }), goal.done ? 'Meta reaberta.' : 'Meta concluída. Parabéns!'); if (!goal.done) ctx.sound('success'); };
   return <div className="goals-wrap">
     <div className="scope-tabs">{(['abertas', 'concluidas', 'todas'] as const).map(value => <button key={value} className={scope === value ? 'active' : ''} onClick={() => setScope(value)}>{value === 'abertas' ? 'Abertas' : value === 'concluidas' ? 'Concluídas' : 'Todas'}<span>{value === 'abertas' ? data.goals.filter(goal => !goal.done).length : value === 'concluidas' ? done : data.goals.length}</span></button>)}
       <div className="scope-end"><Button onClick={() => create('pessoal')}><Plus size={15} />Meta pessoal</Button><Button variant="primary" onClick={() => create('conexao')}><Heart size={15} />Meta com alguém</Button></div></div>

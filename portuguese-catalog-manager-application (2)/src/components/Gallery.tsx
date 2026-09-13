@@ -38,6 +38,7 @@ export default function Gallery() {
     if (uploadType !== 'normal' && (!consent || owner && !isAdult(owner))) { ctx.notify('Mídias adultas exigem confirmação e vínculo com uma pessoa maior de idade.', true); return; }
     const photos = prepared.map(p => ({ ...p, type: uploadType, personId: uploadPerson || null }));
     ctx.commit(d => ({ ...d, orphanPhotos: uploadPerson ? d.orphanPhotos : [...d.orphanPhotos, ...photos], people: uploadPerson ? d.people.map(p => p.id === uploadPerson ? { ...p, fotos: normalizePhotos([...p.fotos, ...photos], p.id) } : p) : d.people }), `${photos.length} foto(s) adicionada(s) à galeria.`);
+    ctx.sound('shutter');
     setUploadOpen(false); setPrepared([]);
   };
   const relink = (photo: Photo, personId: string | null) => {

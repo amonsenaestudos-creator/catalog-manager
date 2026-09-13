@@ -807,3 +807,106 @@ kbd { font: 500 10px 'Inter Variable', Inter, sans-serif; border: 1px solid var(
 .goal-checklist li strong { display: block; font-size: 13px; }
 .goal-checklist li small { color: var(--faint); font-size: 10px; }
 .goal-checklist li small.overdue { color: var(--danger); }
+
+/* ---------------------------------------------------------------------------
+   Sons, comemorações e brincadeiras
+   --------------------------------------------------------------------------- */
+.sound-previews { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.sound-previews .btn { font-size: 11px; padding: 7px 11px; }
+
+/* Confete */
+.confetti-layer { position: fixed; inset: 0; z-index: 1200; pointer-events: none; overflow: hidden; }
+.confetti-piece { position: absolute; top: -20px; border-radius: 2px; will-change: transform, opacity; }
+.confetti-piece.round { border-radius: 50%; }
+
+/* Cartão de nível e conquista */
+.levelup-badge, .achievement-toast { position: fixed; z-index: 1100; display: flex; align-items: center; gap: 14px; padding: 14px 16px 14px 14px; border: 1px solid var(--line-hover); border-radius: 16px; background: var(--surface-3); box-shadow: 0 20px 60px #0006; max-width: 380px; }
+.levelup-badge { left: 50%; bottom: 64px; transform: translateX(-50%); overflow: hidden; }
+.levelup-badge > button, .achievement-toast > button { margin-left: auto; color: var(--faint); border: 0; background: transparent; cursor: pointer; padding: 4px; border-radius: 6px; }
+.levelup-badge > button:hover, .achievement-toast > button:hover { color: var(--txt); background: var(--surface-2); }
+.levelup-badge h3, .achievement-toast h3 { font-size: 15px; margin: 2px 0; }
+.levelup-badge p, .achievement-toast p { font-size: 11px; color: var(--muted); margin: 0; }
+.levelup-icon, .achievement-toast-icon { position: relative; z-index: 1; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--gold)); color: #fff; flex-shrink: 0; }
+.levelup-ring { position: absolute; inset: -60%; background: conic-gradient(from 0deg, transparent 0 70%, var(--accent-soft) 85%, transparent 100%); pointer-events: none; }
+.achievement-toast { right: 25px; bottom: 76px; }
+.achievement-toast-icon { background: linear-gradient(135deg, var(--gold), #f2d28a); color: #3a2d0b; }
+
+/* Brilho de carta Lendária */
+.legendary-glow { border-color: #e6b76a88 !important; box-shadow: 0 0 0 1px #e6b76a44, 0 0 24px -4px #e6b76a66; animation: legendary-pulse 3.2s ease-in-out infinite; }
+.legendary-glow::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(115deg, transparent 35%, #ffe7a833 50%, transparent 65%); background-size: 250% 100%; animation: legendary-sheen 4.5s linear infinite; }
+@keyframes legendary-pulse { 0%, 100% { box-shadow: 0 0 0 1px #e6b76a44, 0 0 18px -6px #e6b76a55; } 50% { box-shadow: 0 0 0 1px #e6b76a88, 0 0 30px -2px #e6b76a88; } }
+@keyframes legendary-sheen { from { background-position: 120% 0; } to { background-position: -130% 0; } }
+.person-card.legendary-glow, .duel-card.legendary-glow, .swipe-card.legendary-glow { position: relative; }
+.person-card.legendary-glow::after { z-index: 1; }
+
+/* Ficha fixada */
+.person-card.is-pinned { border-color: var(--accent); }
+.pinned-flag { position: absolute; top: 10px; left: 10px; z-index: 3; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; box-shadow: 0 4px 14px #0005; }
+.people-list .pinned-flag { position: static; flex-shrink: 0; }
+
+/* Cinturão da campeã */
+.champion-belt { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; border: 1px solid #e6b76a77; border-radius: 14px; background: linear-gradient(120deg, #e6b76a22, var(--surface) 55%, #e6b76a14); color: var(--txt); cursor: pointer; text-align: left; }
+.champion-belt:hover { border-color: var(--gold); }
+.champion-belt.compact { padding: 7px 10px; margin-bottom: 10px; border-radius: 11px; }
+.belt-shine { position: absolute; top: 0; bottom: 0; width: 40%; background: linear-gradient(100deg, transparent, #fff3c422, transparent); pointer-events: none; }
+.belt-crown { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--gold); color: #3a2d0b; flex-shrink: 0; }
+.champion-belt.compact .belt-crown { width: 24px; height: 24px; }
+.belt-copy { display: flex; flex-direction: column; min-width: 0; }
+.belt-copy small { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
+.belt-copy strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.belt-copy em { font-style: normal; font-size: 11px; color: var(--muted); }
+.duel-card { position: relative; }
+.duel-card.is-champion { border-color: #e6b76a99; }
+.champion-tag { position: absolute; top: 10px; left: 10px; z-index: 2; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--gold); color: #3a2d0b; font-weight: 600; }
+
+/* Roleta */
+.roulette-stage { display: grid; place-items: center; min-height: 250px; perspective: 700px; }
+.roulette-card { display: grid; justify-items: center; gap: 10px; padding: 22px 30px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface-2); min-width: 260px; }
+.roulette-card h3 { font-size: 18px; text-align: center; }
+.roulette-stage.spinning .roulette-card { border-color: var(--accent); }
+.roulette-stage.stopped .roulette-card { border-color: var(--gold); box-shadow: 0 0 0 1px #e6b76a44, 0 18px 50px -20px var(--accent); }
+
+/* Chama da sequência */
+.streak-flame { transition: color .3s; }
+.streak-flame small { color: var(--faint); }
+.streak-flame.level-1 { color: #e8a25b; }
+.streak-flame.level-2 { color: #f07b3f; }
+.streak-flame.level-3 { color: #ff4d4d; text-shadow: 0 0 10px #ff4d4d66; }
+.level-badges .streak-flame.level-2, .level-badges .streak-flame.level-3 { background: #f07b3f1f; }
+.streak-flame.level-2 svg, .streak-flame.level-3 svg { animation: flame-flicker 1.4s ease-in-out infinite; }
+@keyframes flame-flicker { 0%, 100% { transform: scale(1) rotate(0); } 35% { transform: scale(1.15) rotate(-5deg); } 70% { transform: scale(1.05) rotate(4deg); } }
+
+/* Desafios com botão de concluir */
+.level-challenges h3 small { margin-left: auto; font-weight: 400; color: var(--faint); font-size: 10px; }
+.level-challenges li { grid-template-columns: minmax(0, 1fr) 62px auto auto; }
+.level-challenges li > span { display: inline-flex; align-items: center; gap: 5px; }
+.level-challenges li .text-action { font-size: 10px; }
+
+/* Aniversários e revisitas no Painel */
+.upcoming-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.upcoming-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); font-size: 12px; }
+.upcoming-list li button { display: flex; align-items: center; gap: 9px; min-width: 0; color: var(--txt); background: transparent; border: 0; cursor: pointer; padding: 0; }
+.upcoming-list li button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upcoming-list li strong { font-size: 11px; color: var(--accent); white-space: nowrap; }
+
+/* Linha do tempo da pessoa */
+.person-timeline { list-style: none; margin: 0; padding: 4px 0 0 6px; position: relative; display: grid; gap: 14px; }
+.person-timeline::before { content: ''; position: absolute; left: 17px; top: 8px; bottom: 8px; width: 1px; background: var(--line); }
+.person-timeline li { display: flex; gap: 14px; align-items: flex-start; position: relative; }
+.timeline-dot { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--line-hover); color: var(--muted); flex-shrink: 0; z-index: 1; }
+.timeline-cadastro .timeline-dot { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.timeline-encontro .timeline-dot, .timeline-conversa .timeline-dot { color: var(--green); }
+.timeline-meta .timeline-dot, .timeline-duelo .timeline-dot { color: var(--gold); }
+.timeline-nota-geral .timeline-dot { color: var(--pink); }
+.person-timeline li > div { min-width: 0; padding-top: 2px; }
+.person-timeline time { display: block; font-size: 10px; color: var(--faint); letter-spacing: .04em; text-transform: uppercase; }
+.person-timeline strong { display: block; font-size: 13px; font-weight: 550; }
+.person-timeline p { margin: 2px 0 0; font-size: 11px; color: var(--muted); }
+.timeline-more small { color: var(--faint); }
+
+/* Modo disco (código Konami): as cores giram, o resto fica igual. */
+.disco-mode { animation: disco-hue 9s linear infinite; }
+.disco-mode .brand-symbol, .disco-mode .sidebar .active svg { animation: disco-bounce 0.8s ease-in-out infinite; }
+@keyframes disco-hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+@keyframes disco-bounce { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
+.reduce-motion .legendary-glow, .reduce-motion .legendary-glow::after, .reduce-motion.disco-mode, .reduce-motion .streak-flame svg { animation: none !important; }

@@ -20,6 +20,7 @@ export default function Reminders({ compact = false }: { compact?: boolean }) {
     const offset = repeatOffset[r.repeat || 'none'];
     if (!r.concluido && offset) { ctx.commit(d => ({ ...d, reminders: d.reminders.map(x => x.id === r.id ? { ...x, data: addDays(x.data < today() ? today() : x.data, offset), concluido: false, notifiedAt: null } : x) }), `Lembrete concluído e reagendado (repetição ${r.repeat}).`); return; }
     ctx.commit(d => ({ ...d, reminders: d.reminders.map(x => x.id === r.id ? { ...x, concluido: !x.concluido } : x) }), r.concluido ? 'Lembrete reaberto.' : 'Lembrete concluído.');
+    if (!r.concluido) ctx.sound('success');
   };
   const snooze = (r: Reminder, days: number) => ctx.commit(d => ({ ...d, reminders: d.reminders.map(x => x.id === r.id ? { ...x, data: addDays(x.data < today() ? today() : x.data, days), concluido: false } : x) }), `Lembrete adiado por ${days} dia(s).`);
   // Radar de prazos: quanto de cada lembrete pendente está a ponto de vencer.
