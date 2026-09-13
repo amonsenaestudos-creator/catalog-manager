@@ -142,7 +142,8 @@ describe("família na conversa", () => {
 
   it("os vínculos aparecem com nome e papel", () => {
     const familiares = redeFamiliar(marina, [marina, mae, filha]);
-    expect(familiares.map(item => `${item.papel}:${item.nome}`)).toContain("mãe:Dona");
+    // O tratamento faz parte do nome: "Dona Célia", não só "Dona".
+    expect(familiares.map(item => `${item.papel}:${item.nome}`)).toContain("mãe:Dona Célia");
     expect(familiares.map(item => `${item.papel}:${item.nome}`)).toContain("filha:Ana");
   });
 

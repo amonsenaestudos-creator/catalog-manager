@@ -167,7 +167,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const analise = useMemo(() => analisarConversa(mensagens), [mensagens]);
   const ultimaDela = [...mensagens].reverse().find(mensagem => mensagem.role === 'them');
   const sugestoesProntas = useMemo(() => sugerirRespostas({
-    person, persona, state: estado, mensagemDela: ultimaDela?.text || '', adulto, quantas: 3, tom, ...contextoDeConversa,
+    person, persona, state: estado, mensagemDela: ultimaDela?.text || '', adulto, quantas: 4, tom, ...contextoDeConversa,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [person, persona, estado, ultimaDela?.text, adulto, tom, data.people, s.ownerAge, s.ownerBirthday]);
   const aberturas = useMemo(() => sugerirAberturas({ person, persona, state: estado, historico: mensagens, adulto, quantas: 4, ...contextoDeConversa }),

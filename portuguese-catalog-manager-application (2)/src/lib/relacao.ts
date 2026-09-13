@@ -103,13 +103,24 @@ export function idadeDoDono(settings?: { ownerAge?: number | null; ownerBirthday
 }
 
 /** Familiares e pessoas próximas dela, já resolvidos com nome do catálogo. */
+/** Tratamentos que pedem o nome junto: "Dona Célia", "Tia Rosa", "Seu José". */
+const TRATAMENTOS = new Set(['dona', 'seu', 'sr', 'sra', 'senhor', 'senhora', 'dom', 'tia', 'tio', 'vó', 'vô', 'avo', 'avó', 'avô', 'prima', 'primo']);
+
+/** Como ela chama o parente: "Dona Célia", "Tia Rosa", senão só o primeiro nome. */
+export function nomeCurto(nome: string): string {
+  const partes = (nome || '').trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return nome || '';
+  if (partes.length > 1 && TRATAMENTOS.has(partes[0].toLowerCase())) return `${partes[0]} ${partes[1]}`;
+  return partes[0];
+}
+
 export function familiaresDe(person: Person, people: Person[]): Familiar[] {
   const vinculos: Vinculo[] = person.vinculos || [];
   return vinculos
     .map(vinculo => {
       const outra = people.find(p => p.id === vinculo.personId && !p.deletedAt);
       if (!outra) return null;
-      return { nome: outra.nome.split(/\s+/)[0], papel: vinculoLabel(vinculo.papel), personId: outra.id, idade: outra.idade ?? null };
+      return { nome: nomeCurto(outra.nome), papel: vinculoLabel(vinculo.papel), personId: outra.id, idade: outra.idade ?? null };
     })
     .filter((item): item is Familiar => !!item);
 }
