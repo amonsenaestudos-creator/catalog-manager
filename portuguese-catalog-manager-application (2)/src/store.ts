@@ -1,4 +1,4 @@
-import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, Person, Photo, Rating, Reminder, Story, TierList, PersonDraft } from './types';
+import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, Person, Photo, Rating, Reminder, Story, TierList, PersonDraft } from './types';
 import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS } from './types';
 import { DEMO_PORTRAITS } from './assets';
 
@@ -57,7 +57,7 @@ export function getDefaultPerson(): Person {
   return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true } };
+  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -263,6 +263,13 @@ export function normalizeData(value: unknown, strict = false): AppData {
   base.settings.soundVolume = Math.max(0, Math.min(100, Math.round(numeric(s.soundVolume, 55))));
   base.settings.haptics = s.haptics !== false;
   base.settings.confetti = s.confetti !== false;
+  // Conversas: o modo adulto é sempre opt-in e só vale para fichas de 18 anos ou mais.
+  base.settings.adultMode = s.adultMode === true;
+  base.settings.chatSpeed = s.chatSpeed === 'rapido' ? 'rapido' : 'realista';
+  base.settings.chatSlang = s.chatSlang !== false;
+  base.settings.chatEmojis = s.chatEmojis !== false;
+  base.settings.chatMeter = s.chatMeter !== false;
+  base.settings.chatAuto = s.chatAuto === true;
   base.people = array(raw.people).map(normalizePerson).filter((p, i, list) => list.findIndex(q => q.id === p.id) === i);
   base.orphanPhotos = array(raw.orphanPhotos).map(v => photo(v, null)).filter(p => p.url);
   base.tierLists = array(raw.tierLists).map(v => {
@@ -401,9 +408,32 @@ export function normalizeData(value: unknown, strict = false): AppData {
       role: (['user', 'them', 'system'].includes(text(c.role)) ? c.role : 'user') as ChatMessage['role'],
       text: text(c.text),
       timestamp: text(c.timestamp, new Date().toISOString()),
-      mood: (['happy', 'flirty', 'shy', 'playful', 'curious', 'neutral'].includes(text(c.mood)) ? c.mood : 'neutral') as ChatMessage['mood'],
+      mood: (['happy', 'flirty', 'shy', 'playful', 'curious', 'neutral', 'carinhosa', 'fechada'].includes(text(c.mood)) ? c.mood : 'neutral') as ChatMessage['mood'],
+      tom: (['amizade', 'flerte', 'provocante', 'intenso'].includes(text(c.tom)) ? c.tom : undefined) as ChatMessage['tom'],
     } as ChatMessage;
-  }).filter(c => c.personId && base.people.some(p => p.id === c.personId)).slice(-500);
+  }).filter(c => c.personId && base.people.some(p => p.id === c.personId)).slice(-800);
+  base.chatStates = Object.fromEntries(Object.entries(object(raw.chatStates)).map(([id, value]) => {
+    const estado = object(value);
+    if (!base.people.some(p => p.id === id)) return [id, null] as const;
+    const lembrancas = array(estado.lembrancas).map(item => { const l = object(item); return { tipo: text(l.tipo, 'rotina'), valor: text(l.valor) }; }).filter(item => item.valor).slice(-12);
+    const topicos = Object.fromEntries(Object.entries(object(estado.topicos)).filter(([, v]) => typeof v === 'string').slice(-16)) as Record<string, string>;
+    const normalizado = {
+      personId: id,
+      afinidade: Math.max(0, Math.min(100, numeric(estado.afinidade, 15))),
+      mensagens: Math.max(0, Math.round(numeric(estado.mensagens))),
+      humor: (['happy', 'flirty', 'shy', 'playful', 'curious', 'neutral', 'carinhosa', 'fechada'].includes(text(estado.humor)) ? text(estado.humor) : 'neutral') as ChatState['humor'],
+      tom: (['amizade', 'flerte', 'provocante', 'intenso'].includes(text(estado.tom)) ? text(estado.tom) : 'amizade') as ChatState['tom'],
+      topicos,
+      lembrancas,
+      perguntas: strings(estado.perguntas).slice(-30),
+      recentes: strings(estado.recentes).slice(-16),
+      usados: strings(estado.usados).slice(-60),
+      ultimaMensagem: text(estado.ultimaMensagem, new Date().toISOString()),
+      visitas: Math.max(0, Math.round(numeric(estado.visitas))),
+      ofensas: Math.max(0, Math.round(numeric(estado.ofensas))),
+    } as ChatState;
+    return [id, normalizado] as const;
+  }).filter(([, value]) => value)) as Record<string, ChatState>;
   base.memories = array(raw.memories).map(v => {
     const m = object(v);
     return {

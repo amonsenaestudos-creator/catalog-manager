@@ -19,5 +19,7 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     allowedHosts: true,
+    // O build single-file não precisa disparar recarregamentos durante o desenvolvimento.
+    watch: { ignored: ["**/dist/**"] },
   },
 });

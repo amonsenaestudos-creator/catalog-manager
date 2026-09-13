@@ -276,13 +276,43 @@ export interface Progress {
 }
 export interface Vault { pin: string | null; photoIds: string[] }
 
+export type ChatMood = 'happy' | 'flirty' | 'shy' | 'playful' | 'curious' | 'neutral' | 'carinhosa' | 'fechada';
+/** Tom da conversa. Os dois últimos só existem para fichas adultas com o modo adulto ligado. */
+export type ChatTone = 'amizade' | 'flerte' | 'provocante' | 'intenso';
+
 export interface ChatMessage {
   id: string;
   personId: string;
   role: 'user' | 'them' | 'system';
   text: string;
   timestamp: string;
-  mood?: 'happy' | 'flirty' | 'shy' | 'playful' | 'curious' | 'neutral';
+  mood?: ChatMood;
+  tom?: ChatTone;
+  /** Foto trocada na conversa (data URL ou caminho local do catálogo). */
+  foto?: string;
+}
+
+/**
+ * Memória da conversa simulada com uma pessoa: química, assuntos já contados,
+ * perguntas feitas e as últimas respostas (para ela nunca repetir a mesma frase).
+ */
+export interface ChatState {
+  personId: string;
+  /** 0 a 100. Sobe com interesse verdadeiro e desce com ousadia fora de hora. */
+  afinidade: number;
+  mensagens: number;
+  humor: ChatMood;
+  tom: ChatTone;
+  /** Assunto → último trecho contado por você. */
+  topicos: Record<string, string>;
+  lembrancas: { tipo: string; valor: string }[];
+  perguntas: string[];
+  recentes: string[];
+  /** Modelos de resposta já usados (ela não repete a mesma frase duas vezes seguidas). */
+  usados: string[];
+  ultimaMensagem: string;
+  visitas: number;
+  ofensas: number;
 }
 
 export interface Memory {
@@ -337,6 +367,7 @@ export interface AppData {
     profiles: Profile[];
     activeProfile: string;
     chats: ChatMessage[];
+    chatStates: Record<string, ChatState>;
     memories: Memory[];
     icebreakers: Icebreaker[];
     onboardingDone?: boolean;
@@ -370,6 +401,14 @@ export interface AppData {
     soundVolume?: number;
     haptics?: boolean;
     confetti?: boolean;
+    // Conversas: modo adulto (opt-in), ritmo e estilo da simulação.
+    // O clima da conversa sobe sozinho conforme a química — não há tom para escolher.
+    adultMode?: boolean;
+    chatSpeed?: 'realista' | 'rapido';
+    chatSlang?: boolean;
+    chatEmojis?: boolean;
+    chatMeter?: boolean;
+    chatAuto?: boolean;
   };
 }
 

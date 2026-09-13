@@ -31,16 +31,17 @@ import Agenda from './components/Agenda';
 import Discover from './components/Discover';
 import NotificationCenter from './components/NotificationCenter';
 import QuickTools from './components/QuickTools';
+import Toolbox from './components/Toolbox';
 import { AchievementToast, ConfettiBurst, LevelUpBadge, RouletteModal } from './components/Celebrations';
 import OnboardingTour from './components/OnboardingTour';
 import { playSound } from './lib/sound';
 
 const PAGE_NAMES: Record<string, string> = {
-  home: 'Visão geral', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
+  home: 'Visão geral', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
 };
 const SHORTCUT_PAGES = ['home', 'catalog', 'ranking', 'tierlists', 'add', 'gallery', 'stories', 'settings'];
 // Atalhos de letra: chegam rápido às telas novas sem mudar os atalhos antigos.
-const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders' };
+const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox' };
 // Código Konami: ↑ ↑ ↓ ↓ ← → ← → B A liga (ou desliga) o tema disco.
 const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
 
@@ -79,6 +80,7 @@ function ActivePage() {
   if (page === 'dashboard') return <Dashboard />;
   if (page === 'myspace') return <MySpace />;
   if (page === 'agenda') return <Agenda />;
+  if (page === 'toolbox') return <Toolbox />;
   if (page === 'discover') return <Discover />;
   if (page === 'catalog') return <Catalog />;
   if (page === 'add') return <AddPerson />;

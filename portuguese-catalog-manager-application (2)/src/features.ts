@@ -100,7 +100,7 @@ export const NEW_FEATURES: [string, string, string][] = [
   ['Agenda para o calendário (.ics)', 'Exporte os compromissos em um arquivo .ics e importe no Google Agenda, Outlook ou iPhone.', 'agenda'],
   // 50+ melhorias: chat, tour, quebra-gelo, campos extras e UX
   ['Simulador de conversa 💬', 'Abra a ficha e escolha "Conversar" para fingir um papo com a pessoa. Escolha o humor (alegre, brincalhona, flertando, tímida, curiosa) e a resposta se adapta ao que você escrever.', 'catalog'],
-  ['Quebra-gelos inteligentes', 'Botão "Puxar assunto" gera 4 perguntas em 5 categorias (leve, divertido, profundo, flerte, nostalgia), personalizadas com o nome dela. Um clique copia ou abre o chat.', 'catalog'],
+  ['Quebra-gelos inteligentes', 'O botão "Puxar assunto" gera sugestões montadas pela persona da ficha, em seis grupos (levinho, divertido, profundo, nostalgia, chegar mais perto e picante), com o motivo de cada uma. Um clique copia ou abre o chat.', 'catalog'],
   ['Tour de boas-vindas', 'Na primeira vez que abrir o app, um tour guiado de 5 passos mostra o essencial, com spotlight nos botões mais importantes.', 'home'],
   ['Modo automático dia/noite', 'Ajustes → Tema → Seguir o sistema: o app acompanha o modo claro/escuro do seu sistema operacional automaticamente.', 'settings'],
   ['Campos novos: pronomes, signo, como conheceu e música favorita', 'Quatro novos campos na ficha para guardar detalhes que fazem diferença. Signo tem opções predefinidas.', 'add'],
@@ -115,6 +115,28 @@ export const NEW_FEATURES: [string, string, string][] = [
   ['Sugestões de assuntos categorizadas', '5 categorias visuais de quebra-gelo (leve, divertido, profundo, flerte, nostalgia) com emojis e descrições.', 'catalog'],
   ['Copiar a mensagem pronta pro WhatsApp', 'Botão copiar em cada sugestão de papo + botão "Usar" que já abre o chat automaticamente.', 'catalog'],
   ['Som de confete e mais responsivo', 'Animações mais suaves em telas fracas e fallback respeitoso quando não há suporte a áudio.', 'dashboard'],
+  // Conversa simulada 2.0
+  ['Conversa que lê a ficha inteira', 'O chat monta a personalidade a partir de idade, comportamento, descrição, categoria, tags, signo, música favorita, localização e nível de amizade. Duas fichas diferentes nunca respondem igual.', 'catalog'],
+  ['Medidor de química e estágios', 'Cada conversa tem química de 0 a 100 e passa por cinco estágios: conhecendo agora, pegando intimidade, confiante, próxima e especial. O estágio muda o jeito dela falar.', 'catalog'],
+  ['O clima sobe sozinho', 'Você não escolhe nada: o chat acompanha a intimidade e vai do papo leve ao flerte quando a relação permite. Se o assunto passar do ponto, ela desconversa em vez de responder.', 'catalog'],
+  ['Ela lembra do que você contou', 'Preferências, rotina e planos viram anotações que ela cobra depois ("e aquilo do seu trabalho, como foi?"). A memória pode ser apagada no menu da conversa.', 'catalog'],
+  ['Ela nunca repete a mesma frase', 'Cada resposta é sorteada entre centenas de modelos combinados com humor, gírias, emojis, risadas e erros de digitação leves — e as últimas frases usadas saem do sorteio.', 'catalog'],
+  ['Humor que muda sozinho', 'Ela também não pede escolha de humor: fica carinhosa quando você desabafa, fechada quando é cobrada e brincalhona quando a conversa solta. O estado aparece no cabeçalho só como leitura.', 'catalog'],
+  ['Modo automático de conversa', 'Um toque em "Deixar puxar" e ela manda mensagem sozinha depois de um tempo, retomando assunto do jeito dela.', 'catalog'],
+  ['Menu completo da conversa', 'Como ela conversa (cartão da persona), sugestões, mensagem espontânea, copiar ou baixar a conversa em Markdown, limpar memória e reiniciar o papo. Nada de painel de configuração no meio do papo.', 'catalog'],
+  ['Modo adulto com trava de idade', 'Em Ajustes → Conversas existe uma opção desligada por padrão, válida apenas para fichas com 18 anos ou mais. Ficha de menor de idade nunca entra em flerte nem em conteúdo adulto, mesmo com a opção ligada.', 'settings'],
+  ['Clima picante só para fichas adultas', 'O clima mais quente só acontece com fichas 18+ e o modo adulto ligado, e ainda depende da intimidade construída. O conteúdo é sempre sugestivo e por mensagem, nunca descritivo.', 'catalog'],
+  ['Envio de foto na conversa', 'Mande uma foto da galeria no meio do papo e veja a reação dela mudar conforme o tom — e a ficha.', 'catalog'],
+  ['Análise da conversa', 'Mensagens trocadas, tamanho médio, perguntas dela, temas mais falados e um aviso honesto quando o papo está desequilibrado.', 'catalog'],
+  ['Fotos dela no meio da conversa', 'De vez em quando ela manda uma foto do próprio catálogo, sempre combinando com o tom liberado.', 'catalog'],
+  // Caixa de ferramentas: 50 utilidades
+  ['Caixa de ferramentas com 50 utilidades', 'A tela Ferramentas (atalho T) reúne 50 funções que trabalham sobre o seu catálogo ou resolvem o dia a dia, com busca e cinco grupos. Nada sai do aparelho.', 'toolbox'],
+  ['Grupo Catálogo: conferir e exportar', 'Resumo executivo, verificação de vínculos, mesclar duplicatas, fichas incompletas, CSV sob medida, backup em JSON, auditoria de fotos, estatísticas por grupo, aniversários e linha do tempo da atividade.', 'toolbox'],
+  ['Grupo Lote: organizar em massa', 'Padronizar nomes, etiquetar por regra, arquivar quem está sumido, unificar tags parecidas, favoritar por nota, criar pastas por categoria, preencher campos vazios e montar tierlist automática pela nota — sempre com prévia.', 'toolbox'],
+  ['Grupo Conversa e social', 'Quebra-gelos por persona, coach de resposta, análise e exportação das conversas, cartão de apresentação da ficha, plano de aproximação em 5 passos, gerador de convite, revisor de mensagem, lembretes de conversa e assuntos que ainda não rolaram.', 'toolbox'],
+  ['Grupo Meu espaço e rotina', 'Análise do diário, prompts de escrita guiada, painel de metas, Meu dia em uma tela, modo foco 25+5, cronômetro, metas de conexão e resumo semanal.', 'toolbox'],
+  ['Grupo Utilidades do dia a dia', 'Dividir a conta com gorjeta, porcentagem e desconto, conversor de medidas, contas com datas, senha forte, link de WhatsApp com mensagem, formatador de texto, sorteio de pessoas ou de ordem, checklist que vira nota, busca profunda, contador de texto, roteiro de encontro e modelo de ficha.', 'toolbox'],
+  ['Ferramentas que mostram antes de mudar', 'Toda ferramenta de escrita exibe o que vai mudar, explica o efeito e pede confirmação. Ctrl+Z desfaz.', 'toolbox'],
 ];
 
 export const FEATURES = [
