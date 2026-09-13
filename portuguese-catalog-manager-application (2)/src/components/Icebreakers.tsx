@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
-import { RefreshCw, Sparkles, Copy, MessageCircle, Lightbulb } from 'lucide-react';
+import { Copy, Film, Flame, Heart, Laugh, Lightbulb, MessageCircle, Moon, RefreshCw, Sparkles, Sun } from 'lucide-react';
 import type { Person } from '../types';
 import { useCatalog } from '../context';
 import { Button, IconButton, Modal } from './ui';
+import { buildPersona, ganchoDe } from '../lib/persona';
+import { estadoDe, estagioAtual, sugerirAberturas } from '../lib/dialogue';
 
 interface Props {
   person: Person;
@@ -10,173 +12,137 @@ interface Props {
   onStartChat?: () => void;
 }
 
-const BANKS = {
-  fun: [
-    'Qual a coisa mais sem noção que já aconteceu com você?',
-    'Se pudesse jantar com qualquer pessoa do mundo, quem seria?',
-    'Qual o filme que você já assistiu umas 10 vezes?',
-    'Se você tivesse um superpoder por um dia, qual escolheria?',
-    'Qual foi a pior (e mais engraçada) experiência com comida que já teve?',
-    'Você tem uma habilidade inútil? Conta aí.',
-    'Qual é a pior cantada que já te deram? E a melhor?',
-    'Se você fosse personagem de filme, de qual gênero seria?',
-  ],
-  deep: [
-    'O que te faz sentir realmente viva?',
-    'Se pudesse voltar no tempo e dar um conselho a si mesma aos 15 anos, o que diria?',
-    'Qual é a memória mais feliz que você tem?',
-    'O que é algo que você aprendeu recentemente que mudou sua forma de ver as coisas?',
-    'Qual a coisa que você mais valoriza em uma amizade?',
-    'Se você pudesse mudar uma coisa no mundo hoje, o que seria?',
-    'Como é um dia perfeito para você?',
-  ],
-  light: [
+type Categoria = 'sugeridas' | 'leve' | 'divertido' | 'profundo' | 'nostalgia' | 'flerte' | 'picante';
+
+const BANKS: Record<Exclude<Categoria, 'sugeridas' | 'picante'>, string[]> = {
+  leve: [
     'Recomenda uma série que você tá amando ultimamente?',
     'Qual seu lugar favorito na cidade?',
     'Café, chá ou nenhum dos dois?',
     'Tem uma música que você não consegue parar de ouvir?',
-    'Qual a melhor coisa que comeu essa semana?',
+    'Qual a melhor coisa que você comeu essa semana?',
     'Se o dia tivesse 25h, o que você faria com a hora extra?',
-    'Qual app você passa mais tempo e qual gostaria de apagar?',
   ],
-  flirty: [
-    'Sabia que você tem o melhor sorriso do meu catálogo? 😏',
-    'Se a gente saísse pra tomar um café hoje, qual você escolheria?',
-    'Qual o tipo de programa que te faz pensar "queria companhia"?',
-    'Se eu te convidasse pra um passeio de última hora, você toparia?',
-    'Qual foi o melhor elogio que já recebeu? Vou superar ele.',
+  divertido: [
+    'Qual a coisa mais sem noção que já aconteceu com você?',
+    'Qual o filme que você já assistiu umas dez vezes?',
+    'Se tivesse um superpoder por um dia, qual escolheria?',
+    'Qual é a sua habilidade mais inútil?',
+    'Qual foi a pior cantada que já te deram?',
+    'Se você fosse personagem de filme, de que gênero seria?',
   ],
-  nostalgic: [
+  profundo: [
+    'O que te faz sentir realmente viva?',
+    'Que conselho você daria para você mesma aos 15 anos?',
+    'Qual é a sua memória mais feliz?',
+    'O que você aprendeu recentemente que mudou sua forma de ver as coisas?',
+    'O que você mais valoriza em uma amizade?',
+    'Como é um dia perfeito para você?',
+  ],
+  nostalgia: [
     'Qual desenho você amava quando era criança?',
     'Se pudesse voltar a um dia específico da sua vida, qual seria?',
     'Qual a melhor lembrança que você tem da escola?',
-    'Tem uma música que sempre te leva de volta a um momento específico?',
-    'Qual a viagem que mais marcou você até hoje?',
-    'Se pudesse reviver uma conversa, qual seria?',
+    'Tem uma música que sempre te leva a um momento específico?',
+    'Qual viagem mais marcou você até hoje?',
+  ],
+  flerte: [
+    'Se a gente marcasse algo hoje, você preferia café, jantar ou sair pra dançar?',
+    'Qual foi o melhor elogio que você já recebeu? Vou tentar superar.',
+    'Qual o tipo de programa que te faz pensar "queria companhia"?',
+    'Se eu te convidasse pra algo de última hora, você toparia?',
+    'O que te faz dar o primeiro passo em alguém?',
   ],
 };
 
-const CATEGORIES: { id: keyof typeof BANKS; label: string; emoji: string }[] = [
-  { id: 'light', label: 'Levinho', emoji: '✨' },
-  { id: 'fun', label: 'Divertido', emoji: '😄' },
-  { id: 'deep', label: 'Profundo', emoji: '🌙' },
-  { id: 'flirty', label: 'Flertando', emoji: '😏' },
-  { id: 'nostalgic', label: 'Nostalgia', emoji: '🎞️' },
+const CATEGORIAS: { id: Categoria; label: string; icone: typeof Sun; adulta?: boolean }[] = [
+  { id: 'sugeridas', label: 'Sugeridas para ela', icone: Sparkles },
+  { id: 'leve', label: 'Levinho', icone: Sun },
+  { id: 'divertido', label: 'Divertido', icone: Laugh },
+  { id: 'profundo', label: 'Profundo', icone: Moon },
+  { id: 'nostalgia', label: 'Nostalgia', icone: Film },
+  { id: 'flerte', label: 'Chegar mais perto', icone: Heart },
+  { id: 'picante', label: 'Picante (18+)', icone: Flame, adulta: true },
 ];
 
-function shuffle<T>(arr: T[], n = 4): T[] {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy.slice(0, n);
-}
-
-function makePersonal(p: Person, text: string): string {
-  const name = p.nome.split(' ')[0] || 'você';
-  const replacements: [RegExp, string][] = [
-    [/\bvocê\b/g, name],
-  ];
-  let result = text;
-  for (const [re, rep] of replacements) {
-    if (Math.random() < 0.3) result = result.replace(re, rep);
-  }
-  return result;
+function embaralhar<T>(lista: T[], quantidade = 4): T[] {
+  return [...lista].sort(() => Math.random() - 0.5).slice(0, quantidade);
 }
 
 export default function Icebreakers({ person, onClose, onStartChat }: Props) {
   const ctx = useCatalog();
-  const [category, setCategory] = useState<keyof typeof BANKS>('light');
-  const [suggestions, setSuggestions] = useState<string[]>(() => shuffle(BANKS.light));
-  const [copied, setCopied] = useState('');
+  const { data } = ctx;
+  const persona = useMemo(() => buildPersona(person), [person]);
+  const estado = estadoDe(data, person);
+  const estagio = estagioAtual(estado);
+  const podePicante = persona.adulta && !!data.settings.adultMode;
+  const categorias = CATEGORIAS.filter(categoria => !categoria.adulta || podePicante);
+  const [categoria, setCategoria] = useState<Categoria>('sugeridas');
+  const [copiado, setCopiado] = useState('');
+  const [versao, setVersao] = useState(0);
+  const categoriaAtual = categorias.find(item => item.id === categoria) || categorias[0];
 
-  const refresh = () => setSuggestions(shuffle(BANKS[category]));
-  const changeCat = (cat: keyof typeof BANKS) => { setCategory(cat); setSuggestions(shuffle(BANKS[cat])); };
+  const sugestoes = useMemo(() => {
+    if (categoria === 'sugeridas') {
+      return sugerirAberturas({ person, persona, state: estado, historico: data.chats.filter(mensagem => mensagem.personId === person.id), adulto: !!data.settings.adultMode, quantas: 5 }).map(sugestao => ({ texto: sugestao.texto, tom: sugestao.tom, motivo: sugestao.motivo }));
+    }
+    if (categoria === 'picante') {
+      const ganchos = [ganchoDe(persona, Math.random), ganchoDe(persona, Math.random), ganchoDe(persona, Math.random)];
+      return [
+        `Tô pensando em você de um jeito que não dá pra escrever aqui 😏`,
+        `Se você me visse agora, ia entender esse silêncio 🔥`,
+        `Me conta uma coisa: o que você faria se eu estivesse aí do seu lado?`,
+        `Você sabe o efeito que tem em mim, né? 😏`,
+        `Aquela conversa de ${ganchos[0]} rendeu ideias... e você no meio delas.`,
+        `Prefiro te mostrar pessoalmente do que escrever aqui 😉`,
+      ].slice(0, 4).map(texto => ({ texto, tom: 'provocante' as const, motivo: 'Ficha 18+ com o modo adulto ligado: insinuação sem nada explícito.' }));
+    }
+    const banco = BANKS[categoria as keyof typeof BANKS];
+    const personalizado = banco.map(texto => texto.replace(/\bvocê\b/g, Math.random() < 0.3 ? persona.comoChamar : 'você'));
+    return embaralhar(personalizado, 4).map(texto => ({ texto, tom: categoria === 'flerte' ? 'flerte' as const : 'amizade' as const, motivo: `Categoria ${categoria} combinada com ${persona.marcadores[0] || 'o jeito dela'}.` }));
+  }, [categoria, person, persona, estado, data.chats, data.settings.adultMode, versao]);
 
-  const copy = (text: string) => {
-    try { navigator.clipboard.writeText(text); } catch { /* ignore */ }
-    setCopied(text);
-    setTimeout(() => setCopied(''), 1500);
+  const copiar = (texto: string) => {
+    try { navigator.clipboard.writeText(texto); } catch { /* área de transferência bloqueada */ }
+    setCopiado(texto);
+    setTimeout(() => setCopiado(''), 1600);
   };
 
-  const sendToChat = (text: string) => {
-    // Opens the chat and we could pre-fill; for now just open it
-    onClose();
-    if (onStartChat) onStartChat();
-    // Also store as used icebreaker
-    ctx.commit(d => ({
-      ...d,
-      icebreakers: [...d.icebreakers, {
-        id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
-        personId: person.id, text, category, used: true, createdAt: new Date().toISOString(),
-      }],
-    }), undefined, false);
-    // Notify user
-    setTimeout(() => ctx.notify('Quebra-gelo copiado! Inicie a conversa e cole.'), 200);
-    copy(text);
+  const usar = (texto: string) => {
+    ctx.commit(d => ({ ...d, icebreakers: [...d.icebreakers, { id: crypto.randomUUID?.() || `${Date.now()}`, personId: person.id, text: texto, category: categoria === 'sugeridas' || categoria === 'picante' ? 'flirty' : categoria === 'nostalgia' ? 'nostalgic' : categoria === 'profundo' ? 'deep' : categoria === 'divertido' ? 'fun' : 'light', used: true, createdAt: new Date().toISOString() }] }), undefined, false);
+    copiar(texto);
+    ctx.notify('Sugestão copiada! Abra o chat e cole para enviar.');
+    if (onStartChat) { onClose(); onStartChat(); }
   };
-
-  const similar = useMemo(() => {
-    const pool = ctx.data.people.filter(p => p.id !== person.id && !p.deletedAt);
-    // Find people with shared tags/category
-    const scored = pool.map(p => {
-      let score = 0;
-      p.tags.forEach(t => { if (person.tags.includes(t)) score += 2; });
-      if (p.localizacaoOnde === person.localizacaoOnde) score += 1;
-      return { p, score };
-    }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
-    return scored;
-  }, [ctx.data.people, person]);
 
   return (
-    <Modal title="Puxa conversa" description={`Sugestões de perguntas e assuntos para ${person.nome.split(' ')[0]}`} onClose={onClose} wide footer={<Button onClick={refresh}><RefreshCw size={16} />Novas sugestões</Button>}>
-      <div className="picker-tabs" style={{ marginBottom: 18 }}>
-        {CATEGORIES.map(c => (
-          <button key={c.id} className={category === c.id ? 'active' : ''} onClick={() => changeCat(c.id)}>
-            <span>{c.emoji}</span> {c.label}
-          </button>
-        ))}
+    <Modal title="Puxar assunto" description={`Sugestões montadas a partir da ficha de ${person.nome}${persona.marcadores.length ? ` — ${persona.marcadores.slice(0, 3).join(', ')}` : ''}. O clima acompanha o que vocês já têm.`} onClose={onClose} wide
+      footer={<><Button onClick={() => setVersao(versao + 1)}><RefreshCw size={16} />Novas sugestões</Button></>}>
+      <div className="picker-tabs" style={{ marginBottom: 14 }}>
+        {categorias.map(item => <button key={item.id} className={categoria === item.id ? 'active' : ''} onClick={() => setCategoria(item.id)}><item.icone size={14} strokeWidth={1.8} /> {item.label}</button>)}
       </div>
+
+      <p className="chat-icebreakers-title" style={{ marginBottom: 10 }}><Sparkles size={13} />{estagio.label} · química {Math.round(estado.afinidade)}% — {estagio.descricao}</p>
 
       <div className="icebreaker-list">
-        {suggestions.map((text, i) => {
-          const personalized = makePersonal(person, text);
-          return (
-            <div key={i} className="icebreaker-row">
-              <Lightbulb size={15} className="muted" style={{ color: 'var(--accent)' }} />
-              <span style={{ flex: 1 }}>{personalized}</span>
-              <span className="icebreaker-cat">{CATEGORIES.find(c => c.id === category)?.label}</span>
-              <IconButton label={copied === personalized ? 'Copiado!' : 'Copiar'} onClick={() => copy(personalized)}>
-                <Copy size={15} />
-              </IconButton>
-              {onStartChat && (
-                <Button variant="primary" onClick={() => sendToChat(personalized)} style={{ padding: '6px 12px', minHeight: 30, fontSize: 11 }}>
-                  <MessageCircle size={13} />Usar
-                </Button>
-              )}
-            </div>
-          );
-        })}
+        {sugestoes.map((sugestao, indice) => <div key={`${sugestao.texto}-${indice}`} className="icebreaker-row">
+          <Lightbulb size={15} style={{ color: 'var(--accent)' }} />
+          <span style={{ flex: 1 }}>{sugestao.texto}<small className="muted" style={{ display: 'block', fontSize: 10, marginTop: 3 }}>{sugestao.motivo}</small></span>
+          <span className="icebreaker-cat"><categoriaAtual.icone size={12} strokeWidth={1.8} />{categoriaAtual.label}</span>
+          <IconButton label={copiado === sugestao.texto ? 'Copiado!' : 'Copiar'} onClick={() => copiar(sugestao.texto)}><Copy size={15} /></IconButton>
+          <Button variant="primary" onClick={() => usar(sugestao.texto)} style={{ padding: '6px 12px', minHeight: 30, fontSize: 11 }}><MessageCircle size={13} />Usar</Button>
+        </div>)}
       </div>
 
-      {similar.length > 0 && (
-        <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--line)' }}>
-          <h3 style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <Sparkles size={15} style={{ color: 'var(--accent)' }} />
-            Vocês tem interesses em comum com...
-          </h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {similar.map(({ p, score }) => (
-              <button key={p.id} onClick={() => { onClose(); ctx.openPerson(p); }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, border: '1px solid var(--line)', fontSize: 11, color: 'var(--muted)' }}>
-                {p.nome.split(' ')[0]}
-                <small style={{ color: 'var(--accent)', fontSize: 9 }}>{score} pontos</small>
-              </button>
-            ))}
-          </div>
+      {!podePicante && persona.adulta && <p className="muted small" style={{ marginTop: 14 }}>Quer sugestões picantes? Ligue o modo adulto em <b>Ajustes → Conversas</b>. Ele só vale para fichas com 18 anos ou mais.</p>}
+      {!persona.adulta && <p className="muted small" style={{ marginTop: 14 }}>Esta ficha tem menos de 18 anos: as sugestões ficam sempre no papo leve, sem flerte.</p>}
+
+      {persona.interesses.length > 0 && <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+        <h3 style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><Sparkles size={15} style={{ color: 'var(--accent)' }} />Assuntos que ela puxa sozinha</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {persona.interesses.map(interesse => <span key={interesse.id} className="tag" style={{ color: 'var(--accent)', background: 'var(--accent-soft)', padding: '6px 12px', fontSize: 11 }} title={interesse.temas.join(' · ')}>{interesse.label}</span>)}
         </div>
-      )}
+      </div>}
     </Modal>
   );
 }

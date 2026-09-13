@@ -26,7 +26,28 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Ficha:** aba **Linha do tempo** com cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota; opção **Fixar no topo** no menu.
 - **Agenda:** exportação `.ics` para Google Agenda, Outlook e iPhone; cronômetro que dá um tique a cada 10 minutos.
 - **Tierlists:** exportação em PNG pelo menu **Mais**.
+- **Ferramentas:** 50 utilidades em cinco grupos (Catálogo e dados, Organização em lote, Conversa e social, Meu espaço e rotina, Utilidades do dia a dia), com busca, ícones no mesmo estilo do resto do app e atalho `T`. Cada ferramenta declara os campos que precisa e mostra o resultado em tela, com botão de copiar e download quando faz sentido.
 - **Novidades do Catalog:** guia navegável dos recursos novos e aprimorados. A lista está em `src/features.ts`.
+
+## Conversa simulada 2.0
+
+A conversa com cada pessoa vive na ficha (**Conversar**) e é montada na hora a partir da própria ficha. Não é um banco de frases soltas: a resposta passa por intenção detectada, personalidade, humor, química, tom liberado e memória do papo.
+
+- **Persona da ficha:** idade, comportamento, descrição, categoria, subcategoria, etiquetas, signo, música favorita, localização, nível de amizade, pronome e observações viram traços de personalidade (ousadia, reserva, timidez, humor, verbosidade, emojis, gírias), interesses concretos e um jeito de escrever.
+- **Química e estágios:** a conversa acumula química de 0 a 100 e atravessa cinco estágios — conhecendo agora, pegando intimidade, confiante, próxima e especial. O estágio muda o tamanho das respostas, as perguntas e o que ela aceita ouvir.
+- **O clima é automático:** não existe painel de tom no chat. Ela vai do papo leve ao flerte (e, com ficha 18+ e modo adulto ligado, ao clima quente) conforme a intimidade construída, sempre ajustada por reserva e ousadia da persona. Se o assunto passar do ponto, ela **desconversa** com naturalidade em vez de responder, e a química não sobe.
+- **Humor automático:** ela chega a um humor (alegre, brincalhona, flertando, tímida, curiosa, carinhosa, fechada ou neutra) e reage ao que você escreve. Cobranças fecham o clima; desabafos trazem carinho. O cabeçalho só mostra o estado atual, sem botões.
+- **Memória:** preferências, rotina e planos citados por você viram anotações curtas que ela retoma depois. A memória pode ser apagada no menu da conversa.
+- **Nunca a mesma frase:** cada resposta é sorteada entre dezenas de modelos por intenção e clima, combinados com gírias, risadas, emojis, vocativos e pequenos erros de digitação proporcionais à persona. Os últimos modelos usados saem do sorteio.
+- **Modo automático:** o botão **Deixar puxar** faz ela mandar mensagem sozinha depois de um tempo, retomando assunto ou lembrança.
+- **Extras:** envio de foto na conversa e reação a ela, fotos ocasionais dela, sugestões de resposta e de abertura, cartão **Como ela conversa**, análise da conversa e exportação em Markdown.
+
+### Conteúdo adulto
+
+- Só existe para fichas com **18 anos ou mais** e depois de ligar o **modo adulto** em **Ajustes → Conversas** (desligado por padrão). Ficha com menos de 18 anos nunca entra em flerte nem em conteúdo adulto, mesmo com a opção ligada.
+- Ainda assim o conteúdo é **sugestivo**: insinuação, provocação e clima, sempre por mensagem e sem descrição explícita.
+- Em **Ajustes → Conversas** ficam o ritmo de digitação, o medidor de química, o uso de gírias e emojis e o modo automático.
+- Nos quebra-gelos (**Puxar assunto**), a categoria **Picante** só aparece para ficha adulta com o modo adulto ligado.
 
 ## Dados e recuperação
 
@@ -74,6 +95,7 @@ Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não
 - `C`: comparação.
 - `J`: roleta do catálogo.
 - `D`, `A`, `M`, `X`, `G`, `R`, `O`: Painel, Agenda, Meu espaço, Descobrir, Galeria, Lembretes e Pastas.
+- `T`: Ferramentas (as 50 utilidades).
 - `B`: modo disfarce. `Esc` três vezes: pânico.
 - `/`: busca da página, ou busca global.
 - `Ctrl+Z` e `Ctrl+Shift+Z`: desfazer e refazer alterações da sessão, fora dos formulários.
@@ -87,6 +109,10 @@ Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não
 - `src/lib/storage.ts`: IndexedDB, recuperação local e versões de backup.
 - `src/lib/export.ts`: exportações PNG por Canvas (ficha, ranking e tierlist), sem interpolar conteúdo pessoal em HTML.
 - `src/lib/sound.ts`: sintetizador de sons de interface (Web Audio) com as regras de silêncio.
+- `src/lib/persona.ts`: leitura da ficha (comportamento, idade, interesses, signo, música, localização) e montagem da persona que fala.
+- `src/lib/dialogue.ts`: motor da conversa simulada — intenções, clima automático, química, estágios, memória, humor, estilo de escrita, sugestões, análise e exportação.
+- `src/lib/toolkit.ts`: as 50 ferramentas, com campos, prévia e execução sobre os dados.
+- `src/components/Toolbox.tsx`: tela Ferramentas, com busca, grupos, formulário dinâmico e resultado.
 - `src/lib/ics.ts`: exportação da agenda em iCalendar.
 - `src/components/Celebrations.tsx`: confete, cartão de nível, aviso de conquista, cinturão da campeã e roleta.
 - `src/hooks/usePersonDraft.ts`: recuperação e isolamento de rascunhos.
@@ -97,7 +123,11 @@ Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não
 
 ## Validação
 
-O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos. Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira.
+O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos. Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira, além de:
+
+- `tests/chat.test.ts`: persona derivada da ficha, detecção de intenções, química e estágios, travas de idade e de clima, memória, variedade das respostas, sugestões e análise da conversa.
+- `tests/toolbox.test.ts`: as 50 ferramentas (contagem, grupos, ids únicos), execução sem quebrar com catálogo vazio, resultado visível nas ferramentas de leitura, uso do `commit` nas que alteram dados e conferência das contas do dia a dia.
+- `tests/toolbox-ui.test.tsx`: a tela Ferramentas navegando, filtrando e executando de verdade, e a conversa simulada abrindo pela ficha com medidor de química, humor automático e resposta salva.
 
 A última instalação de dependências reportou três alertas de auditoria npm (um baixo, um moderado e um alto). As atualizações compatíveis reduziram os alertas, mas uma revisão de segurança das dependências ainda é necessária antes de publicação pública.
 
