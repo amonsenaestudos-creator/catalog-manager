@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Archive, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, Link2, MapPin, MoreHorizontal, Plus, Printer, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
+import { Archive, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, History, Link2, MapPin, MoreHorizontal, Pin, PinOff, Plus, Printer, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
 import { ADULT_APPEARANCE_TAGS } from '../types';
 import type { Person } from '../types';
 import { useCatalog } from '../context';
@@ -10,7 +10,8 @@ import { usePersonDraft } from '../hooks/usePersonDraft';
 import PersonEditor, { ReadNotes } from './PersonEditor';
 import StarRating from './StarRating';
 import { Button, Confirm, EmptyState, IconButton, Modal, PhotoView, Tag } from './ui';
-import { averageRadar } from '../lib/stats';
+import { averageRadar, personTimeline } from '../lib/stats';
+import type { TimelineEvent } from '../lib/stats';
 
 export default function PersonDrawer({ person }: { person: Person }) {
   const ctx = useCatalog();
@@ -48,7 +49,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
           <PhotoView person={person} /><span><Camera size={16} />Ver foto</span>
         </button>
         <div className="person-intro">
-          <div className="intro-top"><span className="eyebrow">{person.archivedAt ? 'No arquivo' : 'Sua conexão'}</span><IconButton label={person.favorite ? 'Remover dos favoritos' : 'Favoritar'} onClick={() => ctx.changePeople([person.id], { favorite: !person.favorite }, person.favorite ? 'Removida dos favoritos.' : 'Adicionada aos favoritos.')}><Heart size={21} fill={person.favorite ? 'currentColor' : 'none'} className={person.favorite ? 'pink' : ''} /></IconButton></div>
+          <div className="intro-top"><span className="eyebrow">{person.archivedAt ? 'No arquivo' : 'Sua conexão'}</span><IconButton label={person.favorite ? 'Remover dos favoritos' : 'Favoritar'} onClick={() => { ctx.changePeople([person.id], { favorite: !person.favorite }, person.favorite ? 'Removida dos favoritos.' : 'Adicionada aos favoritos.'); if (!person.favorite) ctx.sound('pop'); }}><Heart size={21} fill={person.favorite ? 'currentColor' : 'none'} className={person.favorite ? 'pink' : ''} /></IconButton></div>
           <h2>{person.nome}</h2><p className="person-location"><MapPin size={15} />{locationLabel(person, data)}</p>
           <span className={`rarity-chip rarity-${person.rarity || rarityFor(calculateOverallRating(person.rating))}`}><Sparkles size={12} />{RARITY_LABELS[person.rarity || rarityFor(calculateOverallRating(person.rating))]}{person.aniversario && ageFromBirthday(person.aniversario) !== null && <small> · {ageFromBirthday(person.aniversario)} anos</small>}</span>
           <StarRating value={calculateOverallRating(person.rating)} readonly size={21} />
@@ -56,18 +57,19 @@ export default function PersonDrawer({ person }: { person: Person }) {
           <p className="person-description">{person.descricao}</p><div className="tags">{tags.map(tag => <Tag key={tag} name={tag} />)}</div>
           <div className="person-primary-actions">
             <Button variant="primary" onClick={() => setEditing(true)}><Edit3 size={16} />Editar ficha</Button><Button onClick={() => ctx.seenToday([person.id])}><Eye size={16} />Vi hoje <small>{person.viHojeCount}</small></Button>
-            <div className="menu-anchor"><IconButton label="Mais ações" onClick={() => setMenu(!menu)}><MoreHorizontal size={20} /></IconButton>{menu && <div className="dropdown-menu"><button onClick={exportImage} disabled={busy}><Download size={16} />{busy ? 'Gerando imagem...' : 'Exportar ficha PNG'}</button><button onClick={() => { downloadJson(person, `catalog-ficha-${person.id}.json`); setMenu(false); }}><FileText size={16} />Exportar ficha JSON</button><button onClick={() => { setMenu(false); window.print(); }}><Printer size={16} />Imprimir ficha</button><button onClick={() => ctx.duplicate(person)}><Copy size={16} />Duplicar ficha</button><button onClick={() => { ctx.navigate('reminders'); ctx.closePerson(); }}><Plus size={16} />Criar lembrete</button><button onClick={moveArchive}><Archive size={16} />{person.archivedAt ? 'Desarquivar' : 'Arquivar ficha'}</button><button className="danger-text" onClick={() => { setConfirmTrash(true); setMenu(false); }}><Trash2 size={16} />Mover para lixeira</button></div>}</div>
+            <div className="menu-anchor"><IconButton label="Mais ações" onClick={() => setMenu(!menu)}><MoreHorizontal size={20} /></IconButton>{menu && <div className="dropdown-menu"><button onClick={exportImage} disabled={busy}><Download size={16} />{busy ? 'Gerando imagem...' : 'Exportar ficha PNG'}</button><button onClick={() => { downloadJson(person, `catalog-ficha-${person.id}.json`); setMenu(false); }}><FileText size={16} />Exportar ficha JSON</button><button onClick={() => { setMenu(false); window.print(); }}><Printer size={16} />Imprimir ficha</button><button onClick={() => ctx.duplicate(person)}><Copy size={16} />Duplicar ficha</button><button onClick={() => { ctx.togglePinned(person.id); setMenu(false); }}>{person.pinned ? <PinOff size={16} /> : <Pin size={16} />}{person.pinned ? 'Soltar do topo' : 'Fixar no topo do catálogo'}</button><button onClick={() => { ctx.navigate('reminders'); ctx.closePerson(); }}><Plus size={16} />Criar lembrete</button><button onClick={moveArchive}><Archive size={16} />{person.archivedAt ? 'Desarquivar' : 'Arquivar ficha'}</button><button className="danger-text" onClick={() => { setConfirmTrash(true); setMenu(false); }}><Trash2 size={16} />Mover para lixeira</button></div>}</div>
           </div>
           <div className="completion-line"><div><span>Ficha {complete.percent}% completa</span><span>{complete.percent === 100 ? <Check size={14} /> : `${complete.missing.length} detalhes a preencher`}</span></div><span className="progress-track"><i style={{ width: `${complete.percent}%` }} /></span></div>
         </div>
       </div>
-      <div className="editor-tabs"><button className={tab === 'info' ? 'active' : ''} onClick={() => setTab('info')}><FileText size={17} />Informações</button><button className={tab === 'ratings' ? 'active' : ''} onClick={() => setTab('ratings')}><Star size={17} />Avaliações</button><button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}><FileText size={17} />Notas <small>{person.notas.length}</small></button><button className={tab === 'photos' ? 'active' : ''} onClick={() => setTab('photos')}><Camera size={17} />Fotos <small>{person.fotos.length}</small></button><button className={tab === 'goals' ? 'active' : ''} onClick={() => setTab('goals')}><Trophy size={17} />Metas <small>{data.goals.filter(goal => goal.personId === person.id && !goal.done).length}</small></button></div>
+      <div className="editor-tabs"><button className={tab === 'info' ? 'active' : ''} onClick={() => setTab('info')}><FileText size={17} />Informações</button><button className={tab === 'ratings' ? 'active' : ''} onClick={() => setTab('ratings')}><Star size={17} />Avaliações</button><button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}><FileText size={17} />Notas <small>{person.notas.length}</small></button><button className={tab === 'photos' ? 'active' : ''} onClick={() => setTab('photos')}><Camera size={17} />Fotos <small>{person.fotos.length}</small></button><button className={tab === 'goals' ? 'active' : ''} onClick={() => setTab('goals')}><Trophy size={17} />Metas <small>{data.goals.filter(goal => goal.personId === person.id && !goal.done).length}</small></button><button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}><History size={17} />Linha do tempo</button></div>
       {tab === 'info' && <><dl className="person-facts">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl>{person.observacoesGerais && <section className="read-text"><h3>Observações gerais</h3><p>{person.observacoesGerais}</p></section>}{person.comportamento && <section className="read-text"><h3>Comportamento</h3><p>{person.comportamento}</p></section>}{person.descricaoCorporal && <section className="read-text"><h3>Descrição corporal</h3><p>{person.descricaoCorporal}</p></section>}<div className="read-text"><h3>Pastas</h3><div className="collection-picker">{data.folders.map(folder => <button className={folder.personIds.includes(person.id) ? 'selected' : ''} key={folder.id} onClick={() => ctx.commit(d => ({ ...d, folders: d.folders.map(x => x.id === folder.id ? { ...x, personIds: x.personIds.includes(person.id) ? x.personIds.filter(id => id !== person.id) : [...x.personIds, person.id], updatedAt: new Date().toISOString() } : x) }), 'Pasta atualizada.')}><span style={{ background: folder.color }} />{folder.name}{folder.personIds.includes(person.id) && <Check size={13} />}</button>)}{!data.folders.length && <p className="muted">Crie uma pasta em Organizar para reunir fichas, notas e fotos.</p>}</div></div></>}
       {tab === 'info' && (person.attachments || []).length > 0 && <div className="read-text"><h3><Link2 size={15} />Anexos</h3><div className="attachment-links">{(person.attachments || []).map(item => <a key={item.id} href={item.url} target="_blank" rel="noreferrer noopener"><ExternalLink size={13} /><span>{item.label || 'Anexo'}<small>{item.kind.toUpperCase()}</small></span></a>)}</div></div>}
       {tab === 'ratings' && <><div className="rating-summary"><div><h3>Nota geral</h3><p>{person.rating.mode === 'manual' ? 'Definida manualmente' : 'Média ponderada dos atributos preenchidos'}</p></div><strong>{formatNumber(calculateOverallRating(person.rating))}<small>/ 5</small></strong></div><div className="rating-fields">{RATING_FIELDS.filter(field => !field.adult || adult).map(field => <div key={field.key} className="rating-field"><span>{field.label}<small>Peso {formatNumber(field.weight)}</small></span><StarRating value={person.rating[field.key]} readonly size={21} /></div>)}</div>
         <div className="rating-radar"><h3>Radar comparado à média</h3><Radar axes={RATING_FIELDS.filter(field => !field.adult || adult).map(field => field.label)} series={[{ name: person.nome, values: RATING_FIELDS.filter(field => !field.adult || adult).map(field => person.rating[field.key] || 0) }, { name: 'Média do catálogo', values: averageRadar(data).filter(item => RATING_FIELDS.filter(field => !field.adult || adult).some(field => field.label === item.label)).map(item => item.value) }]} /></div>
         {(person.ratingHistory || []).length > 0 && <div className="rating-history-block"><h3>Histórico da nota</h3><ul className="rating-history">{(person.ratingHistory || []).slice(-8).reverse().map((entry, index) => <li key={`${entry.date}-${index}`}><time>{formatDate(entry.date)}</time><strong>{formatNumber(entry.overall)}</strong></li>)}</ul></div>}</>}
       {tab === 'goals' && <PersonGoals personId={person.id} personName={person.nome} />}
+      {tab === 'timeline' && <PersonTimeline person={person} />}
       {tab === 'notes' && <ReadNotes person={person} />}
       {tab === 'photos' && <div className="gallery-grid drawer-gallery">{person.fotos.map(file => <button key={file.id} onClick={() => setPhoto(file.url)}><PhotoView src={file.url} alt={person.nome} />{file.isMain && <span className="photo-caption"><Star size={13} />Foto principal</span>}</button>)}{!person.fotos.length && <EmptyState icon={Camera} title="Sua galeria começa aqui" action="Adicionar fotos" onAction={() => setEditing(true)} />}</div>}
     </div>}
@@ -89,7 +91,7 @@ function PersonGoals({ personId, personName }: { personId: string; personName: s
     ctx.addXp(2, 'Novo objetivo de conexão');
     setTitle('');
   };
-  const toggle = (id: string, isDone: boolean) => ctx.commit(d => ({ ...d, goals: d.goals.map(goal => goal.id === id ? { ...goal, done: !isDone, doneAt: !isDone ? new Date().toISOString() : null } : goal) }), isDone ? 'Objetivo reaberto.' : 'Objetivo concluído!');
+  const toggle = (id: string, isDone: boolean) => { ctx.commit(d => ({ ...d, goals: d.goals.map(goal => goal.id === id ? { ...goal, done: !isDone, doneAt: !isDone ? new Date().toISOString() : null } : goal) }), isDone ? 'Objetivo reaberto.' : 'Objetivo concluído!'); if (!isDone) ctx.sound('success'); };
   return <div className="person-goals">
     <div className="goal-progress"><span>{done} de {goals.length} concluídos com {personName}</span><i><b style={{ width: `${goals.length ? done / goals.length * 100 : 0}%` }} /></i></div>
     <form className="goal-add" onSubmit={event => { event.preventDefault(); add(); }}>
@@ -103,4 +105,16 @@ function PersonGoals({ personId, personName }: { personId: string; personName: s
       <IconButton label="Excluir objetivo" onClick={() => ctx.commit(d => ({ ...d, goals: d.goals.filter(item => item.id !== goal.id) }), 'Objetivo excluído.')}><Trash2 size={15} /></IconButton>
     </li>; })}</ul> : <EmptyState icon={Trophy} title="Nenhum objetivo ainda" description="Pequenos passos ajudam: puxar assunto, pegar o número, marcar um encontro." />}
   </div>;
+}
+
+const TIMELINE_ICONS: Record<TimelineEvent['kind'], typeof Camera> = { cadastro: Sparkles, foto: Camera, interacao: Eye, nota: FileText, historia: FileText, lembrete: CalendarDays, encontro: CalendarDays, conversa: FileText, meta: Trophy, 'nota-geral': Star, duelo: Trophy };
+/** Linha do tempo da pessoa: cadastro, fotos, interações, notas, encontros, conversas e metas em uma só lista. */
+function PersonTimeline({ person }: { person: Person }) {
+  const { data } = useCatalog();
+  const events = personTimeline(person, data);
+  if (!events.length) return <EmptyState icon={History} title="A linha do tempo começa agora" description="Interações, fotos, encontros e conversas vão aparecer aqui em ordem." />;
+  return <ol className="person-timeline">{events.slice(0, 80).map(event => { const Icon = TIMELINE_ICONS[event.kind]; return <li key={event.id} className={`timeline-${event.kind}`}>
+    <span className="timeline-dot"><Icon size={12} /></span>
+    <div><time>{formatDate(event.date)}</time><strong>{event.title}</strong>{event.detail && <p>{event.detail}</p>}</div>
+  </li>; })}{events.length > 80 && <li className="timeline-more"><span className="timeline-dot" /><div><small>… e mais {events.length - 80} registros anteriores.</small></div></li>}</ol>;
 }

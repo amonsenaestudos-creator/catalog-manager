@@ -54,6 +54,28 @@ export const NEW_FEATURES: [string, string, string][] = [
   ['Busca global ampliada', 'Ctrl+K agora acha notas, histórias, lembretes e fotos, além de pessoas e ações.', 'home'],
   ['Densidade compacta', 'Mais itens por tela em todo o aplicativo, não só no catálogo.', 'settings'],
   ['Limpeza programada da lixeira', 'Defina após quantos dias as fichas da lixeira podem ser limpas, com aviso antes.', 'settings'],
+  // Sons, comemorações e brincadeiras
+  ['Sons de interface', 'Pop ao favoritar, whoosh no swipe, batida no duelo, arpejo em conquistas e fanfarra ao subir de nível. Tudo gerado na hora, sem baixar nada. Ligado por padrão; desligue ou ajuste o volume em Ajustes → Aparência.', 'settings'],
+  ['Silêncio quando precisa', 'Os sons somem sozinhos no modo disfarce, no pânico, na privacidade e quando "reduzir animações" está ligado.', 'settings'],
+  ['Confete e cartão de conquista', 'Cada conquista nova chega com chuva de confete e um cartão animado. Pode desligar nos Ajustes.', 'dashboard'],
+  ['Comemoração de nível', 'Subiu de nível? Um selo animado sobe no meio da tela com o seu novo título.', 'dashboard'],
+  ['Brilho de carta Lendária', 'Fichas com nota 4,8 ou mais ganham borda dourada com brilho passando no catálogo, no swipe e no duelo.', 'catalog'],
+  ['Roleta do catálogo', 'Tecla J (ou o botão no Painel) gira uma roleta que passa pelas fichas e para em uma para você rever hoje.', 'dashboard'],
+  ['Cinturão da campeã', 'Quem lidera o placar do This or That aparece com cinturão dourado no Painel e na arena do duelo.', 'discover'],
+  ['Tons por humor no diário', 'Cada carinha do humor toca uma nota: do tom mais grave no dia difícil ao acorde aberto no dia ótimo.', 'myspace'],
+  ['Vibração no celular', 'Passar cartões no swipe dá um toque curto de vibração em aparelhos compatíveis. Opcional.', 'discover'],
+  ['Chama da sequência', 'A sequência de dias muda de cor conforme cresce (3, 7 e 30 dias) e mostra quanto falta para o próximo marco.', 'dashboard'],
+  ['Código Konami', '↑ ↑ ↓ ↓ ← → ← → B A liga o modo disco: as cores do app giram até você digitar de novo.', 'settings'],
+  ['Cronômetro que avisa', 'Durante um encontro, o cronômetro dá um tique a cada 10 minutos e um aviso alegre a cada meia hora.', 'agenda'],
+  // Lacunas fechadas
+  ['Lixeira que se limpa sozinha', 'O prazo definido em Ajustes → Avisos agora vale de verdade: fichas vencidas saem da lixeira e as fotos ficam guardadas como avulsas.', 'settings'],
+  ['Desafios que se concluem', 'Os seis desafios da semana aparecem inteiros, marcam "feito" sozinhos quando a barra enche e rendem +30 XP cada. O de completar fichas agora conta as que ficaram 100% nesta semana.', 'dashboard'],
+  ['Fixar no topo', 'Fixe uma ficha pelo menu dela: ela fica sempre em primeiro no catálogo, em qualquer ordenação.', 'catalog'],
+  ['Novas ordenações', 'Ordene por fichas menos completas, idade, há mais tempo sem ver ou aniversário mais próximo.', 'catalog'],
+  ['Aniversários e revisitas no Painel', 'Um bloco lista quem faz aniversário nos próximos 45 dias e quem você não vê há mais tempo que o limite.', 'dashboard'],
+  ['Linha do tempo por pessoa', 'Uma aba nova na ficha reúne cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota em ordem.', 'catalog'],
+  ['Exportar tierlist em PNG', 'Salve qualquer tierlist como imagem, com faixas coloridas e retratos, pelo menu Mais.', 'tierlists'],
+  ['Agenda para o calendário (.ics)', 'Exporte os compromissos em um arquivo .ics e importe no Google Agenda, Outlook ou iPhone.', 'agenda'],
 ];
 
 export const FEATURES = [

@@ -3,12 +3,15 @@ import type { ReactNode } from 'react';
 import type { AppData, CatalogFilter, Person, PersonDraft, Profile } from './types';
 import { calculateOverallRating, DEFAULT_FILTER, demoData, duplicatePerson, emptyData, generateId, getAllTagNames, makeActivity, normalizePhotos, PALETTE, today } from './store';
 import { DEFAULT_PROFILE, deleteProfileData, loadProfiles, persistData, pushBackup, readStoredData, saveProfiles, writeJournal } from './lib/storage';
-import { computeXp, evaluateAchievements, levelInfo } from './lib/progress';
+import { computeXp, evaluateAchievements, levelInfo, weeklyChallenges } from './lib/progress';
 import { newNotifications, pushBrowserNotification } from './lib/notifications';
+import { configureSound, playSound, primeSound, vibrate } from './lib/sound';
+import type { SoundName } from './lib/sound';
 
 type Notice = { message: string; error?: boolean } | null;
 type Mutator = (data: AppData) => AppData;
 type SaveStatus = 'saved' | 'saving' | 'pending' | 'error';
+export type Celebration = { id: string; kind: 'conquista' | 'nivel'; title: string; description: string; level?: number };
 interface CatalogContext {
   data: AppData;
   ready: boolean;
@@ -80,6 +83,14 @@ interface CatalogContext {
   splash: string | null;
   dismissSplash: () => void;
   addXp: (amount: number, reason?: string) => void;
+  // Sons, comemorações e brincadeiras
+  sound: (name: SoundName) => void;
+  buzz: (pattern?: number | number[]) => void;
+  celebration: Celebration | null;
+  dismissCelebration: () => void;
+  rouletteOpen: boolean;
+  setRouletteOpen: (v: boolean) => void;
+  togglePinned: (id: string) => void;
 }
 const Context = createContext<CatalogContext | null>(null);
 export function useCatalog() { const context = useContext(Context); if (!context) throw new Error('CatalogProvider ausente.'); return context; }
@@ -107,6 +118,9 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [vaultUnlocked, setVaultUnlocked] = useState(false);
   const [splash, setSplash] = useState<string | null>(null);
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const celebrationQueue = useRef<Celebration[]>([]);
+  const [rouletteOpen, setRouletteOpen] = useState(false);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef(false), saving = useRef(false);
@@ -185,6 +199,22 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [authenticated, demo, data.people.length, notify]);
 
   // ---------------------------------------------------------------------------
+  // Sons de interface: ligados por padrão, silenciados no disfarce, no pânico e na privacidade.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    configureSound({ enabled: data.settings.sounds !== false && !data.settings.reducedMotion, muted: blur || panic || privacy || !authenticated, volume: Math.max(0, Math.min(1, (data.settings.soundVolume ?? 55) / 100)) });
+  }, [data.settings.sounds, data.settings.reducedMotion, data.settings.soundVolume, blur, panic, privacy, authenticated]);
+  useEffect(() => { if (authenticated) primeSound(); }, [authenticated]);
+  const sound = useCallback((name: SoundName) => { playSound(name); }, []);
+  const buzz = useCallback((pattern: number | number[] = 12) => { if (current.current.settings.haptics !== false) vibrate(pattern); }, []);
+  const pushCelebration = useCallback((item: Celebration) => {
+    if (demoRef.current) return;
+    celebrationQueue.current = [...celebrationQueue.current, item];
+    setCelebration(active => active || celebrationQueue.current.shift() || null);
+  }, []);
+  const dismissCelebration = useCallback(() => setCelebration(() => celebrationQueue.current.shift() || null), []);
+
+  // ---------------------------------------------------------------------------
   // Sequência de dias, notificações e conquistas.
   // ---------------------------------------------------------------------------
   useEffect(() => {
@@ -232,8 +262,44 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       progress: { ...d.progress, achievements: { ...d.progress.achievements, ...Object.fromEntries(fresh.map(entry => [entry.def.id, stamp])) } },
       notifications: [...fresh.map(entry => ({ id: `conquista:${entry.def.id}`, title: `Conquista: ${entry.def.title}`, body: entry.def.description, kind: 'conquista' as const, date: stamp, read: false })), ...d.notifications].slice(0, 120),
     }), undefined, false);
-    notify(`Conquista desbloqueada: ${fresh[0].def.title}`);
+    playSound('achievement');
+    if (current.current.settings.confetti === false) { notify(`Conquista desbloqueada: ${fresh[0].def.title}`); return; }
+    // Várias de uma vez (dados antigos, importação) viram um cartão só, em vez de uma fila de dois minutos.
+    if (fresh.length === 1) pushCelebration({ id: `conquista:${fresh[0].def.id}:${stamp}`, kind: 'conquista', title: fresh[0].def.title, description: fresh[0].def.description });
+    else pushCelebration({ id: `conquistas:${stamp}`, kind: 'conquista', title: `${fresh.length} conquistas de uma vez`, description: fresh.map(entry => entry.def.title).join(' · ') });
+  }, [data, ready, demo, commit, notify, pushCelebration]);
+
+  // Desafios da semana: quando a barra enche, o desafio entra na lista de concluídos (e rende XP uma vez só).
+  useEffect(() => {
+    if (!ready || demo) return;
+    const { week, challenges } = weeklyChallenges(current.current);
+    const stored = current.current.progress.challenges;
+    const done = stored.week === week ? stored.done : [];
+    const finished = challenges.filter(challenge => challenge.progress >= challenge.target && !done.includes(challenge.id)).map(challenge => challenge.id);
+    if (!finished.length && stored.week === week) return;
+    commit(d => ({ ...d, progress: { ...d.progress, xp: d.progress.xp + finished.length * 30, challenges: { week, done: [...done, ...finished] } } }), undefined, false);
+    if (finished.length) { notify(`Desafio da semana concluído: +${finished.length * 30} XP`); playSound('success'); }
   }, [data, ready, demo, commit, notify]);
+
+  // Lixeira automática: fichas apagadas há mais dias que o limite dos Ajustes saem de vez (fotos viram avulsas).
+  useEffect(() => {
+    if (!ready || !authenticated || demo) return;
+    const days = current.current.settings.trashAutoCleanDays || 0;
+    if (!days) return;
+    const cutoff = Date.now() - days * 86400000;
+    const expired = current.current.people.filter(p => p.deletedAt && (Date.parse(p.deletedAt) || Date.now()) < cutoff).map(p => p.id);
+    if (!expired.length) return;
+    commit(d => ({
+      ...d,
+      people: d.people.filter(p => !expired.includes(p.id)),
+      orphanPhotos: [...d.orphanPhotos, ...d.people.filter(p => expired.includes(p.id)).flatMap(p => p.fotos.map(f => ({ ...f, personId: null, isMain: false })))],
+      stories: d.stories.map(s => expired.includes(s.personId || '') ? { ...s, personId: null } : s),
+      reminders: d.reminders.map(r => expired.includes(r.personId || '') ? { ...r, personId: null } : r),
+      tierLists: d.tierLists.map(t => ({ ...t, items: t.items.filter(i => !expired.includes(i.personId)) })),
+      collections: d.collections.map(c => ({ ...c, personIds: c.personIds.filter(id => !expired.includes(id)) })),
+      notifications: [{ id: `lixeira:limpa:${Date.now()}`, title: `${expired.length} ficha(s) removida(s) da lixeira`, body: `Estavam na lixeira há mais de ${days} dias. As fotos foram mantidas como avulsas na galeria.`, kind: 'sistema' as const, date: new Date().toISOString(), read: false }, ...d.notifications].slice(0, 120),
+    }), undefined, false);
+  }, [ready, authenticated, demo, data.people.length, data.settings.trashAutoCleanDays, commit]);
 
   const navigate = useCallback((page: string, scope?: CatalogFilter['scope']) => { setPage(page); if (scope) setFilter({ ...DEFAULT_FILTER, scope }); window.scrollTo({ top: 0 }); }, []);
   useEffect(() => {
@@ -269,7 +335,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [commit, notify]);
   const saveDraft = useCallback((draft: PersonDraft) => commit(d => ({ ...d, drafts: { ...d.drafts, [draft.id]: draft } }), undefined, false), [commit]);
   const discardDraft = useCallback((id: string) => commit(d => { const drafts = { ...d.drafts }; delete drafts[id]; return { ...d, drafts }; }, undefined, false), [commit]);
-  const trashPeople = useCallback((ids: string[]) => { changePeople(ids, { deletedAt: new Date().toISOString() }, `${ids.length} ficha(s) movida(s) para a lixeira. Tudo foi preservado.`); if (ids.includes(selectedId || '')) setSelectedId(null); }, [changePeople, selectedId]);
+  const trashPeople = useCallback((ids: string[]) => { changePeople(ids, { deletedAt: new Date().toISOString() }, `${ids.length} ficha(s) movida(s) para a lixeira. Tudo foi preservado.`); playSound('swoosh'); if (ids.includes(selectedId || '')) setSelectedId(null); }, [changePeople, selectedId]);
   const restorePeople = useCallback((ids: string[]) => changePeople(ids, { deletedAt: null }, 'Fichas restauradas com fotos, notas e vínculos.'), [changePeople]);
   const deletePermanently = useCallback((ids: string[], keepPhotos: boolean) => {
     commit(d => ({ ...d, people: d.people.filter(p => !ids.includes(p.id)), orphanPhotos: keepPhotos ? [...d.orphanPhotos, ...d.people.filter(p => ids.includes(p.id)).flatMap(p => p.fotos.map(f => ({ ...f, personId: null, isMain: false })))] : d.orphanPhotos, stories: d.stories.map(s => ids.includes(s.personId || '') ? { ...s, personId: null } : s), reminders: d.reminders.map(r => ids.includes(r.personId || '') ? { ...r, personId: null } : r), tierLists: d.tierLists.map(t => ({ ...t, items: t.items.filter(i => !ids.includes(i.personId)) })), collections: d.collections.map(c => ({ ...c, personIds: c.personIds.filter(id => !ids.includes(id)) })), drafts: Object.fromEntries(Object.entries(d.drafts).filter(([, draft]) => !ids.includes(draft.personId || ''))) }), 'Exclusão definitiva concluída.', false);
@@ -277,10 +343,10 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [commit]);
   const duplicate = useCallback((p: Person) => { const copy = duplicatePerson(p); commit(d => ({ ...d, people: [copy, ...d.people] }), 'Cópia independente da ficha criada.'); setSelectedId(copy.id); }, [commit]);
   const seenToday = useCallback((ids: string[]) => commit(d => ({ ...d, people: d.people.map(p => ids.includes(p.id) ? { ...p, ultimoVisto: today(), viHojeCount: p.viHojeCount + 1, viHojeDates: [...p.viHojeDates, today()], updatedAt: new Date().toISOString() } : p) }), 'Interação registrada no calendário.'), [commit]);
-  const undo = useCallback(() => { const previous = past.current.pop(); if (!previous) return; future.current.push(current.current); stage({ ...previous, drafts: current.current.drafts }); setHistoryVersion(v => v + 1); notify('Última alteração desfeita.'); }, [stage, notify]);
+  const undo = useCallback(() => { const previous = past.current.pop(); if (!previous) return; future.current.push(current.current); stage({ ...previous, drafts: current.current.drafts }); setHistoryVersion(v => v + 1); notify('Última alteração desfeita.'); playSound('swoosh'); }, [stage, notify]);
   const redo = useCallback(() => { const next = future.current.pop(); if (!next) return; past.current.push(current.current); stage({ ...next, drafts: current.current.drafts }); setHistoryVersion(v => v + 1); notify('Alteração refeita.'); }, [stage, notify]);
   const setPrivacy = useCallback((v: boolean) => { privacyState(v); commit(d => ({ ...d, settings: { ...d.settings, privacy: v } }), undefined, false); }, [commit]);
-  const setPanic = useCallback((v: boolean) => { panicState(v); if (v) { setSelectedId(null); setQuickOpen(false); setCommandOpen(false); setCompareIds(null); setNotificationsOpen(false); privacyState(true); } }, []);
+  const setPanic = useCallback((v: boolean) => { panicState(v); if (v) { setSelectedId(null); setQuickOpen(false); setCommandOpen(false); setCompareIds(null); setNotificationsOpen(false); setRouletteOpen(false); privacyState(true); } }, []);
   const setBlur = useCallback((v: boolean) => { blurState(v); commit(d => ({ ...d, settings: { ...d.settings, blurMode: v } }), undefined, false); }, [commit]);
 
   const login = (username: string, password: string, remember: boolean, profileId?: string) => {
@@ -299,7 +365,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     }
     writeJournal(current.current, true); flush();
     setAuthenticated(false); setQuickOpen(false); setCompareIds(null); setCommandOpen(false); setSelectedId(null); setPage('home');
-    setVaultUnlocked(false); setNotificationsOpen(false); setSplash(null);
+    setVaultUnlocked(false); setNotificationsOpen(false); setSplash(null); setRouletteOpen(false); setCelebration(null); celebrationQueue.current = [];
     if (demoRef.current && original.current) { current.current = original.current; setData(original.current); demoRef.current = false; setDemo(false); pending.current = false; setStatus('saved'); }
     past.current = []; future.current = []; privacyState(false); panicState(false);
     try { sessionStorage.removeItem('catalog_session'); localStorage.removeItem('catalog_remember'); } catch { /* The in-memory session has already ended. */ }
@@ -345,15 +411,19 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   // ---------------------------------------------------------------------------
   const swipe = useCallback((personId: string, direction: 'like' | 'pass') => {
     commit(d => ({ ...d, progress: { ...d.progress, swipes: { ...d.progress.swipes, [personId]: direction } }, people: direction === 'like' ? d.people.map(p => p.id === personId ? { ...p, favorite: true } : p) : d.people }), direction === 'like' ? 'Adicionada aos favoritos.' : undefined, false);
+    playSound(direction === 'like' ? 'like' : 'pass');
+    if (current.current.settings.haptics !== false) vibrate(direction === 'like' ? [10, 30, 18] : 8);
   }, [commit]);
   const duel = useCallback((winnerId: string, loserId: string) => {
     commit(d => ({ ...d, progress: { ...d.progress, duels: [...d.progress.duels, { id: generateId(), winnerId, loserId, date: today() }].slice(-200) } }), undefined, false);
+    playSound('thud');
   }, [commit]);
   const togglePhotoFavorite = useCallback((photoId: string) => {
     commit(d => {
       const flip = (photos: typeof d.orphanPhotos) => photos.map(photo => photo.id === photoId ? { ...photo, favorite: !photo.favorite } : photo);
       return { ...d, orphanPhotos: flip(d.orphanPhotos), people: d.people.map(person => ({ ...person, fotos: flip(person.fotos) })) };
     }, undefined, false);
+    playSound('pop');
   }, [commit]);
   const addXp = useCallback((amount: number, reason?: string) => {
     if (!amount) return;
@@ -362,7 +432,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const unlockVault = useCallback((pin: string) => {
     const vault = current.current.vault;
     if (!vault.pin) { setVaultUnlocked(true); return true; }
-    if (vault.pin === pin.replace(/\D/g, '')) { setVaultUnlocked(true); return true; }
+    if (vault.pin === pin.replace(/\D/g, '')) { setVaultUnlocked(true); playSound('unlock'); return true; }
+    playSound('error');
     return false;
   }, []);
   const lockVault = useCallback(() => setVaultUnlocked(false), []);
@@ -375,6 +446,27 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const xp = useMemo(() => computeXp(data) + data.progress.xp, [data]);
   const level = useMemo(() => levelInfo(xp), [xp]);
   const unread = useMemo(() => data.notifications.filter(item => !item.read).length, [data.notifications]);
+  const lastLevel = useRef<number | null>(null), settledAt = useRef(0);
+  useEffect(() => {
+    if (!ready || !authenticated || demo) { lastLevel.current = null; return; }
+    if (lastLevel.current === null) { lastLevel.current = level.level; settledAt.current = Date.now(); return; }
+    // Saltos logo após abrir (conquistas antigas sendo carimbadas) não contam como festa.
+    if (level.level > lastLevel.current && Date.now() - settledAt.current > 2500) {
+      const key = `nivel:${level.level}`;
+      if (!current.current.progress.celebrated?.[key]) {
+        commit(d => ({ ...d, progress: { ...d.progress, celebrated: { ...(d.progress.celebrated || {}), [key]: new Date().toISOString() } } }), undefined, false);
+        playSound('levelup');
+        if (current.current.settings.confetti === false) notify(`Você subiu para o nível ${level.level}: ${level.title}.`);
+        else pushCelebration({ id: key, kind: 'nivel', title: `Nível ${level.level}`, description: level.title, level: level.level });
+      }
+    }
+    lastLevel.current = level.level;
+  }, [level.level, level.title, ready, authenticated, demo, commit, notify, pushCelebration]);
+  const togglePinned = useCallback((id: string) => {
+    const person = current.current.people.find(p => p.id === id);
+    if (!person) return;
+    commit(d => ({ ...d, people: d.people.map(p => p.id === id ? { ...p, pinned: !p.pinned } : p) }), person.pinned ? 'Ficha solta do topo.' : 'Ficha fixada no topo do catálogo.');
+  }, [commit]);
 
   return <Context.Provider value={{
     data, ready, authenticated, demo, page, filter, setFilter, navigate, selectedId, openPerson, closePerson: () => setSelectedId(null),
@@ -385,6 +477,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     xp, level, achievements, unread, notificationsOpen, setNotificationsOpen, markNotificationRead, markAllNotificationsRead, clearNotifications, checkAlerts,
     profiles, createProfile, switchProfile, removeProfile, swipe, duel, togglePhotoFavorite,
     vaultUnlocked, unlockVault, lockVault, splash, dismissSplash, addXp,
+    sound, buzz, celebration, dismissCelebration, rouletteOpen, setRouletteOpen, togglePinned,
   }}>{children}</Context.Provider>;
 }
 

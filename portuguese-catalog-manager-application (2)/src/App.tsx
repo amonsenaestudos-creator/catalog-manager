@@ -30,6 +30,8 @@ import MySpace from './components/MySpace';
 import Agenda from './components/Agenda';
 import Discover from './components/Discover';
 import NotificationCenter from './components/NotificationCenter';
+import { AchievementToast, ConfettiBurst, LevelUpBadge, RouletteModal } from './components/Celebrations';
+import { playSound } from './lib/sound';
 
 const PAGE_NAMES: Record<string, string> = {
   home: 'Visão geral', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
@@ -37,6 +39,8 @@ const PAGE_NAMES: Record<string, string> = {
 const SHORTCUT_PAGES = ['home', 'catalog', 'ranking', 'tierlists', 'add', 'gallery', 'stories', 'settings'];
 // Atalhos de letra: chegam rápido às telas novas sem mudar os atalhos antigos.
 const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders' };
+// Código Konami: ↑ ↑ ↓ ↓ ← → ← → B A liga (ou desliga) o tema disco.
+const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
 
 function PrivacyScreen() {
   const ctx = useCatalog();
@@ -93,6 +97,17 @@ function Application() {
   const ctx = useCatalog();
   const { data, page, authenticated, ready } = ctx;
   const escTimes = useRef<number[]>([]);
+  const konamiKeys = useRef<string[]>([]);
+  const [confetti, setConfetti] = useState(0);
+  useEffect(() => {
+    if (!ctx.celebration || data.settings.confetti === false || data.settings.reducedMotion) return;
+    setConfetti(Date.now());
+    const timer = setTimeout(() => setConfetti(0), 3400);
+    return () => clearTimeout(timer);
+  }, [ctx.celebration, data.settings.confetti, data.settings.reducedMotion]);
+  useEffect(() => {
+    document.documentElement.classList.toggle('disco-mode', !!data.progress.konami && authenticated && !ctx.privacy);
+  }, [data.progress.konami, authenticated, ctx.privacy]);
   useEffect(() => {
     document.documentElement.classList.toggle('light', data.settings.theme === 'light');
     document.documentElement.classList.toggle('large-text', !!data.settings.largeText);
@@ -131,6 +146,18 @@ function Application() {
       if (mod && value === 'k') { event.preventDefault(); ctx.setCommandOpen(!ctx.commandOpen); return; }
       const target = event.target as HTMLElement;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable || document.querySelector('[role="dialog"]')) return;
+      if (!mod && !event.altKey) {
+        konamiKeys.current = [...konamiKeys.current, value].slice(-KONAMI.length);
+        // O "B" do código não pode ligar o disfarce no meio da sequência.
+        if (konamiKeys.current.slice(-9).join(' ') === KONAMI.slice(0, 9).join(' ')) return;
+        if (konamiKeys.current.join(' ') === KONAMI.join(' ')) {
+          konamiKeys.current = [];
+          const on = !data.progress.konami;
+          ctx.commit(d => ({ ...d, progress: { ...d.progress, konami: on } }), on ? 'Modo disco ligado. Digite o código de novo para desligar.' : 'Modo disco desligado.', false);
+          if (on) { playSound('disco'); setConfetti(Date.now()); setTimeout(() => setConfetti(0), 3400); }
+          return;
+        }
+      }
       if (mod && value === 'z') { event.preventDefault(); if (event.shiftKey) ctx.redo(); else ctx.undo(); return; }
       if (event.altKey || mod) return;
       if (/^[1-8]$/.test(value)) ctx.navigate(SHORTCUT_PAGES[Number(value) - 1]);
@@ -138,6 +165,7 @@ function Application() {
       if (value === 'n') ctx.setQuickOpen(true);
       if (value === 'c') ctx.setCompareIds([]);
       if (value === 'b') { ctx.setBlur(!ctx.blur); return; }
+      if (value === 'j') { ctx.setRouletteOpen(true); return; }
       if (value === '?') ctx.navigate('guide');
       if (value === '/') {
         event.preventDefault();
@@ -147,7 +175,7 @@ function Application() {
     };
     document.addEventListener('keydown', key);
     return () => document.removeEventListener('keydown', key);
-  }, [ctx, authenticated, data.settings.pinEnabled]);
+  }, [ctx, authenticated, data.settings.pinEnabled, data.progress.konami]);
 
   if (!ready) return <div className="loading-screen"><span className="brand-symbol"><Heart size={25} fill="currentColor" strokeWidth={0} /></span><h1>catalog.</h1><p><Loader2 className="spin" size={16} />Preparando seu espaço...</p></div>;
   if (!authenticated) return <><Login /><Toast /></>;
@@ -190,6 +218,11 @@ function Application() {
     {ctx.quickOpen && <QuickAddModal />}
     {ctx.compareIds && <CompareModal />}
     {ctx.commandOpen && <CommandPalette />}
+    {ctx.rouletteOpen && !ctx.privacy && <RouletteModal onClose={() => ctx.setRouletteOpen(false)} />}
+    {!ctx.privacy && confetti > 0 && <ConfettiBurst seed={confetti} />}
+    <AnimatePresence>{!ctx.privacy && ctx.celebration && (ctx.celebration.kind === 'nivel'
+      ? <LevelUpBadge key={ctx.celebration.id} level={ctx.celebration.level || ctx.level.level} title={ctx.celebration.description} onClose={ctx.dismissCelebration} />
+      : <AchievementToast key={ctx.celebration.id} title={ctx.celebration.title} description={ctx.celebration.description} onClose={ctx.dismissCelebration} />)}</AnimatePresence>
     {ctx.privacy && <PrivacyScreen />}
     {!ctx.privacy && <Toast />}
   </MotionConfig>;

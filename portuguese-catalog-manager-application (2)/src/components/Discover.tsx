@@ -4,7 +4,8 @@ import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { ArrowLeft, Eye, Heart, RefreshCw, Scale, Sparkles, Swords, X, Zap } from 'lucide-react';
 import { useCatalog } from '../context';
 import { calculateOverallRating, formatDate, getFinalScore, isActive, locationLabel, RARITY_LABELS, rarityFor } from '../store';
-import { averageRadar } from '../lib/stats';
+import { averageRadar, duelRanking } from '../lib/stats';
+import { ChampionBelt } from './Celebrations';
 import { Avatar, Button, EmptyState, PageTitle, SectionHeading } from './ui';
 import { Radar } from './Charts';
 import StarRating from './StarRating';
@@ -62,7 +63,7 @@ function SwipeCard({ person, onDecide, onOpen }: { person: Person; onDecide: (di
     if (info.offset.x > 110) onDecide('like');
     else if (info.offset.x < -110) onDecide('pass');
   };
-  return <motion.article className="swipe-card" style={{ x, rotate }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.75} onDragEnd={dragEnd}
+  return <motion.article className={`swipe-card ${rarity === 'lendario' ? 'legendary-glow' : ''}`} style={{ x, rotate }} drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.75} onDragEnd={dragEnd}
     onKeyDown={event => { if (event.key === 'ArrowRight') onDecide('like'); if (event.key === 'ArrowLeft') onDecide('pass'); }} tabIndex={0} aria-label={`Cartão de ${person.nome}`}>
     <motion.span className="swipe-badge like" style={{ opacity: likeOpacity }}>Favoritar</motion.span>
     <motion.span className="swipe-badge pass" style={{ opacity: passOpacity }}>Passar</motion.span>
@@ -84,10 +85,13 @@ function DuelMode({ pool, axes }: { pool: Person[]; axes: string[] }) {
   const left = pool[pair[0]], right = pool[pair[1]];
   const next = () => setPair(randomPair(pool.length));
   const choose = (winner: Person, loser: Person) => { ctx.duel(winner.id, loser.id); next(); };
+  const champion = duelRanking(data)[0];
   if (pool.length < 2) return <EmptyState icon={Swords} title="O duelo precisa de duas pessoas" description="Cadastre pelo menos duas fichas ativas para comparar lado a lado." action="Adicionar pessoa" onAction={() => ctx.navigate('add')} />;
   return <div className="duel-wrap">
     <p className="duel-hint"><Zap size={14} />Escolha quem você prefere. Cada vitória alimenta o placar no Painel.</p>
-    <div className="duel-arena">{[left, right].map(person => person && <button key={person.id} className="duel-card" onClick={() => choose(person, person === left ? right : left)}>
+    {champion?.person && <ChampionBelt person={champion.person} wins={champion.wins} />}
+    <div className="duel-arena">{[left, right].map(person => person && <button key={person.id} className={`duel-card ${champion?.person?.id === person.id ? 'is-champion' : ''} ${rarityFor(calculateOverallRating(person.rating)) === 'lendario' ? 'legendary-glow' : ''}`} onClick={() => choose(person, person === left ? right : left)}>
+      {champion?.person?.id === person.id && <span className="champion-tag">Campeã</span>}
       {person.fotos[0] ? <img src={person.fotos[0].url} alt={person.nome} className="person-photo" /> : <Avatar person={person} size={92} />}
       <h3>{person.nome}</h3><StarRating value={calculateOverallRating(person.rating)} readonly size={14} />
       <span>{formatNumberSafe(getFinalScore(person))} pontos</span>

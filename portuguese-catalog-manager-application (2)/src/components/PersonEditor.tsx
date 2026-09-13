@@ -18,7 +18,7 @@ export function PhotoUploader({ onFiles, busy, large = false }: { onFiles: (file
 export default function PersonEditor({ person, update, quick = false, onSave, onSaveAndNew, onCancel, dirty, recovered, onDiscard, submitLabel = 'Salvar ficha' }: {
   person: Person; update: (p: Person | ((p: Person) => Person)) => void; quick?: boolean; onSave: () => void; onSaveAndNew?: () => void; onCancel: () => void; dirty: boolean; recovered: boolean; onDiscard: () => void; submitLabel?: string;
 }) {
-  const { data, notify, commit, status, demo } = useCatalog();
+  const { data, notify, commit, status, demo, sound } = useCatalog();
   const [tab, setTab] = useState('info'); const [busy, setBusy] = useState(false); const [preview, setPreview] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null); const [newTag, setNewTag] = useState('');
   const category = data.categories.find(c => c.value === person.localizacaoOnde);
@@ -32,6 +32,7 @@ export default function PersonEditor({ person, update, quick = false, onSave, on
       const images = await Promise.all(files.map(async file => ({ id: generateId(), url: await readImage(file), name: file.name, personId: person.id, isMain: false, type: 'normal' as const, createdAt: new Date().toISOString() })));
       update(p => ({ ...p, fotos: normalizePhotos([...p.fotos, ...images], p.id) }));
       notify(`${images.length} imagem(ns) preparada(s).`);
+      sound('shutter');
     } catch (error) { notify((error as Error).message, true); } finally { setBusy(false); }
   };
   const addTag = () => { const name = newTag.trim().toLocaleLowerCase('pt-BR'); if (!name) return; if (!adult && ADULT_APPEARANCE_TAGS.includes(name)) { notify('Essa tag de aparência só pode ser usada em fichas adultas.', true); return; } if (!getAllTagNames(data).includes(name)) commit(d => ({ ...d, settings: { ...d.settings, customTags: [...d.settings.customTags, { nome: name, cor: '#c786ec' }] } }), 'Tag criada.'); update(p => ({ ...p, tags: [...new Set([...p.tags, name])] })); setNewTag(''); };

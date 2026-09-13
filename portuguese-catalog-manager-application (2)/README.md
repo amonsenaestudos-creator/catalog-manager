@@ -19,7 +19,11 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Tierlists:** participantes por categoria/subcategoria, faixas personalizadas, cores, ordenação e duplicação independente.
 - **Galeria:** upload múltiplo, imagens não vinculadas, vínculos, pastas, seleção em lote, ampliação e navegação por setas.
 - **Lembretes:** datas, edição, prioridade, conclusão e adiamento.
-- **Ajustes:** perfil, tema, acessibilidade, PIN opcional, importação, exportação e pontos de restauração.
+- **Ajustes:** perfil, tema, acessibilidade, sons e comemorações, PIN opcional, importação, exportação e pontos de restauração.
+- **Painel:** nível e XP, desafios da semana (marcados automaticamente), aniversários e revisitas, roleta, cinturão da campeã do duelo, gráficos e conquistas.
+- **Ficha:** aba **Linha do tempo** com cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota; opção **Fixar no topo** no menu.
+- **Agenda:** exportação `.ics` para Google Agenda, Outlook e iPhone; cronômetro que dá um tique a cada 10 minutos.
+- **Tierlists:** exportação em PNG pelo menu **Mais**.
 - **Novidades do Catalog:** guia navegável dos recursos novos e aprimorados. A lista está em `src/features.ts`.
 
 ## Dados e recuperação
@@ -46,6 +50,15 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - Os campos íntimos (avaliações de peitos, bunda e quadril, e a classificação de mídia adulta) continuam aparecendo somente quando a ficha informa 18 anos ou mais. Todas as outras funções — idade, cabelo, corpo, roupa, etiquetas comuns, notas, fotos normais, pastas e quadros — ficam sempre disponíveis.
 - A avaliação de **Corpo** passou a ser geral e não depende mais da idade.
 
+## Sons e comemorações
+
+Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não há arquivos de áudio no build. Cada momento tem uma receita própria de osciladores e ruído filtrado — pop ao favoritar, duas notas no swipe para a direita, whoosh para a esquerda, batida no duelo, arpejo em conquistas, fanfarra ao subir de nível, obturador ao adicionar fotos, clique + sino ao abrir o cofre, tom grave em PIN errado, tons por humor no diário.
+
+- Ligados por padrão. Desligue ou ajuste o volume em **Ajustes → Aparência → Sons e comemorações**, onde também é possível ouvir cada som.
+- Ficam mudos automaticamente no modo disfarce, no pânico, na tela de privacidade e quando **Reduzir animações** está ativo. Em navegadores sem Web Audio tudo vira no-op.
+- Confete e cartões animados de conquista/nível e a vibração no celular (swipe) têm chaves próprias nos mesmos Ajustes.
+- `↑ ↑ ↓ ↓ ← → ← → B A` liga o modo disco (as cores giram); digite de novo para desligar.
+
 ## Privacidade
 
 `Ctrl+Shift+P` cobre o catálogo e os modais. O PIN é um bloqueio de interface, não criptografia. O login é local, sem autenticação de servidor. Backups incluem as configurações de acesso e devem ser guardados com cuidado. Use somente dados e imagens que você tem autorização para armazenar. Conteúdo íntimo exige pessoas adultas.
@@ -57,6 +70,9 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - `1` a `8`: navegação principal, fora de campos e modais.
 - `N`: fichário rápido.
 - `C`: comparação.
+- `J`: roleta do catálogo.
+- `D`, `A`, `M`, `X`, `G`, `R`, `O`: Painel, Agenda, Meu espaço, Descobrir, Galeria, Lembretes e Pastas.
+- `B`: modo disfarce. `Esc` três vezes: pânico.
 - `/`: busca da página, ou busca global.
 - `Ctrl+Z` e `Ctrl+Shift+Z`: desfazer e refazer alterações da sessão, fora dos formulários.
 - `Esc`: fechar o modal atual, preservando rascunhos.
@@ -67,7 +83,10 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - `src/context.tsx`: estado, comandos, salvamento e histórico de desfazer.
 - `src/store.ts`: migração, avaliações, filtros, normalização, duplicatas e CSV.
 - `src/lib/storage.ts`: IndexedDB, recuperação local e versões de backup.
-- `src/lib/export.ts`: exportações PNG por Canvas, sem interpolar conteúdo pessoal em HTML.
+- `src/lib/export.ts`: exportações PNG por Canvas (ficha, ranking e tierlist), sem interpolar conteúdo pessoal em HTML.
+- `src/lib/sound.ts`: sintetizador de sons de interface (Web Audio) com as regras de silêncio.
+- `src/lib/ics.ts`: exportação da agenda em iCalendar.
+- `src/components/Celebrations.tsx`: confete, cartão de nível, aviso de conquista, cinturão da campeã e roleta.
 - `src/hooks/usePersonDraft.ts`: recuperação e isolamento de rascunhos.
 - `src/components/`: telas e componentes reutilizáveis.
 - `src/components/Notes.tsx`, `Folders.tsx` e `InvestigationBoard.tsx`: anotações gerais, grupos mistos e quadro por etapas.
@@ -76,7 +95,7 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 
 ## Validação
 
-O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos. O projeto foi compilado durante a implementação; não houve execução de testes de navegação ou capturas em navegador nesta sessão.
+O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos. Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira.
 
 A última instalação de dependências reportou três alertas de auditoria npm (um baixo, um moderado e um alto). As atualizações compatíveis reduziram os alertas, mas uma revisão de segurança das dependências ainda é necessária antes de publicação pública.
 

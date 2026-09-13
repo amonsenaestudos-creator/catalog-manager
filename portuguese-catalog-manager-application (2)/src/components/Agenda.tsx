@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarClock, CalendarDays, Check, MessageSquare, Pause, Play, Plus, Square, Timer, Trash2, Users } from 'lucide-react';
+import { CalendarClock, CalendarDays, Check, Download, MessageSquare, Pause, Play, Plus, Square, Timer, Trash2, Users } from 'lucide-react';
 import type { Appointment, Conversation } from '../types';
 import { useCatalog } from '../context';
-import { DEADLINE_LABELS, deadlineState, formatDate, generateId, today } from '../store';
+import { DEADLINE_LABELS, deadlineState, downloadBlob, formatDate, generateId, today } from '../store';
+import { appointmentsToIcs } from '../lib/ics';
 import { Avatar, Button, Confirm, EmptyState, Field, IconButton, Modal, PageTitle, SectionHeading } from './ui';
 
 const clock = (seconds: number) => `${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -22,6 +23,21 @@ export default function Agenda() {
     tick.current = setInterval(() => setElapsed(timer.accumulated + Math.floor((Date.now() - timer.startedAt) / 1000)), 1000);
     return () => { if (tick.current) clearInterval(tick.current); };
   }, [timer]);
+  // A cada 10 minutos de encontro o cronômetro dá um tique discreto; a cada meia hora, um aviso mais alegre.
+  const lastChime = useRef(0);
+  const { sound } = ctx;
+  useEffect(() => {
+    if (!timer || !elapsed || lastChime.current === elapsed) return;
+    lastChime.current = elapsed;
+    if (elapsed % 1800 === 0) sound('success');
+    else if (elapsed % 600 === 0) sound('tick');
+  }, [elapsed, timer, sound]);
+  const exportIcs = () => {
+    const items = data.appointments.filter(item => item.status !== 'cancelado');
+    if (!items.length) { ctx.notify('Não há compromissos para exportar.', true); return; }
+    downloadBlob(new Blob([appointmentsToIcs(items, data)], { type: 'text/calendar;charset=utf-8' }), `catalog-agenda-${today()}.ics`);
+    ctx.notify(`${items.length} compromisso(s) exportado(s) para o calendário.`);
+  };
 
   const lead = data.settings.notificationLeadDays ?? 3;
   const appointments = useMemo(() => [...data.appointments]
@@ -39,7 +55,7 @@ export default function Agenda() {
     setEditing(null);
   };
   const setStatus = (item: Appointment, status: Appointment['status']) => ctx.commit(d => ({ ...d, appointments: d.appointments.map(x => x.id === item.id ? { ...x, status } : x) }), status === 'realizado' ? 'Encontro marcado como realizado.' : status === 'cancelado' ? 'Compromisso cancelado.' : 'Compromisso reaberto.');
-  const startTimer = (item: Appointment) => { setTimer({ appointmentId: item.id, startedAt: Date.now(), accumulated: 0 }); ctx.notify('Cronômetro do encontro iniciado.'); };
+  const startTimer = (item: Appointment) => { setTimer({ appointmentId: item.id, startedAt: Date.now(), accumulated: 0 }); ctx.notify('Cronômetro do encontro iniciado.'); ctx.sound('tick'); };
   const stopTimer = () => {
     if (!timer) return;
     const seconds = timer.accumulated + Math.floor((Date.now() - timer.startedAt) / 1000);
@@ -58,6 +74,7 @@ export default function Agenda() {
 
   return <div className="agenda-page">
     <PageTitle eyebrow="Seus próximos passos" title="Agenda" description="Compromissos, cronômetro de encontros e o histórico do que vocês conversaram.">
+      <Button onClick={exportIcs} disabled={!data.appointments.length}><Download size={16} />Exportar .ics</Button>
       <Button onClick={() => setLogging({ id: generateId(), personId: null, date: today(), topic: '', content: '', createdAt: new Date().toISOString() })}><MessageSquare size={16} />Registrar conversa</Button>
       <Button variant="primary" onClick={() => create()}><Plus size={17} />Novo compromisso</Button>
     </PageTitle>

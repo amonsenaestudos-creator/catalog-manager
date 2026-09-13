@@ -57,7 +57,7 @@ export function getDefaultPerson(): Person {
   return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 5, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '' }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0 } };
+  return { schemaVersion: 5, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -182,7 +182,7 @@ function normalizeFilter(value: unknown): CatalogFilter {
     query: text(f.query), category: text(f.category), subcategory: text(f.subcategory), tag: text(f.tag), collection: text(f.collection),
     minimum: Math.max(0, Math.min(5, numeric(f.minimum))), incomplete: f.incomplete === true,
     photo: ['all', 'with', 'without'].includes(text(f.photo)) ? f.photo as CatalogFilter['photo'] : 'all',
-    sort: ['recent', 'name', 'rating', 'seen', 'updated'].includes(text(f.sort)) ? f.sort as CatalogFilter['sort'] : 'recent',
+    sort: ['recent', 'name', 'rating', 'seen', 'updated', 'completeness', 'age', 'lastSeen', 'birthday'].includes(text(f.sort)) ? f.sort as CatalogFilter['sort'] : 'recent',
     scope: ['active', 'favorites', 'archived', 'trash'].includes(text(f.scope)) ? f.scope as CatalogFilter['scope'] : 'active',
     hair: text(f.hair), height: text(f.height), rarity: RARITIES.includes(text(f.rarity)) ? text(f.rarity) : '',
     ageMin: f.ageMin === null || f.ageMin === undefined || f.ageMin === '' ? null : Math.max(0, Math.min(120, Math.round(numeric(f.ageMin)))),
@@ -259,6 +259,10 @@ export function normalizeData(value: unknown, strict = false): AppData {
   base.settings.revisitAfterDays = Math.max(1, Math.min(180, Math.round(numeric(s.revisitAfterDays, 14))));
   base.settings.density = s.density === 'compacto' ? 'compacto' : 'confortavel';
   base.settings.trashAutoCleanDays = Math.max(0, Math.min(365, Math.round(numeric(s.trashAutoCleanDays, 0))));
+  base.settings.sounds = s.sounds !== false;
+  base.settings.soundVolume = Math.max(0, Math.min(100, Math.round(numeric(s.soundVolume, 55))));
+  base.settings.haptics = s.haptics !== false;
+  base.settings.confetti = s.confetti !== false;
   base.people = array(raw.people).map(normalizePerson).filter((p, i, list) => list.findIndex(q => q.id === p.id) === i);
   base.orphanPhotos = array(raw.orphanPhotos).map(v => photo(v, null)).filter(p => p.url);
   base.tierLists = array(raw.tierLists).map(v => {
@@ -376,6 +380,8 @@ export function normalizeData(value: unknown, strict = false): AppData {
     streak: { last: text(object(progress.streak).last), count: Math.max(0, Math.round(numeric(object(progress.streak).count))) },
     challenges: { week: text(object(progress.challenges).week), done: strings(object(progress.challenges).done) },
     lastActive: text(progress.lastActive),
+    celebrated: Object.fromEntries(Object.entries(object(progress.celebrated)).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
+    konami: progress.konami === true,
   };
   const vault = object(raw.vault);
   base.vault = { pin: /^\d{4,8}$/.test(text(vault.pin)) ? text(vault.pin) : null, photoIds: [...new Set(strings(vault.photoIds))] };
@@ -452,7 +458,20 @@ export function filterPeople(data: AppData, f: CatalogFilter) {
     if (f.collection && !data.folders.find(folder => folder.id === f.collection)?.personIds.includes(p.id) && !data.collections.find(c => c.id === f.collection)?.personIds.includes(p.id)) return false;
     if (f.folderOnly && !data.folders.some(folder => folder.personIds.includes(p.id))) return false;
     return true;
-  }).sort((a, b) => f.sort === 'rating' ? getFinalScore(b) - getFinalScore(a) || a.nome.localeCompare(b.nome, 'pt-BR') : f.sort === 'name' ? a.nome.localeCompare(b.nome, 'pt-BR') : f.sort === 'seen' ? b.viHojeCount - a.viHojeCount : (f.sort === 'updated' ? b.updatedAt || b.createdAt : b.createdAt).localeCompare(f.sort === 'updated' ? a.updatedAt || a.createdAt : a.createdAt));
+  }).sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || comparePeople(a, b, f.sort));
+}
+/** Ordenações do catálogo. Fichas fixadas sempre vêm antes, independentemente do critério. */
+export function comparePeople(a: Person, b: Person, sort: CatalogFilter['sort']) {
+  const byName = a.nome.localeCompare(b.nome, 'pt-BR');
+  if (sort === 'rating') return getFinalScore(b) - getFinalScore(a) || byName;
+  if (sort === 'name') return byName;
+  if (sort === 'seen') return b.viHojeCount - a.viHojeCount || byName;
+  if (sort === 'completeness') return completeness(a).percent - completeness(b).percent || byName;
+  if (sort === 'age') { const ageA = a.idade ?? ageFromBirthday(a.aniversario), ageB = b.idade ?? ageFromBirthday(b.aniversario); return (ageA ?? 999) - (ageB ?? 999) || byName; }
+  if (sort === 'lastSeen') return (a.ultimoVisto || '0000').localeCompare(b.ultimoVisto || '0000') || byName;
+  if (sort === 'birthday') return (upcomingBirthday(a.aniversario) ?? 999) - (upcomingBirthday(b.aniversario) ?? 999) || byName;
+  if (sort === 'updated') return (b.updatedAt || b.createdAt).localeCompare(a.updatedAt || a.createdAt);
+  return b.createdAt.localeCompare(a.createdAt);
 }
 export function tierAllows(p: Person, list: TierList) {
   if (!isActive(p)) return false;

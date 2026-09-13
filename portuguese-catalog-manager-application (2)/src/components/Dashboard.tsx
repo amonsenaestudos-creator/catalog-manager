@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Award, CalendarDays, Camera, Crown, Eye, Flame, Heart, Images, MapPin, NotebookPen, Sparkles, Swords, Target, TrendingUp, Trophy, Users } from 'lucide-react';
+import { Award, Cake, CalendarDays, Camera, Check, Crown, Dices, Eye, Flame, Heart, Images, MapPin, NotebookPen, Sparkles, Swords, Target, TrendingUp, Trophy, Users } from 'lucide-react';
 import { useCatalog } from '../context';
-import { calculateOverallRating, formatDate, formatNumber, getFinalScore, isActive, rarityFor, RARITIES, RARITY_COLORS, RARITY_LABELS, today } from '../store';
+import { calculateOverallRating, daysUntil, formatDate, formatNumber, getFinalScore, isActive, rarityFor, RARITIES, RARITY_COLORS, RARITY_LABELS, today, upcomingBirthday } from '../store';
+import { ChampionBelt } from './Celebrations';
 import { ageBands, averageRadar, categoryBattle, categoryBreakdown, catalogSummary, championOfMonth, duelRanking, geoGroups, heightDistribution, monthlyActivity, monthlyReport, ratingBands, ratingTrend } from '../lib/stats';
 import { streakInfo, weeklyChallenges } from '../lib/progress';
 import { Avatar, Button, EmptyState, PageTitle, SectionHeading } from './ui';
@@ -18,8 +19,12 @@ export default function Dashboard() {
   const activity = useMemo(() => monthlyActivity(data, 6), [data]);
   const places = useMemo(() => geoGroups(data), [data]);
   const duels = useMemo(() => duelRanking(data).slice(0, 6), [data]);
+  const birthdays = useMemo(() => data.people.filter(isActive).map(person => ({ person, days: upcomingBirthday(person.aniversario) })).filter((entry): entry is { person: typeof entry.person; days: number } => entry.days !== null && entry.days <= 45).sort((a, b) => a.days - b.days).slice(0, 6), [data.people]);
+  const revisitAfter = data.settings.revisitAfterDays ?? 14;
+  const revisits = useMemo(() => data.people.filter(isActive).map(person => ({ person, days: person.ultimoVisto ? Math.abs(daysUntil(person.ultimoVisto) || 0) : null })).filter((entry): entry is { person: typeof entry.person; days: number } => entry.days !== null && entry.days >= revisitAfter).sort((a, b) => b.days - a.days).slice(0, 6), [data.people, revisitAfter]);
   const trend = useMemo(() => ratingTrend(data), [data]);
   const challenges = useMemo(() => weeklyChallenges(data), [data]);
+  const doneChallenges = data.progress.challenges.week === challenges.week ? data.progress.challenges.done : [];
   const streak = streakInfo(data);
   const [radarPerson, setRadarPerson] = useState('');
   const radarCandidates = useMemo(() => data.people.filter(p => isActive(p) && calculateOverallRating(p.rating) > 0).sort((a, b) => getFinalScore(b) - getFinalScore(a)).slice(0, 30), [data.people]);
@@ -30,6 +35,7 @@ export default function Dashboard() {
 
   return <div className="dashboard-page">
     <PageTitle eyebrow="Visão geral" title="Painel" description="Tudo o que o seu catálogo conta sobre si mesmo.">
+      <Button onClick={() => ctx.setRouletteOpen(true)}><Dices size={16} />Roleta</Button>
       <Button onClick={() => ctx.navigate('catalog')}><Users size={16} />Ver catálogo</Button>
       <Button variant="primary" onClick={() => ctx.navigate('discover')}><Sparkles size={16} />Descobrir</Button>
     </PageTitle>
@@ -41,16 +47,16 @@ export default function Dashboard() {
         <h2>Nível {ctx.level.level} · {ctx.xp.toLocaleString('pt-BR')} XP</h2>
         <p>Faltam {ctx.level.next.toLocaleString('pt-BR')} XP para o nível {ctx.level.level + 1}. Você ganha pontos cadastrando, fotografando, escrevendo e concluindo metas.</p>
         <div className="level-badges">
-          <span><Flame size={13} />{streak.count} {streak.count === 1 ? 'dia seguido' : 'dias seguidos'}</span>
+          <span className={`streak-flame level-${streak.count >= 30 ? 3 : streak.count >= 7 ? 2 : streak.count >= 3 ? 1 : 0}`} title={`Próximo marco: ${streak.nextMilestone} dias`}><Flame size={13} />{streak.count} {streak.count === 1 ? 'dia seguido' : 'dias seguidos'}{streak.count >= 3 && <small> · marco {streak.nextMilestone}</small>}</span>
           <span><Award size={13} />{Object.keys(data.progress.achievements).length}/{ctx.achievements.length} conquistas</span>
           <span><Swords size={13} />{data.progress.duels.length} duelos</span>
         </div>
       </div>
       <div className="level-challenges">
-        <h3><Target size={15} />Desafios da semana</h3>
-        <ul>{challenges.challenges.slice(0, 4).map(challenge => <li key={challenge.id} className={challenge.progress >= challenge.target ? 'done' : ''}>
-          <span>{challenge.title}</span><i><b style={{ width: `${Math.min(100, challenge.progress / challenge.target * 100)}%` }} /></i><small>{challenge.progress}/{challenge.target}</small>
-        </li>)}</ul>
+        <h3><Target size={15} />Desafios da semana<small>{doneChallenges.length}/{challenges.challenges.length} concluídos</small></h3>
+        <ul>{challenges.challenges.map(challenge => { const done = doneChallenges.includes(challenge.id) || challenge.progress >= challenge.target; return <li key={challenge.id} className={done ? 'done' : ''}>
+          <span>{done && <Check size={12} />}{challenge.title}</span><i><b style={{ width: `${done ? 100 : Math.min(100, challenge.progress / challenge.target * 100)}%` }} /></i><small>{done ? 'feito' : `${challenge.progress}/${challenge.target}`}</small>
+        </li>; })}</ul>
       </div>
     </section>
 
@@ -100,7 +106,13 @@ export default function Dashboard() {
           <span><MapPin size={13} />{place.place}</span><b>{place.count}</b><small>{place.avg ? `${formatNumber(place.avg)} média` : 'sem nota'}</small>
         </button>)}</div> : <p className="form-help">Preencha “Onde mora” nas fichas para agrupar por lugar.</p>}
       </section>
+      <section className="panel"><SectionHeading icon={Cake} title="Aniversários e revisitas" action="Ver agenda" onAction={() => ctx.navigate('agenda')} />
+        {birthdays.length ? <ul className="upcoming-list">{birthdays.map(entry => <li key={entry.person.id}><button onClick={() => ctx.openPerson(entry.person)}><Avatar person={entry.person} size={28} /><span>{entry.person.nome}</span></button><strong>{entry.days === 0 ? 'Hoje!' : entry.days === 1 ? 'Amanhã' : `em ${entry.days} dias`}</strong></li>)}</ul> : <p className="form-help">Nenhum aniversário nos próximos 45 dias. Preencha a data nas fichas para ver aqui.</p>}
+        <h3 className="panel-subtitle">Faz tempo que você não vê</h3>
+        {revisits.length ? <ul className="upcoming-list">{revisits.map(entry => <li key={entry.person.id}><button onClick={() => ctx.openPerson(entry.person)}><Avatar person={entry.person} size={28} /><span>{entry.person.nome}</span></button><strong>{entry.days} dias</strong></li>)}</ul> : <p className="form-help">Ninguém passou de {revisitAfter} dias sem interação. Ajuste o limite em Ajustes → Avisos.</p>}
+      </section>
       <section className="panel"><SectionHeading icon={Swords} title="Placar do This or That" action="Duelar" onAction={() => ctx.navigate('discover')} />
+        {duels[0]?.person && <ChampionBelt person={duels[0].person} wins={duels[0].wins} compact />}
         {duels.length ? <ol className="duel-list">{duels.map((entry, index) => <li key={entry.person!.id}><b>{index + 1}º</b><Avatar person={entry.person!} size={30} /><span>{entry.person!.nome}</span><strong>{entry.wins} vitórias</strong></li>)}</ol> : <p className="form-help">Faça duelos no modo Descobrir para montar este placar.</p>}
       </section>
       <section className="panel"><SectionHeading icon={Award} title="Raridades do catálogo" />

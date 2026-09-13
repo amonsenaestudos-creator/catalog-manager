@@ -177,3 +177,25 @@ export function ratingTrend(data: AppData) {
     .sort((a, b) => a.date.localeCompare(b.date));
   return points.slice(-40);
 }
+
+export interface TimelineEvent { id: string; date: string; kind: 'cadastro' | 'foto' | 'interacao' | 'nota' | 'historia' | 'lembrete' | 'encontro' | 'conversa' | 'meta' | 'nota-geral' | 'duelo'; title: string; detail?: string }
+
+/** Linha do tempo de uma pessoa: tudo o que aconteceu com ela, do cadastro à última conversa, em ordem cronológica inversa. */
+export function personTimeline(person: Person, data: AppData): TimelineEvent[] {
+  const events: TimelineEvent[] = [{ id: `cadastro:${person.id}`, date: person.createdAt, kind: 'cadastro', title: 'Ficha criada' }];
+  for (const photo of person.fotos) if (photo.createdAt) events.push({ id: `foto:${photo.id}`, date: photo.createdAt, kind: 'foto', title: photo.isMain ? 'Foto principal adicionada' : 'Foto adicionada', detail: photo.name });
+  const seen = new Map<string, number>();
+  for (const day of person.viHojeDates) seen.set(day, (seen.get(day) || 0) + 1);
+  for (const [day, count] of seen) events.push({ id: `visto:${day}`, date: day, kind: 'interacao', title: count > 1 ? `${count} interações registradas` : 'Interação registrada' });
+  for (const note of person.notas) events.push({ id: `nota:${note.id}`, date: note.date, kind: 'nota', title: note.title || 'Nota', detail: note.content.slice(0, 120) });
+  for (const story of data.stories.filter(item => item.personId === person.id)) events.push({ id: `historia:${story.id}`, date: story.date, kind: 'historia', title: `História: ${story.titulo}` });
+  for (const reminder of data.reminders.filter(item => item.personId === person.id)) events.push({ id: `lembrete:${reminder.id}`, date: reminder.data, kind: 'lembrete', title: `${reminder.concluido ? 'Lembrete concluído' : 'Lembrete'}: ${reminder.titulo}` });
+  for (const appointment of data.appointments.filter(item => item.personId === person.id)) events.push({ id: `encontro:${appointment.id}`, date: appointment.date, kind: 'encontro', title: `${appointment.status === 'realizado' ? 'Encontro realizado' : appointment.status === 'cancelado' ? 'Encontro cancelado' : 'Encontro marcado'}: ${appointment.title}`, detail: [appointment.time, appointment.place, appointment.durationMinutes ? `${appointment.durationMinutes} min` : ''].filter(Boolean).join(' · ') });
+  for (const conversation of data.conversations.filter(item => item.personId === person.id)) events.push({ id: `conversa:${conversation.id}`, date: conversation.date, kind: 'conversa', title: `Conversa: ${conversation.topic}`, detail: conversation.content.slice(0, 120) });
+  for (const goal of data.goals.filter(item => item.personId === person.id)) events.push({ id: `meta:${goal.id}`, date: goal.doneAt || goal.createdAt, kind: 'meta', title: `${goal.done ? 'Objetivo concluído' : 'Objetivo criado'}: ${goal.title}` });
+  for (const entry of person.ratingHistory || []) events.push({ id: `nota-geral:${entry.date}:${entry.overall}`, date: entry.date, kind: 'nota-geral', title: `Nota geral: ${entry.overall.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}` });
+  const wins = data.progress.duels.filter(duel => duel.winnerId === person.id).length, losses = data.progress.duels.filter(duel => duel.loserId === person.id).length;
+  const lastDuel = [...data.progress.duels].reverse().find(duel => duel.winnerId === person.id || duel.loserId === person.id);
+  if (lastDuel) events.push({ id: `duelo:${lastDuel.id}`, date: lastDuel.date, kind: 'duelo', title: `Último duelo: ${wins} vitórias · ${losses} derrotas` });
+  return events.filter(event => event.date).sort((a, b) => b.date.localeCompare(a.date));
+}
