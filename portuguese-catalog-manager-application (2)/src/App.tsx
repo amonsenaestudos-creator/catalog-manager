@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Loader2, LockKeyhole, Moon, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2 } from 'lucide-react';
+import { ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, Plus, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
 import { CatalogProvider, useCatalog } from './context';
 import { formatDate } from './store';
 import { Avatar, Button, IconButton, Toast } from './components/ui';
@@ -30,6 +30,7 @@ import MySpace from './components/MySpace';
 import Agenda from './components/Agenda';
 import Discover from './components/Discover';
 import NotificationCenter from './components/NotificationCenter';
+import QuickTools from './components/QuickTools';
 import { AchievementToast, ConfettiBurst, LevelUpBadge, RouletteModal } from './components/Celebrations';
 import { playSound } from './lib/sound';
 
@@ -99,6 +100,9 @@ function Application() {
   const escTimes = useRef<number[]>([]);
   const konamiKeys = useRef<string[]>([]);
   const [confetti, setConfetti] = useState(0);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [quickTools, setQuickTools] = useState(false);
+  useEffect(() => { setMobileMenu(false); }, [page]);
   useEffect(() => {
     if (!ctx.celebration || data.settings.confetti === false || data.settings.reducedMotion) return;
     setConfetti(Date.now());
@@ -166,6 +170,7 @@ function Application() {
       if (value === 'c') ctx.setCompareIds([]);
       if (value === 'b') { ctx.setBlur(!ctx.blur); return; }
       if (value === 'j') { ctx.setRouletteOpen(true); return; }
+      if (value === 'q') { setQuickTools(true); return; }
       if (value === '?') ctx.navigate('guide');
       if (value === '/') {
         event.preventDefault();
@@ -186,14 +191,17 @@ function Application() {
       <div className="splash-copy"><span className="brand-symbol"><Heart size={20} fill="currentColor" strokeWidth={0} /></span><h2>Bem-vinda de volta ao seu catálogo.</h2><p>Toque em qualquer lugar para começar.</p></div>
     </div>}
     <div className={`app-shell private-layer ${ctx.blur ? 'blur-mode' : ''}`} aria-hidden={ctx.privacy || undefined} inert={ctx.privacy || undefined}>
-      <Sidebar />
+      <Sidebar open={mobileMenu} onClose={() => setMobileMenu(false)} />
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-start">
+            <IconButton label="Abrir menu" className="mobile-menu-trigger" aria-expanded={mobileMenu} aria-controls="mobile-navigation" onClick={() => setMobileMenu(true)}><Menu size={21} /></IconButton>
+            <span className="topbar-mobile-title">{PAGE_NAMES[page] || 'Organizar'}</span>
             <span className="topbar-breadcrumb">Meu espaço<ChevronRight size={12} /><b>{PAGE_NAMES[page] || 'Organizar'}</b></span>
             <button className="global-search" onClick={() => ctx.setCommandOpen(true)}><Search size={16} /><span>Buscar pessoas, tags e muito mais...</span><kbd>Ctrl K</kbd></button>
           </div>
           <div className="topbar-actions">
+            <IconButton label="Abrir ações rápidas (Q)" className="quick-tools-trigger" onClick={() => setQuickTools(true)}><Zap size={17} /></IconButton>
             <div className={`save-status ${ctx.status === 'error' ? 'save-error' : ''}`} title={ctx.demo ? 'As alterações da demonstração não são gravadas.' : `Última gravação: ${formatDate(ctx.lastSavedAt, true)}`}>
               {ctx.demo ? <><CloudOff size={13} /><span>Demonstração</span></> : ctx.status === 'saved' ? <><span className="saved-dot" /><span>Tudo salvo</span></> : ctx.status === 'error' ? <button onClick={ctx.retrySave}><RotateCcw size={13} />Tentar salvar</button> : <><Loader2 size={13} className="spin" /><span>Salvando...</span></>}
             </div>
@@ -213,7 +221,15 @@ function Application() {
           <button onClick={() => ctx.navigate('guide')}>Atalhos e ajuda</button>
         </div>
       </div>
+      <nav className="mobile-bottom-nav" aria-label="Navegação rápida">
+        <button className={page === 'home' ? 'active' : ''} onClick={() => ctx.navigate('home')}><HomeIcon size={20} /><span>Início</span></button>
+        <button className={page === 'catalog' ? 'active' : ''} onClick={() => ctx.navigate('catalog')}><Users size={20} /><span>Catálogo</span></button>
+        <button className="mobile-add" onClick={() => ctx.setQuickOpen(true)} aria-label="Adicionar pessoa"><Plus size={25} /></button>
+        <button onClick={() => ctx.setCommandOpen(true)}><Search size={20} /><span>Buscar</span></button>
+        <button onClick={() => setMobileMenu(true)} aria-expanded={mobileMenu}><Menu size={20} /><span>Menu</span></button>
+      </nav>
     </div>
+    {quickTools && <QuickTools onClose={() => setQuickTools(false)} />}
     {selected && <PersonDrawer key={selected.id} person={selected} />}
     {ctx.quickOpen && <QuickAddModal />}
     {ctx.compareIds && <CompareModal />}
