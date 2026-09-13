@@ -910,3 +910,144 @@ kbd { font: 500 10px 'Inter Variable', Inter, sans-serif; border: 1px solid var(
 @keyframes disco-hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
 @keyframes disco-bounce { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
 .reduce-motion .legendary-glow, .reduce-motion .legendary-glow::after, .reduce-motion.disco-mode, .reduce-motion .streak-flame svg { animation: none !important; }
+
+/* ==========================================================================
+   Chat Simulator - fingir conversas com as pessoas do catálogo
+   ========================================================================== */
+.chat-modal { padding: 0; overflow: hidden; max-height: 92vh; width: min(520px, calc(100vw - 40px)); }
+.chat-modal .modal-body { padding: 0; display: flex; flex-direction: column; overflow: hidden; height: 75vh; }
+.chat-modal .modal-heading { display: none; }
+.chat-simulator { display: flex; flex-direction: column; height: 100%; background: linear-gradient(180deg, #1a1520 0%, #0f0d15 100%); }
+.light .chat-simulator { background: linear-gradient(180deg, #f6f0fa 0%, #ece4f3 100%); }
+.chat-header { border-bottom: 1px solid var(--line); background: var(--surface); padding: 10px 12px; }
+.chat-header-top { display: flex; align-items: center; gap: 10px; }
+.chat-header-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
+.chat-header-info strong { display: block; font-size: 13px; font-weight: 550; }
+.chat-header-info small { display: block; font-size: 10px; color: var(--green); }
+.chat-avatar-wrap { position: relative; display: inline-block; }
+.chat-avatar-wrap .avatar { border-radius: 50%; width: 42px; height: 42px; }
+.chat-status-dot { position: absolute; bottom: 1px; right: 1px; width: 11px; height: 11px; border-radius: 50%; background: var(--faint); border: 2px solid var(--surface); }
+.chat-status-dot.online { background: var(--green); box-shadow: 0 0 0 2px #4f9b6933; }
+.chat-header-actions { display: flex; gap: 2px; }
+.chat-header-actions .icon-btn { color: var(--faint); width: 32px; height: 32px; }
+.chat-mood-bar { display: flex; align-items: center; gap: 4px; padding: 6px 4px 2px; }
+.chat-mood-label { font-size: 9px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; margin-right: 6px; }
+.chat-mood-bar button { width: 30px; height: 30px; border-radius: 8px; font-size: 17px; display: grid; place-items: center; opacity: .5; transition: opacity .15s, transform .15s, background .15s; }
+.chat-mood-bar button:hover { opacity: .9; transform: scale(1.1); }
+.chat-mood-bar button.active { opacity: 1; background: var(--accent-soft); transform: scale(1.12); }
+.chat-messages { flex: 1; overflow-y: auto; padding: 16px 14px; display: flex; flex-direction: column; gap: 6px; }
+.chat-day-divider { text-align: center; margin: 8px 0 12px; }
+.chat-day-divider span { font-size: 10px; color: var(--faint); padding: 3px 12px; background: var(--surface-2); border-radius: 999px; }
+.chat-bubble-wrap { display: flex; align-items: flex-end; gap: 8px; max-width: 82%; }
+.chat-bubble-wrap.mine { align-self: flex-end; flex-direction: row-reverse; }
+.chat-bubble { padding: 9px 13px; border-radius: 16px; font-size: 13px; line-height: 1.45; max-width: 100%; word-break: break-word; }
+.chat-bubble.user { background: linear-gradient(120deg, #b671d0, #ca79ae); color: white; border-bottom-right-radius: 5px; }
+.chat-bubble.them { background: var(--surface-3); color: var(--txt); border-bottom-left-radius: 5px; }
+.chat-bubble.typing { display: flex; gap: 4px; align-items: center; padding: 12px 16px; }
+.chat-bubble.typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: typing-dot 1.2s ease-in-out infinite; }
+.chat-bubble.typing span:nth-child(2) { animation-delay: .18s; }
+.chat-bubble.typing span:nth-child(3) { animation-delay: .36s; }
+@keyframes typing-dot { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-5px); opacity: 1; } }
+.chat-welcome { padding: 0 14px; }
+.chat-welcome p { font-size: 11px; color: var(--faint); text-align: center; margin: 0; }
+.chat-icebreakers { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
+.chat-icebreakers button { font-size: 11px; padding: 7px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
+.chat-icebreakers button:hover { border-color: var(--accent); color: var(--accent); }
+.chat-input-bar { display: flex; align-items: center; gap: 6px; padding: 9px 11px; border-top: 1px solid var(--line); background: var(--surface); }
+.chat-input-bar input { flex: 1; border: 0; background: var(--surface-2); border-radius: 20px; padding: 10px 15px; font-size: 13px; box-shadow: none; min-height: 38px; }
+.chat-input-bar .icon-btn { color: var(--faint); width: 34px; height: 34px; }
+.chat-input-bar .icon-btn svg.active { color: var(--accent); }
+.chat-input-bar .btn { min-height: 38px; padding: 0 14px; border-radius: 50%; aspect-ratio: 1; }
+.chat-modal .modal-footer { display: none; }
+
+/* ==========================================================================
+   Cartões com micro-animações e hover melhorado
+   ========================================================================== */
+.person-card { transition: transform .25s cubic-bezier(.2,.8,.2,1), border-color .2s, box-shadow .2s; }
+.person-card:hover { transform: translateY(-3px); }
+.person-card:active { transform: translateY(-1px); }
+.btn, .icon-btn, button { transition: transform .12s ease, background .18s, color .18s, border-color .18s, box-shadow .18s, opacity .18s; }
+.btn:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+.icon-btn:active { transform: scale(0.9); }
+.nav-item { transition: transform .15s ease, color .2s, background .2s; }
+.nav-item:hover:not(.active) { transform: translateX(2px); }
+/* Animação de pulse ao favoritar */
+@keyframes heart-pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.favorite-photo-btn.active svg, .favorite-photo-btn:active svg { animation: heart-pop .35s ease; }
+
+/* Gradient border animation for legendary cards */
+.legendary-glow { position: relative; }
+
+/* ==========================================================================
+   Onboarding tour - spotlight highlights
+   ========================================================================== */
+.tour-backdrop { position: fixed; inset: 0; z-index: 500; background: #000000aa; pointer-events: none; }
+.tour-backdrop::before { content: ''; position: absolute; inset: 0; }
+.tour-tooltip { position: fixed; z-index: 501; background: var(--surface); border: 1px solid var(--line-hover); border-radius: 14px; padding: 18px 20px; max-width: 320px; box-shadow: 0 20px 60px #0008; pointer-events: auto; }
+.tour-tooltip h3 { font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.tour-tooltip p { font-size: 12px; color: var(--muted); line-height: 1.7; margin: 0; }
+.tour-tooltip footer { display: flex; align-items: center; gap: 8px; margin-top: 15px; justify-content: flex-end; }
+.tour-tooltip .tour-dots { display: flex; gap: 5px; margin-right: auto; }
+.tour-tooltip .tour-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.tour-tooltip .tour-dots span.active { background: var(--accent); width: 18px; border-radius: 3px; }
+.tour-spotlight { position: fixed; z-index: 500; border: 2px solid var(--accent); border-radius: 14px; box-shadow: 0 0 0 4px #b976d422; pointer-events: none; animation: spotlight-pulse 2s ease-in-out infinite; }
+@keyframes spotlight-pulse { 0%, 100% { box-shadow: 0 0 0 4px #b976d422; } 50% { box-shadow: 0 0 0 8px #b976d444; } }
+
+/* ==========================================================================
+   Skeleton loading states
+   ========================================================================== */
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.skeleton { background: linear-gradient(90deg, var(--surface-2) 0px, var(--surface-3) 40px, var(--surface-2) 80px); background-size: 800px 100%; animation: shimmer 1.4s linear infinite; border-radius: 6px; }
+
+/* ==========================================================================
+   Scrollbar bonito nas areas de chat
+   ========================================================================== */
+.chat-messages::-webkit-scrollbar { width: 5px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--line-hover); border-radius: 5px; }
+
+/* ==========================================================================
+   Toast melhorado com animação
+   ========================================================================== */
+.toast { animation: toast-in .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes toast-in { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ==========================================================================
+   Pequenos tweaks: foco mais visivel, cursor em cards, gradientes
+   ========================================================================== */
+.recent-person, .person-card, .folder-card, .tierlist-card, .collection-card, .album-card, .champion-belt, .stat-card, .duel-card { cursor: pointer; }
+::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offset: 2px; }
+
+/* ==========================================================================
+   Icebreaker / Memory card designs
+   ========================================================================== */
+.icebreaker-list { display: grid; gap: 8px; margin-top: 14px; }
+.icebreaker-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); font-size: 12px; }
+.icebreaker-row .icebreaker-cat { font-size: 10px; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 5px; text-transform: uppercase; letter-spacing: .05em; }
+.icebreaker-row button { margin-left: auto; }
+
+/* ==========================================================================
+   Sticky sidebar sub-nav highlight
+   ========================================================================== */
+.person-primary-actions { flex-wrap: wrap; }
+
+/* ==========================================================================
+   Pulse notification for XP/rewards
+   ========================================================================== */
+@keyframes gentle-pulse { 0%, 100% { box-shadow: 0 0 0 0 #b976d444; } 50% { box-shadow: 0 0 0 8px #b976d400; } }
+.footer-level button:first-child { animation: gentle-pulse 2.5s ease-in-out infinite; }
+
+/* ==========================================================================
+   FAB - floating action button alternatives
+   ========================================================================== */
+.fab { position: fixed; bottom: 82px; right: 36px; z-index: 45; width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(120deg, var(--accent), var(--pink)); color: white; display: grid; place-items: center; box-shadow: 0 10px 28px #a357a24d; transition: transform .2s, box-shadow .2s; }
+.fab:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 14px 36px #a357a260; }
+@media (max-width: 900px) { .fab { bottom: 80px; right: 18px; width: 50px; height: 50px; } }
+
+/* Mobile bottom nav polish */
+.mobile-bottom-nav button.active { color: var(--accent); }
+.mobile-add { box-shadow: 0 6px 22px #a357a260 !important; }
+
+/* Tooltip helper */
+.with-tip { position: relative; }
+.with-tip:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--surface-3); color: var(--txt); padding: 5px 9px; border-radius: 6px; font-size: 10px; white-space: nowrap; pointer-events: none; z-index: 20; border: 1px solid var(--line-hover); }

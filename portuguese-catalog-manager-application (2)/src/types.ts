@@ -71,6 +71,10 @@ export interface Person {
   estiloRoupa?: string;
   observacoesGerais?: string;
   aniversario?: string | null;
+  pronome?: string;
+  comoConheceu?: string;
+  musicaFavorita?: string;
+  signo?: string;
   customFields?: CustomField[];
   attachments?: Attachment[];
   ratingHistory?: RatingSnapshot[];
@@ -272,6 +276,35 @@ export interface Progress {
 }
 export interface Vault { pin: string | null; photoIds: string[] }
 
+export interface ChatMessage {
+  id: string;
+  personId: string;
+  role: 'user' | 'them' | 'system';
+  text: string;
+  timestamp: string;
+  mood?: 'happy' | 'flirty' | 'shy' | 'playful' | 'curious' | 'neutral';
+}
+
+export interface Memory {
+  id: string;
+  personId: string | null;
+  title: string;
+  content: string;
+  date: string;
+  emotion?: 'happy' | 'funny' | 'sweet' | 'awkward' | 'special';
+  tags?: string[];
+  createdAt: string;
+}
+
+export interface Icebreaker {
+  id: string;
+  personId: string | null;
+  text: string;
+  category: 'fun' | 'deep' | 'light' | 'flirty' | 'nostalgic';
+  used: boolean;
+  createdAt: string;
+}
+
 export interface AppData {
   schemaVersion?: number;
   updatedAt?: string;
@@ -298,11 +331,16 @@ export interface AppData {
   appointments: Appointment[];
   conversations: Conversation[];
   personalLinks: PersonalLink[];
-  notifications: AppNotification[];
-  progress: Progress;
-  vault: Vault;
-  profiles: Profile[];
-  activeProfile: string;
+    notifications: AppNotification[];
+    progress: Progress;
+    vault: Vault;
+    profiles: Profile[];
+    activeProfile: string;
+    chats: ChatMessage[];
+    memories: Memory[];
+    icebreakers: Icebreaker[];
+    onboardingDone?: boolean;
+    tourSeen?: string;
   settings: {
     username: string;
     password: string;
@@ -441,6 +479,19 @@ export const QI_OPTIONS = [
   'acima da media',
   'alto',
   'genio',
+];
+
+export const PRONOME_OPTIONS = [
+  'ela/dela',
+  'ele/dele',
+  'elu/delu',
+  'ela/ele',
+  'nenhum específico',
+];
+
+export const SIGNO_OPTIONS = [
+  'Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem',
+  'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes',
 ];
 
 export const TAG_OPTIONS = [

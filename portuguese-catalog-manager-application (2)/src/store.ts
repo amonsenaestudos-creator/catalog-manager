@@ -1,4 +1,4 @@
-import type { AppData, AppNotification, Appointment, Attachment, Folder, GeneralNote, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Person, Photo, Rating, Reminder, Story, TierList, PersonDraft } from './types';
+import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, Person, Photo, Rating, Reminder, Story, TierList, PersonDraft } from './types';
 import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS } from './types';
 import { DEMO_PORTRAITS } from './assets';
 
@@ -54,10 +54,10 @@ export const RARITY_COLORS: Record<string, string> = { comum: '#9aa0ad', raro: '
 export const rarityFor = (score: number) => score >= 4.8 ? 'lendario' : score >= 4.3 ? 'epico' : score >= 3.6 ? 'raro' : 'comum';
 
 export function getDefaultPerson(): Person {
-  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false };
+  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 5, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true } };
+  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -392,6 +392,44 @@ export function normalizeData(value: unknown, strict = false): AppData {
   if (!base.profiles.length) base.profiles = [{ id: 'principal', name: base.settings.profileName || 'Meu catálogo', color: PALETTE[0], createdAt: new Date().toISOString() }];
   base.activeProfile = base.profiles.some(profile => profile.id === text(raw.activeProfile)) ? text(raw.activeProfile) : 'principal';
   base.ignoredDuplicates = strings(raw.ignoredDuplicates);
+  // Novos módulos: chats simulados, memórias e quebra-gelos.
+  base.chats = array(raw.chats).map(v => {
+    const c = object(v);
+    return {
+      id: text(c.id) || generateId(),
+      personId: text(c.personId) || null,
+      role: (['user', 'them', 'system'].includes(text(c.role)) ? c.role : 'user') as ChatMessage['role'],
+      text: text(c.text),
+      timestamp: text(c.timestamp, new Date().toISOString()),
+      mood: (['happy', 'flirty', 'shy', 'playful', 'curious', 'neutral'].includes(text(c.mood)) ? c.mood : 'neutral') as ChatMessage['mood'],
+    } as ChatMessage;
+  }).filter(c => c.personId && base.people.some(p => p.id === c.personId)).slice(-500);
+  base.memories = array(raw.memories).map(v => {
+    const m = object(v);
+    return {
+      id: text(m.id) || generateId(),
+      personId: text(m.personId) || null,
+      title: text(m.title, 'Memória'),
+      content: text(m.content),
+      date: /^\d{4}-\d{2}-\d{2}$/.test(text(m.date)) ? text(m.date) : today(),
+      emotion: (['happy', 'funny', 'sweet', 'awkward', 'special'].includes(text(m.emotion)) ? m.emotion : undefined) as Memory['emotion'],
+      tags: [...new Set(strings(m.tags))],
+      createdAt: text(m.createdAt, new Date().toISOString()),
+    } as Memory;
+  }).filter(m => !m.personId || base.people.some(p => p.id === m.personId));
+  base.icebreakers = array(raw.icebreakers).map(v => {
+    const b = object(v);
+    return {
+      id: text(b.id) || generateId(),
+      personId: text(b.personId) || null,
+      text: text(b.text),
+      category: (['fun', 'deep', 'light', 'flirty', 'nostalgic'].includes(text(b.category)) ? b.category : 'light') as Icebreaker['category'],
+      used: b.used === true,
+      createdAt: text(b.createdAt, new Date().toISOString()),
+    } as Icebreaker;
+  }).filter(b => !b.personId || base.people.some(p => p.id === b.personId));
+  base.onboardingDone = raw.onboardingDone === true;
+  base.tourSeen = text(raw.tourSeen);
   base.noteDrafts = Object.fromEntries(Object.entries(object(raw.noteDrafts)).map(([key, value]) => {
     const note = object(value);
     return [key, { id: text(note.id) || generateId(), title: text(note.title), content: text(note.content), type: (['ideia', 'observacao', 'lembrete', 'referencia'].includes(text(note.type)) ? note.type : 'observacao') as GeneralNote['type'], personIds: strings(note.personIds), folderId: text(note.folderId) || null, pinned: note.pinned === true, createdAt: text(note.createdAt, new Date().toISOString()), updatedAt: text(note.updatedAt, new Date().toISOString()) }];

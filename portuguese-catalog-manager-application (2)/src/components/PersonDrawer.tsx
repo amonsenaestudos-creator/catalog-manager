@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Archive, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, History, Link2, MapPin, MoreHorizontal, Pin, PinOff, Plus, Printer, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
+import { Archive, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, History, Lightbulb, Link2, MapPin, MessageCircle, MoreHorizontal, Pin, PinOff, Plus, Printer, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
 import { ADULT_APPEARANCE_TAGS } from '../types';
 import type { Person } from '../types';
 import { useCatalog } from '../context';
@@ -10,6 +10,8 @@ import { usePersonDraft } from '../hooks/usePersonDraft';
 import PersonEditor, { ReadNotes } from './PersonEditor';
 import StarRating from './StarRating';
 import { Button, Confirm, EmptyState, IconButton, Modal, PhotoView, Tag } from './ui';
+import ChatSimulator from './ChatSimulator';
+import Icebreakers from './Icebreakers';
 import { averageRadar, personTimeline } from '../lib/stats';
 import type { TimelineEvent } from '../lib/stats';
 
@@ -22,15 +24,19 @@ export default function PersonDrawer({ person }: { person: Person }) {
   const [confirmTrash, setConfirmTrash] = useState(false);
   const [busy, setBusy] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [iceOpen, setIceOpen] = useState(false);
   const draft = usePersonDraft(`edit-${person.id}`, 'edit', person);
   const complete = completeness(person);
   const adult = isAdult(person);
   const tags = person.tags.filter(tag => adult || !ADULT_APPEARANCE_TAGS.includes(tag));
   const details = [
     ['Apelido', person.apelido], ['Nível de amizade', friendshipLabel(person.friendshipLevel)], ['Idade', person.idade ? `${person.idade} anos` : ''], ['Altura', person.altura],
+    ['Pronomes', person.pronome], ['Signo', person.signo],
     ['Cabelo', [person.cabeloTipo, person.cabeloCor === 'colorido' ? person.cabeloCorCustom : person.cabeloCor].filter(Boolean).join(', ')],
     ['Tom de pele', person.pele === 'personalizado' ? person.peleCustom : person.pele], ['Tipo de corpo', person.tipoCorpo], ['Estilo de roupa', person.estiloRoupa],
-    ['Onde mora', person.localizacaoMora], ['Contato', person.redesSociais], ['Q.I. (anotação)', person.qi], ['Última interação', person.ultimoVisto ? formatDate(person.ultimoVisto) : ''], ['Adicionada em', formatDate(person.createdAt)],
+    ['Onde mora', person.localizacaoMora], ['Contato', person.redesSociais], ['Como conheceu', person.comoConheceu], ['Música favorita', person.musicaFavorita],
+    ['Q.I. (anotação)', person.qi], ['Última interação', person.ultimoVisto ? formatDate(person.ultimoVisto) : ''], ['Adicionada em', formatDate(person.createdAt)],
     ...(person.aniversario ? [['Aniversário', `${formatDate(person.aniversario)}${upcomingBirthday(person.aniversario) !== null ? ` · faltam ${upcomingBirthday(person.aniversario)} dias` : ''}`]] : []),
     ...(person.customFields || []).map(custom => [custom.label, custom.value] as [string, string]),
   ];
@@ -56,7 +62,10 @@ export default function PersonDrawer({ person }: { person: Person }) {
           <p className="friendship-read">{friendshipLabel(person.friendshipLevel)}<span>Nível de amizade · não afeta a nota</span></p>
           <p className="person-description">{person.descricao}</p><div className="tags">{tags.map(tag => <Tag key={tag} name={tag} />)}</div>
           <div className="person-primary-actions">
-            <Button variant="primary" onClick={() => setEditing(true)}><Edit3 size={16} />Editar ficha</Button><Button onClick={() => ctx.seenToday([person.id])}><Eye size={16} />Vi hoje <small>{person.viHojeCount}</small></Button>
+            <Button variant="primary" onClick={() => setEditing(true)}><Edit3 size={16} />Editar ficha</Button>
+            <Button onClick={() => setChatOpen(true)}><MessageCircle size={16} />Conversar</Button>
+            <Button onClick={() => setIceOpen(true)}><Lightbulb size={16} />Puxar assunto</Button>
+            <Button onClick={() => ctx.seenToday([person.id])}><Eye size={16} />Vi hoje <small>{person.viHojeCount}</small></Button>
             <div className="menu-anchor"><IconButton label="Mais ações" onClick={() => setMenu(!menu)}><MoreHorizontal size={20} /></IconButton>{menu && <div className="dropdown-menu"><button onClick={exportImage} disabled={busy}><Download size={16} />{busy ? 'Gerando imagem...' : 'Exportar ficha PNG'}</button><button onClick={() => { downloadJson(person, `catalog-ficha-${person.id}.json`); setMenu(false); }}><FileText size={16} />Exportar ficha JSON</button><button onClick={() => { setMenu(false); window.print(); }}><Printer size={16} />Imprimir ficha</button><button onClick={() => ctx.duplicate(person)}><Copy size={16} />Duplicar ficha</button><button onClick={() => { ctx.togglePinned(person.id); setMenu(false); }}>{person.pinned ? <PinOff size={16} /> : <Pin size={16} />}{person.pinned ? 'Soltar do topo' : 'Fixar no topo do catálogo'}</button><button onClick={() => { ctx.navigate('reminders'); ctx.closePerson(); }}><Plus size={16} />Criar lembrete</button><button onClick={moveArchive}><Archive size={16} />{person.archivedAt ? 'Desarquivar' : 'Arquivar ficha'}</button><button className="danger-text" onClick={() => { setConfirmTrash(true); setMenu(false); }}><Trash2 size={16} />Mover para lixeira</button></div>}</div>
           </div>
           <div className="completion-line"><div><span>Ficha {complete.percent}% completa</span><span>{complete.percent === 100 ? <Check size={14} /> : `${complete.missing.length} detalhes a preencher`}</span></div><span className="progress-track"><i style={{ width: `${complete.percent}%` }} /></span></div>
@@ -76,6 +85,8 @@ export default function PersonDrawer({ person }: { person: Person }) {
     <article className="print-only print-region"><h1>{person.nome}</h1><p>{locationLabel(person, data)}</p><PhotoView person={person} /><p>{person.descricao}</p><dl>{details.map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl><h2>Avaliações</h2>{RATING_FIELDS.filter(field => !field.adult || adult).map(field => <p key={field.key}>{field.label}: {formatNumber(person.rating[field.key])} / 5</p>)}<h2>Notas</h2>{person.notas.map(note => <section key={note.id}><h3>{note.title}</h3><p>{note.content}</p></section>)}<h3>Observações</h3><p>{person.observacoesGerais}</p>{(person.customFields || []).map(custom => <p key={custom.id}>{custom.label}: {custom.value}</p>)}<p>{person.comportamento}</p><p>{person.descricaoCorporal}</p></article>
     {confirmTrash && <Confirm title="Mover esta ficha para a lixeira?" description="As fotos, notas e vínculos serão preservados. Você poderá restaurar a ficha a qualquer momento." confirmLabel="Mover para lixeira" danger onConfirm={() => ctx.trashPeople([person.id])} onClose={() => setConfirmTrash(false)} />}
     {photo && <Modal title={person.nome} onClose={() => setPhoto(null)} wide><img src={photo} alt={`Foto de ${person.nome}`} className="full-photo" /></Modal>}
+    {iceOpen && <Icebreakers person={person} onClose={() => setIceOpen(false)} onStartChat={() => { setIceOpen(false); setChatOpen(true); }} />}
+    {chatOpen && <Modal title="" onClose={() => setChatOpen(false)} wide className="chat-modal"><ChatSimulator person={person} onClose={() => setChatOpen(false)} /></Modal>}
   </Modal>;
 }
 /** Checklist de objetivos por pessoa: puxar assunto, pegar o número, marcar encontro. */

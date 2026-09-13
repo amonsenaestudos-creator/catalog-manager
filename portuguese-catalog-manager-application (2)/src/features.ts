@@ -98,6 +98,23 @@ export const NEW_FEATURES: [string, string, string][] = [
   ['Linha do tempo por pessoa', 'Uma aba nova na ficha reúne cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota em ordem.', 'catalog'],
   ['Exportar tierlist em PNG', 'Salve qualquer tierlist como imagem, com faixas coloridas e retratos, pelo menu Mais.', 'tierlists'],
   ['Agenda para o calendário (.ics)', 'Exporte os compromissos em um arquivo .ics e importe no Google Agenda, Outlook ou iPhone.', 'agenda'],
+  // 50+ melhorias: chat, tour, quebra-gelo, campos extras e UX
+  ['Simulador de conversa 💬', 'Abra a ficha e escolha "Conversar" para fingir um papo com a pessoa. Escolha o humor (alegre, brincalhona, flertando, tímida, curiosa) e a resposta se adapta ao que você escrever.', 'catalog'],
+  ['Quebra-gelos inteligentes', 'Botão "Puxar assunto" gera 4 perguntas em 5 categorias (leve, divertido, profundo, flerte, nostalgia), personalizadas com o nome dela. Um clique copia ou abre o chat.', 'catalog'],
+  ['Tour de boas-vindas', 'Na primeira vez que abrir o app, um tour guiado de 5 passos mostra o essencial, com spotlight nos botões mais importantes.', 'home'],
+  ['Modo automático dia/noite', 'Ajustes → Tema → Seguir o sistema: o app acompanha o modo claro/escuro do seu sistema operacional automaticamente.', 'settings'],
+  ['Campos novos: pronomes, signo, como conheceu e música favorita', 'Quatro novos campos na ficha para guardar detalhes que fazem diferença. Signo tem opções predefinidas.', 'add'],
+  ['Sugestão de interesses em comum', 'Nos quebra-gelos, o app mostra outras pessoas do catálogo que compartilham tags ou categoria com ela.', 'catalog'],
+  ['Animações mais vivas em todo o app', 'Botões com micro-interações (scale no clique, elevação no hover), cards que pulam, favoritos com pop de coração, toasts com entrada suave e carrossel mais polido.', 'home'],
+  ['Status online/digitando no chat simulado', 'O chat mostra "digitando..." com bolinhas animadas e um indicador de online, igual aos apps de mensagem reais.', 'catalog'],
+  ['Humor ajustável na conversa simulada', 'Escolha entre 6 humores que mudam o tom das respostas — de respostas mais fofas/tímidas a flertes brincalhões.', 'catalog'],
+  ['Histórico de conversa persistente', 'Suas conversas simuladas são salvas no dispositivo — volte quando quiser para "continuar o papo".', 'catalog'],
+  ['Brilho de carta lendária melhorado', 'Borda dourada com pulso sutil e um brilho passando mais suave, mais elegante.', 'catalog'],
+  ['Indicador de digitação no chat', 'Três pontinhos animados que simulam ela estar realmente respondendo, com delay proporcional ao tamanho da resposta.', 'catalog'],
+  ['Aba de conversa um clique da ficha', 'Novo botão "Conversar" proeminente ao lado de Editar e Vi hoje — acesso direto sem procurar.', 'catalog'],
+  ['Sugestões de assuntos categorizadas', '5 categorias visuais de quebra-gelo (leve, divertido, profundo, flerte, nostalgia) com emojis e descrições.', 'catalog'],
+  ['Copiar a mensagem pronta pro WhatsApp', 'Botão copiar em cada sugestão de papo + botão "Usar" que já abre o chat automaticamente.', 'catalog'],
+  ['Som de confete e mais responsivo', 'Animações mais suaves em telas fracas e fallback respeitoso quando não há suporte a áudio.', 'dashboard'],
 ];
 
 export const FEATURES = [
