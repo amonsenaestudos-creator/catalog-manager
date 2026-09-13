@@ -35,12 +35,63 @@ describe("idade, tia e criança", () => {
     expect(motivoDoLimite(relacao)).toMatch(/criança/i);
   });
 
-  it("acima de 35 anos vem a dinâmica de tia, mesmo sem vínculo de família", () => {
+  it("acima de 35 anos mantém o jeito de tia, e dois adultos podem esquentar o papo", () => {
     const relacao = analisarRelacao(ficha({ idade: 40 }), [], { ownerAge: 30, ownerBirthday: null });
     expect(relacao.ehTia).toBe(true);
     expect(relacao.rotulo).toMatch(/tia/i);
-    expect(relacao.adultoPermitido).toBe(false);
     expect(relacao.tratamento).toContain("meu bem");
+    // Regra nova: com os dois lados adultos, a idade dela não barra mais o clima.
+    expect(relacao.ambosAdultos).toBe(true);
+    expect(relacao.adultoPermitido).toBe(true);
+  });
+
+  it("dois adultos com 20 anos de diferença não viram criança: o clima sobe pela química", () => {
+    const pessoa = ficha({ idade: 45 });
+    const relacao = analisarRelacao(pessoa, [pessoa], { ownerAge: 25, ownerBirthday: null });
+    expect(relacao.veCrianca).toBe(false);
+    expect(relacao.euMenor).toBe(false);
+    expect(relacao.dinamica).toBe("mais-velha");
+    expect(relacao.rotulo).not.toMatch(/criança/i);
+    expect(relacao.descricao).toMatch(/diferença grande de idade/i);
+    expect(relacao.adultoPermitido).toBe(true);
+
+    const persona = buildPersona(pessoa, { people: [pessoa], settings: { ownerAge: 25 } });
+    const estado = { ...novoChatState(pessoa), afinidade: 90 };
+    const tons = tonsDisponiveis(persona, estado, true, relacao);
+    expect(tons.find(tom => tom.id === "provocante")?.ok).toBe(true);
+    expect(tons.find(tom => tom.id === "intenso")?.ok).toBe(true);
+
+    const plano = planReply({
+      person: pessoa, persona, state: estado, message: "Você é gostosa, queria te ver hoje", tom: "provocante",
+      adulto: true, relacao, rand: seededRandom(5),
+    });
+    expect(plano.desviado).toBe(false);
+    expect(plano.tom).toBe("provocante");
+    const fala = plano.bolhas.map(bolha => bolha.texto).join(" ");
+    expect(fala).not.toMatch(/menino|criança|garoto|meu filho/i);
+  });
+
+  it("com você menor de idade a conversa nunca escala, nem com química alta", () => {
+    const pessoa = ficha({ idade: 22 });
+    const relacao = analisarRelacao(pessoa, [pessoa], { ownerAge: 16, ownerBirthday: null });
+    expect(relacao.euMenor).toBe(true);
+    expect(relacao.flertePermitido).toBe(false);
+    expect(relacao.adultoPermitido).toBe(false);
+    expect(motivoDoLimite(relacao)).toMatch(/menor de idade/i);
+
+    const persona = buildPersona(pessoa, { people: [pessoa], settings: { ownerAge: 16 } });
+    const estado = { ...novoChatState(pessoa), afinidade: 95 };
+    const tons = tonsDisponiveis(persona, estado, true, relacao);
+    expect(tons.filter(tom => tom.id !== "amizade").every(tom => !tom.ok)).toBe(true);
+
+    const plano = planReply({
+      person: pessoa, persona, state: estado, message: "Você é gostosa, queria te ver hoje",
+      adulto: true, relacao, rand: seededRandom(7),
+    });
+    expect(plano.tom).toBe("amizade");
+    expect(plano.desviado).toBe(true);
+    const fala = plano.bolhas.map(bolha => bolha.texto).join(" ");
+    expect(fala).not.toMatch(/gostosa|tesão|sexo|pelada|😏/i);
   });
 
   it("sem idade informada a conversa fica neutra, mas sem clima adulto", () => {
@@ -117,14 +168,19 @@ describe("família na conversa", () => {
     expect(motivoDoLimite(relacao)).toMatch(/família/i);
   });
 
-  it("quem tem dinâmica de tia pergunta da vida, não puxa romance", () => {
+  it("a tia continua no jeito de falar sem tratar adulto como filho, e o clima cabe com química", () => {
     const pessoa = ficha({ idade: 44 });
     const persona = buildPersona(pessoa, { people: [pessoa], settings: { ownerAge: 25 } });
     const estado = { ...novoChatState(pessoa), afinidade: 70 };
     const abertura = planOpening({ person: pessoa, persona, state: estado, rand: seededRandom(5), agora: new Date(2026, 0, 10, 9) });
     expect(abertura.bolhas.length).toBeGreaterThan(0);
-    const limite = analisarRelacao(pessoa, [pessoa], { ownerAge: 25 });
-    expect(limite.flertePermitido).toBe(false);
+    const relacao = analisarRelacao(pessoa, [pessoa], { ownerAge: 25 });
+    expect(relacao.ehTia).toBe(true);
+    expect(relacao.tratamento).toContain("meu bem");
+    expect(relacao.flertePermitido).toBe(true);
+    expect(relacao.adultoPermitido).toBe(true);
+    // Dois adultos: nenhum "meu filho" no vocabulário dela.
+    expect(persona.fala.vocativos).not.toContain("meu filho");
   });
 });
 

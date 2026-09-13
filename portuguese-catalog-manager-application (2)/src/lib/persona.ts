@@ -337,11 +337,12 @@ export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Pe
     : estilo === 'tia' ? ['vc', 'tb', 'pq', 'dps', 'blz', 'bjs', 'qdo', 'msg']
       : traits.girias > 0.55 ? ['vc', 'tb', 'pq', 'dps', 'blz', 'hj', 'qdo'] : ['vc', 'tb', 'pq'];
 
-  // Como ela te chama: criança e tia chamam de "meu bem"/"meu filho" mesmo.
+  // Como ela te chama: criança e tia chamam de "meu bem"; com dois adultos a
+  // tia perde o "meu filho" e o papo pode esquentar com química.
   const vocativos: [string, string, string, string] = relacao.veCrianca
     ? [relacao.tratamento[0] || 'menino', 'meu filho', 'meu bem', 'criança']
     : estilo === 'tia'
-      ? ['meu bem', 'meu filho', 'querido', 'você']
+      ? (relacao.ambosAdultos ? ['meu bem', 'querida', 'você', 'gente'] : ['meu bem', 'meu filho', 'querido', 'você'])
       : ['você', 'vamos', traits.calor > 0.6 ? 'meu bem' : 'amiga', traits.romantica > 0.6 ? 'amor' : 'querida'];
   const fala: SpeechProfile = {
     emojis, risadas, girias, abreviacoes,

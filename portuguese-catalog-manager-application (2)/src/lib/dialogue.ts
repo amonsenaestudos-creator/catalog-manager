@@ -92,7 +92,9 @@ export interface TomDisponivel { id: Tone; ok: boolean; motivo: string }
 
 /**
  * Quais climas a conversa aceita agora. Além da química, a relação manda:
- * criança, tia ou vínculo de família fecham o flerte de vez.
+ * menor de idade ou vínculo de família fecham o flerte de vez. Entre dois
+ * adultos, a diferença de idade e a dinâmica de tia viram jeito de falar: o
+ * clima sobe com química e modo adulto ligado.
  */
 export function tonsDisponiveis(persona: Persona, state: ChatState, adulto: boolean, relacao?: Relacao): TomDisponivel[] {
   const estagio = estagioAtual(state).id;
@@ -111,7 +113,7 @@ export function tonsDisponiveis(persona: Persona, state: ChatState, adulto: bool
       return { id: tom.id, ok, motivo: ok ? 'Ela já retribui o flerte.' : `Falta química: conversem mais um pouco (${Math.round(state.afinidade)}/${Math.round(limiteFlerte)}).` };
     }
     if (!adulto) return { id: tom.id, ok: false, motivo: 'Ligue o modo adulto em Ajustes → Conversas.' };
-    if (relacao && !relacao.adultoPermitido) return { id: tom.id, ok: false, motivo: relacao.familiar || relacao.veCrianca ? motivoDoLimite(relacao) : 'Nesta relação o papo fica no flerte, sem passar disso.' };
+    if (relacao && !relacao.adultoPermitido) return { id: tom.id, ok: false, motivo: relacao.familiar || relacao.veCrianca || relacao.euMenor ? motivoDoLimite(relacao) : 'Nesta relação o papo fica no flerte, sem passar disso.' };
     const limite = tom.id === 'provocante' ? limiteProvocante : limiteIntenso;
     const ok = state.afinidade >= limite;
     return { id: tom.id, ok, motivo: ok ? 'Liberado pela química entre vocês.' : `Falta química (${Math.round(state.afinidade)}/${Math.round(limite)}). Continue conversando no tom atual.` };
@@ -693,6 +695,15 @@ const LIMITES_CRIANCA: string[] = [
   'Você é novinho, filho. Conversa assim você leva pra outra pessoa, não pra mim',
   'Não, não e não 😅 eu cuido de você, não é desse jeito',
   'Vou fingir que não li e vou te dizer o que sua mãe diria: respeito 😄',
+];
+
+/** Você é menor de idade: ela corta o assunto e mantém o papo leve. */
+const LIMITES_MENOR: string[] = [
+  'Ó, isso não 😅 deixa o papo leve que a gente ainda tá se conhecendo',
+  'Hmm, não. Esse assunto não é pra agora, bora falar de outra coisa?',
+  'Vou passar reto nessa, tá? Melhor a gente rir de outra coisa 😄',
+  'Calma aí 😅 eu não sou dessas conversas, e você merece um papo melhor',
+  'Isso não, viu? Vamos falar de música, de série, de qualquer outra coisa 😊',
 ];
 
 /** Dinâmica de tia: carinho, conselho e nenhum romance. */
@@ -1381,7 +1392,7 @@ export function planReply(input: ChatInput): ChatPlan {
   let humor = input.humor || state.humor;
   humor = humorDerivado(humor, intencao, sentimento, persona, rand);
 
-  // A relação manda antes da química: criança, tia e família não entram em romance.
+  // A relação manda antes da química: menor de idade e família não entram em romance.
   const INTENCOES_ROMANTICAS: IntentId[] = ['cantada', 'declaracao', 'saudade', 'flerte_leve', 'flerte_forte', 'elogio_corpo', 'pedido_foto', 'convite', 'pergunta_sobre_mim'];
   // Com quem te vê como criança, até elogio vira conversa de gente grande: ela responde como quem cuida.
   const elogioDeCrianca = relacao.veCrianca && (intencao === 'elogio' || intencao === 'elogio_corpo');
@@ -1420,14 +1431,17 @@ export function planReply(input: ChatInput): ChatPlan {
   // 1. Desvio de limite: ela não responde o que foi pedido, ela marca o limite.
   if (desviado) {
     const banco = romanceBloqueado
-      ? (relacao.veCrianca ? LIMITES_CRIANCA : relacao.familiar ? LIMITES_FAMILIA : relacao.ehTia ? LIMITES_TIA : DESVIOS_AMIZADE)
+      ? (relacao.veCrianca || relacao.euMenor
+          ? (relacao.veCrianca ? LIMITES_CRIANCA : LIMITES_MENOR)
+          : relacao.familiar ? LIMITES_FAMILIA : relacao.ehTia ? LIMITES_TIA : DESVIOS_AMIZADE)
       : (!persona.adulta || (!permissao.flerte && tomPedido !== 'amizade') ? DESVIOS_AMIZADE : DESVIOS);
     bolhas.push(preencherEscolhido(banco, rand));
     eventos.push(`limite:${romanceBloqueado ? relacao.dinamica : picanteBloqueado && !desviadoTom ? intencao : tomPedido}`);
   }
 
-  // 2. Reação curta — com quem te vê como criança, até o "😳" sai de cena.
-  const criancaLimitada = romanceBloqueado && relacao.veCrianca;
+  // 2. Reação curta — com quem te vê como criança (ou se é você que é menor de
+  // idade), até o "😳" sai de cena.
+  const criancaLimitada = romanceBloqueado && (relacao.veCrianca || relacao.euMenor);
   const chanceReacao = 0.42 + persona.traits.verbosidade * 0.35 + (sentimento !== 'neutro' ? 0.12 : 0);
   if (!criancaLimitada && rand() < chanceReacao) {
     bolhas.push(preencherEscolhido(RECEPCOES[sentimento], rand));

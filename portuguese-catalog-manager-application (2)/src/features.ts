@@ -139,7 +139,7 @@ export const NEW_FEATURES: [string, string, string][] = [
   ['Ferramentas que mostram antes de mudar', 'Toda ferramenta de escrita exibe o que vai mudar, explica o efeito e pede confirmação. Ctrl+Z desfaz.', 'toolbox'],
   // Conversa simulada: vínculos, idade do dono e troca de pacotes
   ['Conversas em tela própria', 'A aba Conversas (atalho P) reúne os papos com busca, selo da relação, química e prévia da última mensagem. Quem ainda não tem conversa vê o catálogo para começar.', 'conversas'],
-  ['A conversa conhece a sua idade', 'Em Ajustes → Conversas você informa a sua idade e o seu aniversário. Com 20 anos ou mais de diferença, a persona te trata como criança; a partir dos 35 anos ela assume o papel de tia.', 'settings'],
+  ['A conversa conhece a sua idade', 'Em Ajustes → Conversas você informa a sua idade e o seu aniversário. Enquanto você é menor de idade e ela é bem mais velha, ela te trata como criança e o papo fica na amizade. Entre dois adultos a diferença vira assunto: o jeito de tia continua, e o clima sobe com química e modo adulto.', 'settings'],
   ['Vínculos de família nas fichas', 'Marque quem é mãe, pai, irmã, tia, filha e outros papéis. A ficha mostra o parentesco e a rede familiar, e a conversa passa a falar de mãe, filha e família como gente de verdade.', 'catalog'],
   ['Uma categoria inteira em um arquivo', 'Em Ajustes → Dados, exporte uma categoria ou subcategoria como .json com fichas, vínculos e uma tierlist pronta. Em outro aparelho, importe o mesmo arquivo: ele junta o que falta sem duplicar.', 'settings'],
   ['Menu lateral que não cresce sem fim', 'O menu esconde os itens extras atrás de um botão “Mais” e lembra a sua escolha: a lista fica curta no dia a dia e completa quando você quiser.', 'home'],

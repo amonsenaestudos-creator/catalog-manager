@@ -5,9 +5,10 @@
  * dela com a sua e lê o vínculo declarado. Daí saem quatro coisas que mudam o
  * papo de verdade:
  *
- *  1. **A diferença de idade.** Se ela é muito mais velha (uns 20 anos), a
- *     conversa é de gente grande falando com criança: cuidado, conselho e
- *     nenhum assunto romântico.
+ *  1. **A diferença de idade.** Enquanto você é menor de idade e ela é bem
+ *     mais velha, a conversa é de gente grande falando com criança: cuidado,
+ *     conselho e nenhum assunto romântico. Entre dois adultos a diferença vira
+ *     assunto e brincadeira — não muda o papel de ninguém.
  *  2. **A dinâmica de tia.** Acima de 35 anos ela entra no modo tia — fala com
  *     carinho, puxa a orelha, pergunta da família, compara com a época dela.
  *  3. **O vínculo declarado na ficha.** Tia, prima, líder, professora: o que
@@ -23,8 +24,14 @@ import { VINCULO_PAPEIS, vinculoComigoEhFamilia, vinculoComigoLabel, vinculoComi
 
 /** Idade considerada "tia" pela regra pedida: acima de 35 anos. */
 export const IDADE_TIA = 35;
-/** A partir desta diferença ela te enxerga como criança (ela bem mais velha). */
-export const DIFERENCA_CRIANCA = 18;
+/** Idade mínima para existir clima adulto. Vale para os dois lados. */
+export const IDADE_MINIMA_CLIMA = 18;
+/**
+ * A partir desta diferença ela te enxerga como criança — e isso só vale
+ * enquanto você é menor de idade. Entre dois adultos a diferença de idade vira
+ * assunto, não muda o papel: o clima depende da química construída.
+ */
+export const DIFERENCA_CRIANCA = 12;
 /** A partir desta diferença ela é "bem mais velha" e o papo desacelera. */
 export const DIFERENCA_MAIS_VELHA = 10;
 /** Nível de amizade a partir do qual ela já fala como amiga próxima. */
@@ -51,7 +58,11 @@ export interface Relacao {
   dinamica: DinamicaRelacao;
   /** Acima de 35 anos: dinâmica de tia (maternal, conselheira, sem romance). */
   ehTia: boolean;
-  /** Ela te trata como criança (diferença de uns 20 anos). */
+  /** Você ainda é menor de idade (menos de 18). */
+  euMenor: boolean;
+  /** Os dois são adultos: a diferença de idade não barra o clima. */
+  ambosAdultos: boolean;
+  /** Ela te trata como criança: só acontece quando você é menor de idade. */
   veCrianca: boolean;
   /** Vínculo familiar declarado em qualquer lado. */
   familiar: boolean;
@@ -138,14 +149,18 @@ export function analisarRelacao(person: Person, people: Person[], settings?: { o
   const familiar = vinculoComigoEhFamilia(vinculo);
   const adolescente = idadeDela !== null && idadeDela < 18;
 
+  const euMenor = minhaIdade !== null && minhaIdade < IDADE_MINIMA_CLIMA;
+  // Dois adultos: a idade dela não decide o que pode ou não acontecer no papo.
+  const ambosAdultos = minhaIdade !== null && minhaIdade >= IDADE_MINIMA_CLIMA && !adolescente;
   const ehTia = (idadeDela !== null && idadeDela > IDADE_TIA) || familiar;
-  const veCrianca = diferenca !== null && diferenca >= DIFERENCA_CRIANCA;
+  // Criança é só quando VOCÊ ainda é menor de idade e ela é bem mais velha.
+  const veCrianca = euMenor && diferenca !== null && diferenca >= DIFERENCA_CRIANCA;
   const bemMaisVelha = diferenca !== null && diferenca >= DIFERENCA_MAIS_VELHA;
 
   let dinamica: DinamicaRelacao = 'proxima';
   if (veCrianca) dinamica = 'crianca';
   else if (familiar && diferenca !== null && diferenca >= 6) dinamica = 'guardia';
-  else if (bemMaisVelha || (ehTia && diferenca !== null && diferenca >= 8)) dinamica = 'guardia';
+  else if (!ambosAdultos && (bemMaisVelha || (ehTia && diferenca !== null && diferenca >= 8))) dinamica = 'guardia';
   else if (diferenca === null) dinamica = 'sem-idade';
   else if (ehTia) dinamica = 'mais-velha';
   else if (diferenca >= 4) dinamica = 'mais-velha';
@@ -153,16 +168,19 @@ export function analisarRelacao(person: Person, people: Person[], settings?: { o
   else if (diferenca <= -4) dinamica = 'mais-nova';
 
   // Regra pedida: adulta só entra em clima com idade e química. Vínculo de
-  // família, dinâmica de tia e criança bloqueiam isso de vez.
+  // família e liderança bloqueiam sempre; a dinâmica de tia só bloqueia quando
+  // nem todo mundo é adulto (você menor de idade ou idade não informada).
   const bloqueioFamiliar = familiar || vinculo === 'lider' || vinculo === 'professora';
-  const flertePermitido = !veCrianca && !bloqueioFamiliar && !adolescente && vinculoComigoPermiteRomance(vinculo) && idadeDela !== null && idadeDela >= 18 && !(ehTia && diferenca !== null && diferenca >= 8);
-  const adultoPermitido = flertePermitido && !(ehTia && (diferenca === null || diferenca >= 6));
+  const tiaBloqueia = ehTia && !ambosAdultos;
+  const flertePermitido = !veCrianca && !euMenor && !bloqueioFamiliar && !adolescente && vinculoComigoPermiteRomance(vinculo) && idadeDela !== null && idadeDela >= IDADE_MINIMA_CLIMA && !(tiaBloqueia && diferenca !== null && diferenca >= 8);
+  const adultoPermitido = flertePermitido && !(tiaBloqueia && (diferenca === null || diferenca >= 6));
 
   const tratamento = veCrianca
     ? ['menino', 'meu filho', 'criança', 'garoto']
     : dinamica === 'guardia' || ehTia
-      ? ['meu bem', 'meu filho', 'querido', 'menino']
-      : adolescente
+      // Tia de verdade: carinho sem chamar um adulto de filho.
+      ? (ambosAdultos ? ['meu bem', 'querida', 'você', 'gente'] : ['meu bem', 'meu filho', 'querido', 'menino'])
+      : adolescente || euMenor
         ? ['gente', 'amiga', 'cara']
         : amizade >= AMIZADE_PROXIMA
           ? ['meu bem', 'amiga', 'querida', 'você']
@@ -172,12 +190,14 @@ export function analisarRelacao(person: Person, people: Person[], settings?: { o
     ? vinculoComigoLabel(vinculo)
     : veCrianca
       ? 'Ela te vê como criança'
-      : dinamica === 'guardia'
-        ? 'Dinâmica de tia'
-        : ehTia
-          ? 'Mais velha, jeito de tia'
-          : adolescente
-            ? 'Conversa adolescente'
+      : euMenor
+        ? 'Você é menor de idade'
+        : dinamica === 'guardia'
+          ? 'Dinâmica de tia'
+          : ehTia
+            ? 'Mais velha, jeito de tia'
+            : adolescente
+              ? 'Conversa adolescente'
             : amizade >= AMIZADE_PROXIMA
               ? 'Amizade próxima'
               : dinamica === 'mais-nova'
@@ -193,7 +213,9 @@ export function analisarRelacao(person: Person, people: Person[], settings?: { o
   partes.push(`amizade nível ${amizade} (${['ainda não conheço bem', 'conhecida', 'contato ocasional', 'amizade em construção', 'amiga próxima', 'amizade muito próxima'][amizade]})`);
   if (familiar) partes.push(`vínculo: ${vinculoComigoLabel(vinculo)}`);
   if (veCrianca) partes.push('ela fala com você como quem cuida de uma criança');
-  else if (ehTia) partes.push('jeito de tia: conselho, carinho e cobrança leve');
+  else if (euMenor) partes.push('você é menor de idade: o papo fica na amizade, sem clima adulto');
+  if (ehTia) partes.push('jeito de tia: conselho, carinho e cobrança leve');
+  if (ambosAdultos && diferenca !== null && diferenca >= DIFERENCA_CRIANCA) partes.push('diferença grande de idade entre dois adultos: ela brinca com isso, e o clima depende da química');
   if (!flertePermitido) partes.push('sem flerte nesta relação');
   else if (!adultoPermitido) partes.push('flerte só depois de muita química');
   if (minhaIdade === null) partes.push('informe sua idade em Ajustes → Meu perfil para a dinâmica ficar exata');
@@ -207,6 +229,8 @@ export function analisarRelacao(person: Person, people: Person[], settings?: { o
     diferenca,
     dinamica,
     ehTia,
+    euMenor,
+    ambosAdultos,
     veCrianca,
     familiar,
     adolescente,
@@ -227,7 +251,8 @@ export function analisarRelacao(person: Person, people: Person[], settings?: { o
 export function motivoDoLimite(relacao: Relacao): string {
   if (relacao.familiar) return `Vínculo de família (${relacao.vinculoComigo}): por aqui a conversa fica no carinho e no conselho.`;
   if (relacao.veCrianca) return `Ela é ${relacao.diferenca} anos mais velha e fala com você como criança: nada de romance nessa conversa.`;
-  if (relacao.ehTia) return 'Dinâmica de tia: ela cuida, aconselha e não entra em flerte.';
+  if (relacao.euMenor) return 'Você é menor de idade: por aqui a conversa fica na amizade, sem conteúdo adulto.';
+  if (relacao.ehTia) return 'Por enquanto é mais conversa de tia: falta química para o papo esquentar.';
   if (relacao.adolescente) return 'Ficha com menos de 18 anos: a conversa é adolescente e não tem conteúdo adulto.';
   return 'Ainda falta química para esse assunto.';
 }
