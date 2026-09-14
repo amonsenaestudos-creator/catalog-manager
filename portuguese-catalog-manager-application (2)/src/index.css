@@ -41,7 +41,7 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 1100px; background: var(--bg); color: var(--txt); font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; transition: background-color .25s, color .25s; }
+body { margin: 0; background: var(--bg); color: var(--txt); font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; transition: background-color .25s, color .25s; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; border: 0; background: none; color: inherit; padding: 0; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
@@ -1290,3 +1290,249 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .conversation-voice { display: block; font-size: 10px; color: var(--faint); margin-top: 3px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conversation-waiting { font-size: 9px; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 8px; }
 .conversation-count { font-size: 9px; color: var(--faint); }
+
+/* ---------------------------------------------------------------------------
+   Celular: o mesmo app, agora na mão.
+
+   O layout de desktop fixa a barra lateral em 236px e o corpo em 1100px de
+   largura mínima. No celular isso criava rolagem lateral em todas as telas e
+   deixava metade da interface fora do alcance do dedo. Aqui a barra vira
+   gaveta, o conteúdo ocupa a tela inteira, as grades descem para uma coluna e
+   os alvos de toque param de ser menores que o dedo.
+--------------------------------------------------------------------------- */
+
+body { min-width: 0; overflow-x: hidden; overflow-x: clip; }
+/* `clip` corta o que estoura sem virar área de rolagem, então o topo gruda no lugar como antes. */
+img, video, canvas { max-width: 100%; }
+
+/* Peças que só aparecem no celular. */
+.mobile-menu-trigger, .topbar-mobile-title, .mobile-bottom-nav, .sidebar-close { display: none; }
+.sidebar-scrim { display: none; }
+
+/* --------------------------------------------------------------------------
+   Tablet e janelas estreitas (até 1100px): a barra lateral vira gaveta.
+-------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .sidebar { width: min(84vw, 300px); height: 100dvh; transform: translateX(-101%); transition: transform .22s ease; box-shadow: 22px 0 60px #000000a6; }
+  .sidebar.mobile-open { transform: none; }
+  .sidebar > .brand { padding: 22px 20px 20px; }
+  .sidebar-close { display: inline-flex; margin-left: auto; }
+  .sidebar-scrim { display: block; position: fixed; inset: 0; z-index: 49; background: #06050ac4; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+  .sidebar-scrim.open { opacity: 1; pointer-events: auto; }
+
+  .workspace { margin-left: 0; }
+  .mobile-menu-trigger { display: inline-flex; }
+  .topbar { height: 58px; padding: 0 14px; gap: 10px; }
+  .topbar-start { gap: 12px; }
+  .topbar-breadcrumb, .global-search { display: none; }
+  .topbar-mobile-title { display: block; flex: 1; font-size: 13.5px; font-weight: 600; letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-actions { gap: 2px; }
+  .topbar-actions .icon-btn { width: 34px; height: 34px; }
+  .history-buttons, .save-status { display: none; }
+  .page-content { padding: 18px 14px 34px; min-height: 0; max-width: 100%; }
+  .workspace-footer { padding: 0 14px 14px; flex-wrap: wrap; gap: 8px; }
+  .demo-banner { font-size: 11px; }
+
+  /* Grades de várias colunas descem para uma ou duas. */
+  .home-main-grid, .dashboard-grid, .toolbox-grid, .tier-board, .taxonomy-layout,
+  .analytics-columns, .duel-arena, .deadline-board, .folder-detail-hero,
+  .settings-section, .friendship-level, .compare-selectors, .journal-grid,
+  .link-grid, .stories-grid, .album-grid, .custom-field, .attachment-row,
+  .chapter-row, .duplicate-row { grid-template-columns: minmax(0, 1fr) !important; }
+  .recent-grid, .folders-grid, .people-grid, .people-grid.compact, .rarity-grid,
+  .chat-photo-picker, .chat-analise-grid, .form-grid, .tool-fields, .tool-stats,
+  .stat-grid, .report-numbers, .level-challenges li, .notification-list > button,
+  .geo-list button, .board-list, .analytics-numbers, .agenda-numbers,
+  .editor-preview, .person-cover { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)) !important; }
+  .filter-fields { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* --------------------------------------------------------------------------
+   Celular (até 760px).
+-------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-size: 14px; }
+  /* Espaço para a barra de baixo não cobrir o fim da tela. */
+  .workspace { padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Navegação de baixo: alvo grande, rótulo curto e o "+" no meio. */
+  .mobile-bottom-nav { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 48; align-items: stretch; justify-content: space-around;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--surface) 96%, transparent);
+    border-top: 1px solid var(--line); backdrop-filter: blur(12px); }
+  .mobile-bottom-nav button { flex: 1; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    font-size: 10px; color: var(--muted); border-radius: 12px; }
+  .mobile-bottom-nav button.active { color: var(--accent); }
+  .mobile-bottom-nav button:active { background: var(--surface-2); }
+  .mobile-add { flex: 0 0 56px !important; min-height: 52px !important; color: #fff !important; border-radius: 16px;
+    background: linear-gradient(120deg, var(--accent), var(--pink)); }
+  .fab { display: none; }
+
+  /* Alvos de toque: nada menor que o dedo. */
+  .icon-btn { width: 42px; height: 42px; }
+  .btn { min-height: 42px; }
+  .nav-item { min-height: 46px; font-size: 13.5px; }
+  .scope-tabs { gap: 16px; overflow-x: auto; scrollbar-width: none; }
+  .scope-tabs::-webkit-scrollbar { display: none; }
+  .scope-tabs > button { padding: 0 0 12px; font-size: 12.5px; }
+
+  /* Títulos e textos de apoio ficam legíveis no sol da rua. */
+  .page-title h1 { font-size: 22px; }
+  .page-title p { font-size: 12.5px; }
+  .section-heading h2 { font-size: 15px; }
+  .eyebrow { font-size: 9.5px; }
+  .workspace-footer, .chat-footnote { font-size: 10.5px; }
+  .conversation-preview, .conversation-voice { font-size: 12px; }
+  .conversation-waiting, .conversation-count, .conversation-stage, .relation-chip { font-size: 10px; }
+
+  /* Formulários em uma coluna, com campos confortáveis. */
+  .form-grid, .tool-fields, .filter-fields, .settings-section, .person-facts,
+  .lightbox-metadata, .quick-editor, .editor-preview, .upload-previews,
+  .analytics-numbers, .stat-grid, .report-numbers, .agenda-numbers,
+  .chat-analise-grid, .chat-photo-picker { grid-template-columns: minmax(0, 1fr) !important; }
+  input, select, textarea { font-size: 15px; padding: 12px 13px; }
+  .setting-row select { min-width: 0; width: 100%; }
+  .setting-row { align-items: flex-start; }
+
+  /* Janelas e modais ocupam a tela; nada de conteúdo cortado fora do alcance. */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal, .modal-wide, .lightbox-modal { width: 100%; max-height: 94dvh; border-radius: 18px 18px 0 0; }
+  .modal-heading { padding: 16px 16px 12px; gap: 12px; }
+  .modal-heading h2 { font-size: 16px; }
+  .modal-body { padding: 16px; }
+  .modal-footer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+
+  /* Tabelas e listas longas rolam na horizontal em vez de estourar a tela. */
+  .pack-people, .tool-stats, .report-table, table { max-width: 100%; }
+  .tier-row { flex-wrap: wrap; }
+
+  /* Conversa em tela cheia, como no mensageiro. */
+  .conversations-page.open { position: fixed; inset: 0; z-index: 60; background: var(--bg); }
+  .conversations-page.open .chat-simulator { height: 100dvh; }
+  .chat-aberto .mobile-bottom-nav, .chat-aberto .topbar, .chat-aberto .workspace-footer, .chat-aberto .demo-banner { display: none; }
+  .chat-header { padding: 8px 10px; }
+  .chat-header-info strong { font-size: 13.5px; }
+  .chat-persona-line, .chat-voz-line { max-width: 46vw; }
+  .chat-messages { padding: 14px 12px 10px; }
+  .chat-bubble { max-width: 84%; font-size: 14px; padding: 10px 13px 8px; }
+  .chat-avatar-slot { width: 26px; flex: 0 0 26px; }
+  .chat-icebreakers { padding: 0 10px 8px; max-height: 34dvh; overflow-y: auto; }
+  .chat-sugestao-texto { font-size: 12.5px; }
+  .chat-icebreakers-trocar { min-height: 32px; padding: 5px 12px; font-size: 11px; }
+  .chat-input-bar { padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .chat-input-bar input { font-size: 15px; min-height: 44px; padding: 11px 15px; }
+  .chat-input-bar .icon-btn { width: 42px; height: 42px; }
+  .chat-input-bar .btn { min-height: 44px; }
+  .chat-emoji-bar { padding: 6px 8px; }
+
+  /* Cartões de conversa: uma coluna, ação inteira e toque confortável. */
+  .conversation-card { flex-direction: column; }
+  .conversation-card-main { padding: 12px; gap: 10px; }
+  .conversation-card-actions { flex-direction: row; justify-content: space-between; border-left: 0; border-top: 1px solid var(--line); padding: 8px 12px; }
+  .conversation-card-actions .btn { min-height: 40px; }
+  .conversation-meta { justify-items: start; }
+  .conversation-meter { width: 100%; }
+  .conversation-tools { gap: 8px; }
+  .conversation-search { flex: 1 1 100%; }
+
+  /* Menu lateral com folga para o dedo e para a barra de status. */
+  .sidebar { padding-top: env(safe-area-inset-top, 0px); }
+
+  /* Grade de pessoas em duas colunas: cabe o nome e a foto fica visível. */
+  .people-grid, .people-grid.compact, .recent-grid, .folders-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; }
+  .card-photo-button, .people-grid.compact .card-photo-button { height: 165px; }
+
+  /* Menos enfeite onde a tela é pequena. */
+  .home-banner { height: auto; min-height: 150px; }
+  .banner-copy { padding: 20px; }
+  .banner-copy h2 { font-size: 24px; }
+  .with-tip:hover::after { display: none; }
+}
+
+/* Telas muito estreitas (iPhone SE, Galaxy pequeno). */
+@media (max-width: 380px) {
+  .page-content { padding: 14px 11px 30px; }
+  .mobile-bottom-nav button { font-size: 9.5px; }
+  .chat-bubble { max-width: 88%; }
+  .people-grid, .people-grid.compact, .recent-grid, .folders-grid { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)) !important; }
+}
+
+/* Celular deitado: menos altura para cabeçalho e sugestões. */
+@media (max-width: 900px) and (max-height: 460px) {
+  .chat-icebreakers { max-height: 26dvh; }
+  .topbar { height: 52px; }
+  .mobile-bottom-nav { display: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Celular: peças que ficavam presas fora da tela.
+
+   Aqui entram os elementos de posição fixa (aviso, notificações, medalha de
+   nível, tour) e as peças com largura fixa grande (capa da ficha, painel de
+   notificações, menu da conversa). Sem isso, cada uma delas abre para fora da
+   tela em um celular comum.
+-------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  /* Aviso rápido: largura da tela, acima da barra de baixo. */
+  .toast { left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); max-width: none; font-size: 12.5px; }
+  /* "Você subiu de nível" e conquistas: centralizados e legíveis. */
+  .levelup-badge, .achievement-toast { left: 12px; right: 12px; width: auto; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); gap: 10px; padding: 12px 14px; }
+  .levelup-badge { transform: none; }
+  .levelup-badge h3, .achievement-toast h3 { font-size: 14px; }
+
+  /* Painel de notificações deixa de ser uma coluna de 336px fora da tela. */
+  .notification-panel { position: fixed; left: 10px; right: 10px; top: 62px; width: auto; max-height: 72dvh; }
+
+  /* Capa e foto da ficha ocupam a largura útil. */
+  .cover-photo { width: 100%; height: 250px; }
+  .person-cover { gap: 18px; margin-bottom: 20px; }
+  .avatar { flex: none; }
+
+  /* Menu da conversa e menus suspensos dentro da tela. */
+  .chat-menu { left: 8px; right: 8px; min-width: 0; }
+  .saved-filters-menu, .notification-panel, .with-tip::after { max-width: calc(100vw - 24px); }
+
+  /* Tour de boas-vindas: balão no centro, sem cortar o texto. */
+  .tour-tooltip { max-width: calc(100vw - 28px); padding: 16px 17px; }
+  .tour-tooltip p { font-size: 12.5px; }
+
+  /* Foto ampliada com mais área útil e menos altura de cabeçalho. */
+  .lightbox-stage { height: 46dvh; }
+  .lightbox-metadata { gap: 12px; }
+  .lightbox-actions { flex-wrap: wrap; }
+  .lightbox-actions .btn { flex: 1; justify-content: center; }
+
+  /* Tela de privacidade e splash continuam centralizados, com folga. */
+  .privacy-screen > div { padding: 0 20px; }
+  .privacy-screen h1 { font-size: 24px; }
+  .splash-copy { padding: 0 18px 34px; }
+  .splash-copy h2 { font-size: 20px; }
+
+  /* Tabelas de dados: rolagem lateral só dentro do bloco. */
+  .report-table, .tool-stats table, .pack-people { overflow-x: auto; }
+  .report-numbers, .tool-stats { font-size: 12px; }
+}
+
+/* --------------------------------------------------------------------------
+   Celular: teclado, tabelas e as últimas grades de duas colunas.
+
+   O teclado do aparelho não muda a altura do layout, então o campo de escrita
+   ficava embaixo dele. O `visualViewport` avisa quanto a tela encolheu e o
+   valor vai para `--altura-teclado`, que empurra a conversa para cima.
+-------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  .conversations-page.open { bottom: var(--altura-teclado, 0px); }
+  .chat-messages { padding-bottom: calc(10px + var(--altura-teclado, 0px)); }
+
+  /* Grades que ainda ficavam em duas colunas apertadas no celular. */
+  .features-grid, .theme-options, .rarity-grid, .collection-person-picker,
+  .folder-editor-pickers, .scope-subcategories, .board-column, .compare-notes,
+  .duplicate-pair, .story-card, .folders-grid.compact, .notification-list,
+  .search-suggestions { grid-template-columns: minmax(0, 1fr) !important; }
+
+  /* Ranking e relatórios rolam dentro do próprio bloco. */
+  .ranking-list, .report-block, .tool-result { overflow-x: auto; }
+  .ranking-list table { min-width: 460px; }
+  .ranking-list th, .ranking-list td { white-space: nowrap; }
+}

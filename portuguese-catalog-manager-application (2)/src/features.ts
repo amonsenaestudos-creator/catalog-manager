@@ -4,6 +4,8 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Conversa em tela cheia', 'No celular, abrir um papo esconde a barra de baixo e o cabeçalho: sobra a conversa inteira, com o campo de escrita colado na parte inferior.', 'conversas'],
+  ['Teclado não cobre mais o campo', 'Quando o teclado do aparelho aparece, a conversa sobe junto e o campo de escrita continua visível enquanto você digita.', 'conversas'],
   ['Navegação feita para celular', 'Uma barra inferior mantém Início, Catálogo, Adicionar, Buscar e Menu ao alcance do polegar.', 'home'],
   ['Menu lateral deslizante', 'No celular e tablet, o menu abre por cima da tela, fecha ao tocar fora e não espreme mais o conteúdo.', 'home'],
   ['Central de ações rápidas', 'O botão de raio reúne mais de vinte atalhos úteis com contagens atualizadas. No computador, use também a tecla Q.', 'home'],

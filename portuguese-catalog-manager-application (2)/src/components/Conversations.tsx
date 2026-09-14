@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Heart, Lock, MessageCircle, Search, Sparkles, Unlock, UserCircle2, Users } from 'lucide-react';
 import type { ChatMessage, Person } from '../types';
 import { useCatalog } from '../context';
@@ -51,6 +51,32 @@ export default function Conversations() {
   }), [data]);
 
   const conversaAberta = chatPersonId ? resumos.find(item => item.person.id === chatPersonId) : undefined;
+  // No celular a conversa toma a tela: a barra de baixo e o rodapé saem de cena.
+  useEffect(() => {
+    document.documentElement.classList.toggle('chat-aberto', !!conversaAberta);
+    return () => document.documentElement.classList.remove('chat-aberto');
+  }, [conversaAberta]);
+
+  // Teclado do aparelho: o layout não encolhe sozinho, então medimos a diferença
+  // e subimos a conversa para o campo de escrita não ficar escondido.
+  useEffect(() => {
+    if (!conversaAberta) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const medir = () => {
+      const escondido = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--altura-teclado', `${Math.round(escondido)}px`);
+    };
+    medir();
+    vv.addEventListener('resize', medir);
+    vv.addEventListener('scroll', medir);
+    return () => {
+      vv.removeEventListener('resize', medir);
+      vv.removeEventListener('scroll', medir);
+      document.documentElement.style.removeProperty('--altura-teclado');
+    };
+  }, [conversaAberta]);
+
   if (conversaAberta) return <div className="conversations-page open"><ChatSimulator person={conversaAberta.person} onClose={ctx.closeChat} /></div>;
 
   const termo = busca.trim().toLocaleLowerCase('pt-BR');

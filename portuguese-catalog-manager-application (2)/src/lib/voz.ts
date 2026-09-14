@@ -984,7 +984,7 @@ export const MAIS_RESPOSTAS: Record<string, BancoVoz> = {
       'Entendi. E como você tá se sentindo com isso?',
       'Boa. Continua me contando que eu tô acompanhando',
       'Isso me lembrou uma história minha parecida, quer ouvir?',
-      'Hmm, fala mais. Acho que você tem mais coisa pra dizer',
+      'Fala mais, eu quero entender melhor',
       'Tá bom, tô aqui do outro lado prestando atenção de verdade',
       'Interessante. Nunca tinha pensado por esse lado',
       'Vou dizer o que eu entendi pra você conferir',
@@ -2060,7 +2060,7 @@ export function nomesEstranhos(texto: string, conhecidos: string[]): string[] {
 /** A reação de quem ouviu um nome novo e quer saber quem é. */
 export const PESSOA_NOVA: string[] = [
   '{pessoa}? Quem é, me conta', '{pessoa} é quem? Fiquei curiosa', 'Esse {pessoa} aparece bastante, hein',
-  'Anotei o nome: {pessoa}. É seu amigo?', '{pessoa}... esse eu não conheço. Me apresenta depois',
+  'Anotei o nome: {pessoa}. É seu amigo?', 'Não conheço esse {pessoa}. Me apresenta depois',
   'Falou de {pessoa} e eu já fiquei atenta',
 ];
 

@@ -1299,7 +1299,12 @@ function escolher(opcoes: string[], usados: string[], rand: () => number, recent
   // mesma cair duas vezes seguidas.
   const posicao = new Map<string, number>();
   usados.forEach((item, indice) => posicao.set(normalizeText(item), indice));
-  const novas = opcoes.filter(item => !posicao.has(normalizeText(item)));
+  let novas = opcoes.filter(item => !posicao.has(normalizeText(item)));
+  if (!novas.length) {
+    // Banco todo usado: quem saiu nos ultimos turnos espera a vez.
+    const recentes = new Set(usados.slice(-12).map(normalizeText));
+    novas = opcoes.filter(item => !recentes.has(normalizeText(item)));
+  }
   let lista = novas.length
     ? novas
     : [...opcoes].sort((a, b) => (posicao.get(normalizeText(a)) ?? -1) - (posicao.get(normalizeText(b)) ?? -1));
@@ -1324,7 +1329,7 @@ function abrirNatural(texto: string, rand: () => number, persona?: Persona) {
   });
   if (jaAbriu(MANEIRISMOS) || jaAbriu(minhas)) return texto;
   // "Escuta, oi!" nao existe: saudacao e interjeicao ja abrem a frase.
-  if (/^(oi|ola|olá|bom dia|boa tarde|boa noite|tudo bem|e a[ií]|ué|ue|nossa|ah|ahá|eita|minha nossa|oxe|oxi)\b/i.test(texto.trim())) return texto;
+  if (/^(oi|ola|olá|bom dia|boa tarde|boa noite|tudo bem|e a[ií]|ué|ue|nossa|ah|ahá|eita|minha nossa|oxe|oxi|credo|pronto|gente|meu deus|ainda bem|rapaz|virgem)\b/i.test(texto.trim())) return texto;
   // Metade das vezes ela abre do jeito dela, metade do jeito geral do zap.
   const fonte = minhas.length && rand() < 0.55 ? minhas : MANEIRISMOS;
   const abertura = fonte[Math.floor(rand() * fonte.length)];
@@ -1802,7 +1807,7 @@ const RECEPCOES_QUESTAO: string[] = [
       const cabem = brutas.filter(reacao => recepcaoVale(reacao, intencao, pessoa));
       const reacoes = cabem.length ? cabem : brutas;
       // Bordão é brincadeira: assunto pesado não recebe bordão na frente da resposta.
-      const cabeBordao = sentimento !== 'negativo' && bordoes.length > 0 && rand() < 0.3;
+      const cabeBordao = sentimento !== 'negativo' && !soPergunta && bordoes.length > 0 && rand() < 0.3;
       bolhas.push(preencherEscolhido(cabeBordao ? bordoes : reacoes, rand));
     }
   }
@@ -1832,11 +1837,16 @@ const RECEPCOES_QUESTAO: string[] = [
 
   // 3. Conteúdo principal (banco do motor + reforço de voz, sem repetir).
   const doTom = opcoesDe(intencao, familia, persona);
-  const opcoes = criancaLimitada
+  let opcoes = criancaLimitada
     ? PAPO_CRIANCA
     : intencao === 'pergunta_familiar' && !relacao.familiares.length
       ? SEM_FAMILIAR
       : doTom.length ? doTom : (opcoesDe(intencao, A, persona).length ? opcoesDe(intencao, A, persona) : opcoesDe('desconhecido', A, persona));
+  // Se a abertura já perguntou ("É seu amigo?"), a resposta entra sem outra pergunta.
+  if (bolhas.some(bolha => /\?\s*$/.test(bolha.trim()))) {
+    const semPergunta = opcoes.filter(opcao => !/\?\s*$/.test(opcao));
+    if (semPergunta.length) opcoes = semPergunta;
+  }
   const principalBase = preencherEscolhido(opcoes, rand);
   let principal = intencao === 'saudacao' || intencao === 'despedida' ? principalBase : abrirNatural(principalBase, rand, persona);
 
@@ -1883,6 +1893,7 @@ const RECEPCOES_QUESTAO: string[] = [
   ].filter((pergunta, indice, lista) => lista.indexOf(pergunta) === indice && !state.perguntas.includes(pergunta));
   const chancePergunta = (0.3 + persona.traits.curiosidade * 0.42 - (humor === 'fechada' ? 0.3 : 0)) * (intencao === 'despedida' ? 0.35 : 1);
   let perguntaNova: string | undefined;
+  let textoPerguntaNova = '';
   // De vez em quando ela volta numa pessoa que você citou e ficou na memória dela.
   if (voltaPessoa && rand() < 0.5) {
     const modelo = LEMBRETE_PESSOA[Math.floor(rand() * LEMBRETE_PESSOA.length)];
@@ -1897,7 +1908,8 @@ const RECEPCOES_QUESTAO: string[] = [
     perguntaNova = poolPerguntas[Math.floor(rand() * poolPerguntas.length)];
     usados.push(perguntaNova);
     modelosUsados.push(perguntaNova);
-    bolhas.push(preencher(perguntaNova, ctx));
+    textoPerguntaNova = preencher(perguntaNova, ctx);
+    bolhas.push(textoPerguntaNova);
   }
 
   // 5. Ajusta o tamanho: respostas curtas ficam curtas; falantes ganham sombra extra.
@@ -1907,6 +1919,15 @@ const RECEPCOES_QUESTAO: string[] = [
     if (partes[1] && bolhas.length < persona.fala.bolhas[1] + 1) bolhas.push(partes[1]);
   }
   bolhas.splice(Math.min(inicioResposta, bolhas.length), 0, principal);
+  // A abertura (reação de nome, por exemplo) pode já ter perguntado: nesse caso
+  // o convite à conversa sai, porque ninguém faz duas perguntas seguidas.
+  if (textoPerguntaNova) {
+    const perguntas = bolhas.filter(texto => /\?\s*$/.test(texto.trim()));
+    if (perguntas.length > 1) {
+      const indice = bolhas.indexOf(textoPerguntaNova);
+      if (indice >= 0) { bolhas.splice(indice, 1); perguntaNova = undefined; textoPerguntaNova = ''; }
+    }
+  }
   if (persona.traits.verbosidade > 0.68 && rand() < 0.22) {
     bolhas.push(preencherEscolhido(SOMBRAS[familia], rand));
   }
