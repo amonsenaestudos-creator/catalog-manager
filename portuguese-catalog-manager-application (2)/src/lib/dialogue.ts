@@ -939,6 +939,8 @@ export interface EstiloContexto {
   abreviar?: boolean;
   /** Emojis ligados/desligados em Ajustes → Conversas. */
   emojis?: boolean;
+  /** Como a mensagem que ela respondeu soa: em conversa pesada ninguém ri. */
+  sentimento?: Sentimento;
 }
 
 const TROCAS_ABREVIACAO: [RegExp, string][] = [
@@ -1009,12 +1011,13 @@ function estilizar(texto: string, ctx: EstiloContexto) {
 
   // Risada e gíria: só quando a persona é informal e ainda não tem risada na frase.
   const jaRi = /(kkk+|haha+|rsrs?|rs)$/i.test(saida.trim());
-  if (floreios < limiteFloreios && !jaRi && persona.fala.informalidade > 0.55 && rand() < persona.traits.girias * 0.35) {
+  const pesado = ctx.sentimento === 'negativo';
+  if (!pesado && floreios < limiteFloreios && !jaRi && persona.fala.informalidade > 0.55 && rand() < persona.traits.girias * 0.35) {
     const risada = marca && rand() < 0.7 ? marca.risada : persona.fala.risadas[Math.floor(rand() * persona.fala.risadas.length)];
     saida += ` ${risada}`;
     floreios += 1;
   }
-  if (floreios < limiteFloreios && persona.fala.informalidade > 0.7 && rand() < 0.22) {
+  if (!pesado && floreios < limiteFloreios && persona.fala.informalidade > 0.7 && rand() < 0.22) {
     saida = `${persona.fala.girias[Math.floor(rand() * persona.fala.girias.length)]}, ${saida.charAt(0).toLowerCase()}${saida.slice(1)}`;
     floreios += 1;
   }
@@ -1400,7 +1403,7 @@ export function planOpening(input: Omit<ChatInput, 'message'> & { primeiraVez?: 
   const tom = input.tom || 'amizade';
   const efetivo = tomEfetivo(tom, persona, state, adulto, relacao);
   const hora = (input.agora || new Date()).getHours();
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis, sentimento: 'positivo' };
   const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
   const primeiraVez = input.primeiraVez !== false;
   const familia = familiaDe(efetivo, 'saudacao');
@@ -1427,7 +1430,7 @@ export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: '
   const state = input.state;
   const adulto = !!input.adulto;
   const efetivo = tomEfetivo(input.tom || state.tom, persona, state, adulto, relacao);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis, sentimento: 'positivo' };
   const motivo = input.motivo || (['saudade', 'lembranca', 'assunto'] as const)[Math.floor(rand() * 3)];
   const familia = familiaDe(efetivo, 'cotidiano');
   let texto: string;
@@ -1473,7 +1476,7 @@ export function planDoNada(input: Omit<ChatInput, 'message'>): ChatPlan {
   const relacao = relacaoDe(input);
   const state = input.state;
   const efetivo = tomEfetivo(input.tom || 'amizade', persona, state, !!input.adulto, relacao);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis, sentimento: 'positivo' };
   const familiares = relacao.familiares;
   const opcoes: string[] = [
     ...(familiares.length ? DO_NADA_FAMILIA : []),
@@ -1556,7 +1559,7 @@ export function planReply(input: ChatInput): ChatPlan {
   const afinidade = Math.max(0, Math.min(100, state.afinidade + delta));
 
   const familia = familiaDe(efetivo, intencao);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis, sentimento };
   const bolhas: string[] = [];
   const usados = [...state.usados];
   const modelosUsados: string[] = [];
