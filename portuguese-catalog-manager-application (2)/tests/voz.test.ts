@@ -48,8 +48,14 @@ describe("nomes na conversa", () => {
   });
 
   it("reconhece o apelido da ficha", () => {
-    const plano = responder("Mari, você viu o que eu te mandei?");
-    expect(plano.eventos).toContain("nome:ela");
+    // A reação ao nome tem chance: basta acontecer em alguma das sementes.
+    const placares = [1, 2, 3, 4, 5, 6].map(semente => responder("Mari, você viu o que eu te mandei?", semente));
+    expect(placares.some(plano => plano.eventos.includes("nome:ela"))).toBe(true);
+  });
+
+  it("não usa 'chamou?' na despedida, mesmo com o nome dela na frase", () => {
+    const placares = [1, 2, 3, 4, 5, 6, 7, 8].map(semente => responder("Vou dormir, boa noite Mari", semente));
+    expect(placares.every(plano => !plano.eventos.includes("nome:ela"))).toBe(true);
   });
 
   it("entende quando você fala de um familiar pelo nome", () => {
@@ -110,7 +116,13 @@ describe("jeito de falar", () => {
     expect(detectarIntencao("Perdi a paciência hoje, tô exausto").id).toBe("apoio");
     expect(detectarIntencao("O que eu faço nesse caso?").id).toBe("conselho");
     expect(detectarIntencao("Você tem medo de alguma coisa?").id).toBe("pergunta_pessoal");
-    expect(detectarIntencao("Tô sem sono, de bobeira aqui").id).toBe("tedio");
+    expect(detectarIntencao("Tô de bobeira aqui, nada pra fazer").id).toBe("tedio");
+    // Cansaço e insônia são acolhimento, não tédio.
+    expect(detectarIntencao("Tô sem sono, não consigo dormir").id).toBe("apoio");
+    expect(detectarIntencao("Tô cansado hoje, foi um dia corrido").id).toBe("apoio");
+    expect(detectarIntencao("obrigado por tudo").id).toBe("agradecimento");
+    expect(detectarIntencao("fui aprovado no processo").id).toBe("alegria");
+    expect(detectarIntencao("você é maravilhosa").id).toBe("elogio");
     expect(detectarIntencao("Fui no templo domingo").id).toBe("igreja");
   });
 
@@ -121,6 +133,28 @@ describe("jeito de falar", () => {
     expect(MAIS_RECEPCOES.positivo.length).toBeGreaterThanOrEqual(10);
     expect(Object.keys(MAIS_PERGUNTAS).length).toBeGreaterThanOrEqual(15);
     expect(Object.keys(MAIS_SUGESTOES).length).toBeGreaterThanOrEqual(7);
+  });
+});
+
+describe("entende o que você escreveu", () => {
+  it("responde o que ela está fazendo agora, sem resposta genérica", () => {
+    const plano = responder("O que você tá fazendo agora?");
+    expect(plano.intencao).toBe("pergunta_rotina");
+    expect(texto(plano)).not.toMatch(/nunca parei pra pensar/i);
+  });
+
+  it("responde quando você pergunta se ela viu o que você mandou", () => {
+    expect(responder("Você viu o que eu te mandei ontem?").intencao).toBe("mensagem_enviada");
+  });
+
+  it("a resposta principal vem antes da pergunta nova", () => {
+    // Antes a pergunta podia entrar primeiro e a resposta virar continuação sem pé.
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach(semente => {
+      const plano = responder("Tô cansado hoje, foi um dia corrido", semente);
+      const principal = plano.bolhas.findIndex(bolha => /cansad|descansa|peito|for\u00e7a|respira|dormir|sono/i.test(bolha.texto));
+      const pergunta = plano.bolhas.findIndex(bolha => /\?\s*$/.test(bolha.texto.trim()));
+      if (principal >= 0 && pergunta >= 0) expect(principal).toBeLessThan(pergunta);
+    });
   });
 });
 

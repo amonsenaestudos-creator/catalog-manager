@@ -1009,6 +1009,42 @@ export const MAIS_RESPOSTAS: Record<string, BancoVoz> = {
       'Gosto quando você fala assim, mas gosto mais quando chega perto',
     ],
   },
+  pergunta_rotina: {
+    amizade: [
+      'Hoje eu tô no modo preguiça, de fone no ouvido e nada me tira do sofá kkk',
+      'Agora tô resolvendo coisa de casa, mas já já eu paro pra conversar direito',
+      'Tô de boa, esperando a água do café ferver e pensando na vida',
+      'Terminei minhas tarefas e agora tô escolhendo uma série pra assistir. Aceito indicação!',
+      'Tô aqui jogada no sofá, com uma coberta e o celular quentinho de tanto uso 😅',
+      'Organizando a semana na cabeça — e você? Tá no meio de quê aí?',
+    ],
+    flerte: [
+      'Tô deitada pensando em coisa boa... e você apareceu justo agora 😊',
+      'Agora eu tava aqui sozinha, com tempo de sobra pra você me contar tudo 😏',
+      'Tô com a cabeça em você desde mais cedo, se quer saber 😉',
+    ],
+    picante: [
+      'Tô de saída do banho, ainda de toalha... chegou numa hora interessante 🔥',
+      'Tô na cama com a luz baixinha, sem pressa nenhuma 😏',
+    ],
+  },
+
+  mensagem_enviada: {
+    amizade: [
+      'Vi! Fiquei com vergonha de responder na hora, mas vi kkk',
+      'Abri na hora que apitou aqui, pode testar: eu sempre vejo',
+      'Vi sim, e já mandei pra minha irmã de tão bom que era 😄',
+      'Ainda não, meu celular tá cheio de coisa. Me cobra depois que eu vejo',
+    ],
+    flerte: [
+      'Vi, e reli umas três vezes 😊 você sabe escolher o que manda',
+      'Prefiro ver pessoalmente quando você mandar de novo 😏',
+    ],
+    picante: [
+      'Vi tudo, sem pular nada 🔥 e já tenho assunto pra hoje',
+    ],
+  },
+
 };
 
 /** Recepções extras: a bolha curta que mostra que ela entendeu. */
