@@ -22,8 +22,10 @@ import { buildPersona, ganchoDe, type Genero, type Persona } from './persona';
 import { analisarRelacao, motivoDoLimite, type Relacao } from './relacao';
 import {
   CHAMADO_PELO_NOME, FALOU_PROPRIA_NOME, FECHOS, INFANTIL, MAIS_PERGUNTAS, MAIS_PERGUNTAS_MADURA,
-  LEMBRETE_PESSOA, MAIS_RECEPCOES, MAIS_RESPOSTAS, MAIS_RESPOSTAS_MADURA, MAIS_SUGESTOES, MANEIRISMOS, PESSOA_NOVA,
-  PESSOA_CONHECIDA, RECEPCOES_MADURA, RECEPCOES_TEMA, nomesDaPessoa, nomesEstranhos, nomesNaMensagem, recepcaoVale,
+  LEMBRETE_PESSOA, MAIS_RECEPCOES, MAIS_RESPOSTAS, MAIS_RESPOSTAS_ADULTA, MAIS_RESPOSTAS_MADURA, MAIS_SUGESTOES,
+  MAIS_SUGESTOES_EXTRA, MANEIRISMOS, PESSOA_NOVA,
+  PESSOA_CONHECIDA, RECEPCOES_HISTORIA, RECEPCOES_MADURA, RECEPCOES_TEMA, nomesDaPessoa, nomesEstranhos, nomesNaMensagem,
+  recepcaoVale,
 } from './voz';
 
 /** Compara sempre no mesmo formato do texto analisado: minúsculo e sem acento. */
@@ -166,7 +168,7 @@ const REGRAS_INTENCAO: RegraIntencao[] = [
   { id: 'elogio_corpo', padrao: rx("\\b(gostosa|gostoso|bundinha|bunda|peitos?|seios|coxas|sorriso safado|corpo lindo|sarada|gostei do seu corpo|essa boca)\\b", "i"), peso: 2.4, sentimento: 'positivo' },
   { id: 'cantada', padrao: rx("\\b(tá solteira|ta solteira|solteira\\?|me dá uma chance|sai comigo|você é um perigo|queria te beijar|posso te beijar|sonhei com você|sonhei contigo|apaixonad)", "i"), peso: 2.2, sentimento: 'positivo' },
   { id: 'declaracao', padrao: rx("\\b(te amo|amo você|gosto muito de você|gosto tanto de você|apaixonado por você|quero algo sério|quero namorar|você é tudo|meu amor|meu bem maior|te quero)\\b", "i"), peso: 2.6, sentimento: 'positivo' },
-  { id: 'saudade', padrao: rx("\\b(saudade|saudades|senti sua falta|sinto sua falta|queria você aqui|sinto falta de conversar|sinto falta da gente|sinto falta disso|saudade de conversar|saudade do nosso papo|queria te ver|queria estar com você|queria estar contigo|tava pensando em você|pensei em você|lembrei de você|sonhei com você)\\b", "i"), peso: 2.2, sentimento: 'positivo' },
+  { id: 'saudade', padrao: rx("\\b(saudade|saudades|senti sua falta|sinto sua falta|queria você aqui|sinto falta de conversar|sinto falta da gente|sinto falta disso|saudade de conversar|saudade do nosso papo|queria te ver|queria estar com você|pensando em você|pensando em vc|tô pensando em você|to pensando em você|lembrei de você|lembrei de vc|queria estar contigo|tava pensando em você|pensei em você|lembrei de você|sonhei com você)\\b", "i"), peso: 2.2, sentimento: 'positivo' },
   { id: 'convite', padrao: rx("\\b(vamos sair|bora sair|sair hoje|tomar um café|café comigo|ir no cinema|vamos no|jantar comigo|almoçar comigo|te buscar|te levar|marcar algo|marcar um|rolê|programa hoje|encontro hoje|vamos marcar|marcar alguma coisa|marcar qualquer coisa|bora marcar|podemos marcar|a gente podia|o que você acha de sábado|o que você acha de sabado|você tá livre sábado|voce ta livre sabado|sair no fim de semana|vamos fazer algo|te ver hoje|te ver amanhã|posso te ver|quando a gente se vê)\\b", "i"), peso: 2.2, sentimento: 'positivo' },
   // Pedido de história: ela conta um caso dela em vez de responder "anotado".
   { id: 'pedido_historia', padrao: rx("\\b(me conta uma coisa boa|conta uma coisa boa|me conta algo bom|conta algo bom|fala uma coisa boa|me conta uma novidade|conta uma novidade|me conta uma curiosidade|conta uma curiosidade|me conta um caso|conta um caso|me conta uma história|conta uma história|me conta um segredo|conta um segredo|me conta uma fofoca|conta uma fofoca|conta uma coisa interessante|me conta uma coisa interessante)\\b", "i"), peso: 1.7, sentimento: 'neutro' },
@@ -264,7 +266,7 @@ type Banco = Partial<Record<Familia, string[]>>;
 
 /** Bolha curta de reação, antes do conteúdo. */
 const RECEPCOES: Record<string, string[]> = {
-  positivo: ['Ahhh 😍', 'Sério?? 🥰', 'Ai, para 😳', 'Que fofo 💕', 'Own 🥺', 'Olha, gostei disso 😏', 'Você sabe falar, hein 😅', 'Ai, assim eu fico boba 😳', 'Nossa 😍', 'Tá me estragando 😅', 'Hmm, continue 💛', 'Isso me deixou sorrindo aqui', 'Que bom de ler isso', 'Gostei disso, sério'],
+  positivo: ['Ahhh 😍', 'Sério? 🥰', 'Ai, para 😳', 'Que fofo 💕', 'Own 🥺', 'Olha, gostei disso 😏', 'Você sabe falar, hein 😅', 'Ai, assim eu fico boba 😳', 'Nossa 😍', 'Tá me estragando 😅', 'Hmm, continue 💛', 'Isso me deixou sorrindo aqui', 'Que bom de ler isso', 'Gostei disso, sério'],
   negativo: ['Ah não 😔', 'Nossa...', 'Poxa 😕', 'Vem cá, me conta', 'Isso foi pesado 😟', 'Ei... respira', 'Uff 😥', 'Ah, que pena 😔', 'Não gostei de ler isso', 'Vem, desabafa comigo'],
   neutro: ['Hmm 🤔', 'Entendi', 'Ah, sei', 'Sério?', 'Boa', 'Ah tá', 'Faz sentido', 'É mesmo?', 'Ah, agora entendi', 'Entendi o ponto', 'Isso faz sentido', 'Pois é', 'Sei como é', 'Deixa eu pensar', 'Uhum, faz sentido'],
 };
@@ -776,6 +778,13 @@ const COMPLEMENTOS_FECHADA: string[] = [
   'Hoje eu tô meio baixa, mas não é por sua causa',
   'Desculpa a secura, tô com a cabeça em outra coisa',
 ];
+/** Mesma coisa, com a calma de quem já tem mais estrada. */
+const COMPLEMENTOS_FECHADA_ADULTA: string[] = [
+  'Hoje eu acordei sem energia, mas conversar com você faz bem',
+  'Desculpa a secura. Tem coisa ocupando minha cabeça hoje',
+  'Hoje eu tô quieta por dentro, e não é nada com você',
+  'Ando cansada, mas de você eu não vou fugir',
+];
 
 /** Desvios quando o tom passou do que a relação permite. */
 const DESVIOS: string[] = [
@@ -842,7 +851,7 @@ const COMPLEMENTOS_TIA: string[] = [
   'Já comeu de verdade hoje? Me responde com sinceridade',
   'Se precisar de conselho, eu tô aqui, viu? Comigo não precisa ter vergonha',
   'Você tá crescendo rápido. Sua mãe deve ter orgulho de você',
-  'Na minha época o povo namorava de outro jeito, hoje é tudo mensagem kkk',
+  'Na minha época o povo namorava de outro jeito, hoje é tudo mensagem',
   'Vou te falar como a gente fala na igreja: guarda o seu tempo',
 ];
 
@@ -1006,6 +1015,9 @@ export interface EstiloContexto {
   sentimento?: Sentimento;
 }
 
+/** Abreviacoes que combinam com qualquer idade. */
+const ABREVIACOES_ADULTAS = ['vc', 'tb', 'pq', 'msg'];
+
 const TROCAS_ABREVIACAO: [RegExp, string][] = [
   [/\bvocê\b/gi, 'vc'],
   [/\btambém\b/gi, 'tb'],
@@ -1025,7 +1037,10 @@ function abreviar(texto: string, ctx: EstiloContexto) {
   if (ctx.abreviar === false) return texto;
   const chancePorBolha = 0.12 + ctx.persona.fala.informalidade * 0.4;
   let saida = texto;
-  const candidatos = TROCAS_ABREVIACAO.filter(([padrao]) => padrao.test(saida));
+  // Quem e mais velho escreve "vc" e "msg", mas nao "blz", "mn" e "dps".
+  const permitidas = ehMadura(ctx.persona) ? ABREVIACOES_ADULTAS : null;
+  const candidatos = TROCAS_ABREVIACAO
+    .filter(([padrao, abreviado]) => padrao.test(saida) && (!permitidas || permitidas.includes(abreviado)));
   const quantas = Math.min(candidatos.length, ctx.rand() < chancePorBolha ? (ctx.rand() < 0.3 ? 2 : 1) : 0);
   for (let i = 0; i < quantas; i++) {
     const [padrao, abreviado] = candidatos[i];
@@ -1117,16 +1132,31 @@ function estilizar(texto: string, ctx: EstiloContexto) {
 
   saida = abreviar(saida, ctx);
 
-  // Erro de digitação: humano, pequeno e sem exagero.
+  // Erro de digitação: humano, pequeno e sem exagero. Letra trocada de lugar,
+  // letra que some ou letra repetida — do jeito que acontece no celular.
   if (rand() < persona.fala.erro * 0.5) {
     const palavras = saida.split(' ');
     const alvo = palavras.findIndex((palavra, i) => i > 0 && palavra.length > 5 && !palavra.startsWith('{'));
     if (alvo > 0) {
       const palavra = palavras[alvo];
-      const corte = Math.max(2, Math.floor(palavra.length / 2));
-      palavras[alvo] = `${palavra.slice(0, corte)}${palavra[corte] || ''}${palavra[corte]}${palavra.slice(corte + 1)}`;
-      if (rand() < 0.5) saida = `${palavras.join(' ')} (digitei errado kkk)`;
-      else saida = palavras.join(' ');
+      const corte = Math.max(1, Math.floor(palavra.length / 2) - 1);
+      const tipo = Math.floor(rand() * 3);
+      if (tipo === 0 && corte + 1 < palavra.length) {
+        // letras trocadas de lugar
+        palavras[alvo] = `${palavra.slice(0, corte)}${palavra[corte + 1]}${palavra[corte]}${palavra.slice(corte + 2)}`;
+      } else if (tipo === 1) {
+        // letra que some
+        palavras[alvo] = `${palavra.slice(0, corte)}${palavra.slice(corte + 1)}`;
+      } else {
+        // letra repetida
+        palavras[alvo] = `${palavra.slice(0, corte)}${palavra[corte]}${palavra.slice(corte)}`;
+      }
+      if (rand() < 0.5) {
+        const nota = ehMadura(persona) ? '(digitei errado)' : '(digitei errado kkk)';
+        saida = `${palavras.join(' ')} ${nota}`;
+      } else {
+        saida = palavras.join(' ');
+      }
     }
   }
   return saida;
@@ -1241,7 +1271,9 @@ function filtrarInfantil(opcoes: string[], persona?: Persona) {
 function opcoesDe(id: IntentId, familia: Familia, persona?: Persona): string[] {
   const banco = RESPOSTAS[id] || RESPOSTAS.desconhecido;
   const extra = MAIS_RESPOSTAS[id] || {};
-  const adulto = persona && ehMadura(persona) ? MAIS_RESPOSTAS_MADURA[id]?.[familia] || [] : [];
+  const adulto = persona && ehMadura(persona)
+    ? [...(MAIS_RESPOSTAS_MADURA[id]?.[familia] || []), ...(MAIS_RESPOSTAS_ADULTA[id]?.[familia] || [])]
+    : [];
   return filtrarInfantil([...(banco[familia] || []), ...(extra[familia] || []), ...adulto], persona);
 }
 
@@ -1262,9 +1294,15 @@ function familiaDe(tom: Tone, id: IntentId, persona?: Persona): Familia {
  * do mesmo jeito que as últimas dela — é o que tira o papo do modo decorado.
  */
 function escolher(opcoes: string[], usados: string[], rand: () => number, recentes: string[] = [], sal = 0) {
-  const jaUsados = new Set(usados.map(item => normalizeText(item)));
-  const novas = opcoes.filter(item => !jaUsados.has(normalizeText(item)));
-  let lista = novas.length ? novas : opcoes;
+  // `usados` guarda a ordem em que as falas sairam: quem nao apareceu vem
+  // primeiro e, quando o banco acaba, a fala mais antiga volta no lugar de a
+  // mesma cair duas vezes seguidas.
+  const posicao = new Map<string, number>();
+  usados.forEach((item, indice) => posicao.set(normalizeText(item), indice));
+  const novas = opcoes.filter(item => !posicao.has(normalizeText(item)));
+  let lista = novas.length
+    ? novas
+    : [...opcoes].sort((a, b) => (posicao.get(normalizeText(a)) ?? -1) - (posicao.get(normalizeText(b)) ?? -1));
   if (recentes.length && lista.length > 2) {
     const aberturas = new Set(recentes.map(texto => normalizeText(texto).split(' ').slice(0, 2).join(' ')));
     const diferentes = lista.filter(item => !aberturas.has(normalizeText(item).split(' ').slice(0, 2).join(' ')));
@@ -1285,6 +1323,8 @@ function abrirNatural(texto: string, rand: () => number, persona?: Persona) {
     return chave.length > 1 && inicio.startsWith(chave);
   });
   if (jaAbriu(MANEIRISMOS) || jaAbriu(minhas)) return texto;
+  // "Escuta, oi!" nao existe: saudacao e interjeicao ja abrem a frase.
+  if (/^(oi|ola|olá|bom dia|boa tarde|boa noite|tudo bem|e a[ií]|ué|ue|nossa|ah|ahá|eita|minha nossa|oxe|oxi)\b/i.test(texto.trim())) return texto;
   // Metade das vezes ela abre do jeito dela, metade do jeito geral do zap.
   const fonte = minhas.length && rand() < 0.55 ? minhas : MANEIRISMOS;
   const abertura = fonte[Math.floor(rand() * fonte.length)];
@@ -1445,7 +1485,7 @@ const DO_NADA_POR_CATEGORIA: Record<string, string[]> = {
     'Falaram de você na reunião hoje. Eu falei que você ia domingo, não me deixa mal',
     'Você esqueceu o seu caderno na capela, viu? Deixei guardado',
     'A irmã do Soc. Soc. perguntou se você vai no mutirão. Eu respondi por você 😬',
-    'Você não foi no ensaio e a gente ficou sem a sua parte kkkk',
+    'Você não foi no ensaio e a gente ficou sem a sua parte, viu',
   ],
   fsy: [
     'Ei, você esqueceu de me mandar aquela foto do FSY! Eu quero ela',
@@ -1569,14 +1609,14 @@ export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: '
       : ['Tô com saudade de você, não vou mentir 😏', 'Você tá na minha cabeça, resolve isso', 'Passei pra ver se você aparecia 😉', 'Se você tivesse aqui agora... deixa, melhor não escrever 😏'],
     state.usados, rand), ctx, { familiar: relacao.familiares[0]?.nome, vinculo: relacao.vinculoComigo.toLowerCase() });
   } else {
-    texto = preencher(escolher([
+    texto = preencher(escolher(filtrarInfantil([
       `Vi uma coisa sobre ${ganchoDe(persona, rand)} hoje e lembrei de você`,
       'Como tá seu dia? Tô com tempo livre agora',
       'Adivinha quem apareceu na minha cabeça junto com uma música?',
       'Me conta uma novidade que eu tô precisando de assunto bom',
       ...(relacao.veCrianca || relacao.ehTia ? PAPO_CRIANCA.slice(0, 3) : []),
       ...(relacao.familiares.length ? [FALAS_FAMILIA[Math.floor(rand() * FALAS_FAMILIA.length)]] : []),
-    ], state.usados, rand), ctx, { familiar: relacao.familiares[0]?.nome });
+    ], persona), state.usados, rand), ctx, { familiar: relacao.familiares[0]?.nome });
   }
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
   const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado);
@@ -1600,12 +1640,13 @@ export function planDoNada(input: Omit<ChatInput, 'message'>): ChatPlan {
   const efetivo = tomEfetivo(input.tom || 'amizade', persona, state, !!input.adulto, relacao);
   const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis, sentimento: 'positivo' };
   const familiares = relacao.familiares;
-  const opcoes: string[] = [
+  const disponiveis: string[] = [
     ...(familiares.length ? DO_NADA_FAMILIA : []),
     ...(relacao.veCrianca || relacao.ehTia ? DO_NADA_CUIDADO : []),
     ...(DO_NADA_POR_CATEGORIA[persona.categoria] || []),
     ...DO_NADA_POR_CATEGORIA.padrao,
   ];
+  const opcoes = filtrarInfantil(disponiveis, persona);
   const escolhido = escolher(opcoes, state.usados, rand);
   const texto = preencher(escolhido, ctx, { familiar: familiares[Math.floor(rand() * familiares.length)]?.nome });
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
@@ -1692,6 +1733,8 @@ export function planReply(input: ChatInput): ChatPlan {
   const sal = persona.nome.split('').reduce((total, letra) => total + letra.charCodeAt(0), persona.idade || 0) % 7;
   /** Assuntos do texto: escolhem a recepção, a pergunta e a memória da conversa. */
   const temas = topicosDoTexto(pessoa, intencao, persona);
+  /** Assuntos que ela ouviu de voce. Quando nao tem nenhum, ela reage sem fingir assunto. */
+  const temasOuvidos = temasDoTexto(pessoa);
   /** Familiar citado pelo nome ou pelo papel (mãe, filha, irmã...) — senão, o primeiro. */
   const familiarCitado = familiarPorNome || familiarDaMensagem(pessoa, relacao.familiares);
   const extrasBase = {
@@ -1737,18 +1780,24 @@ const RECEPCOES_QUESTAO: string[] = [
   // Falar de um parente pelo nome já deixa o assunto "família" ligado.
   // Pergunta não leva "combinado" nem "beleza então": pergunta tem resposta.
   const soPergunta = ['pergunta_pessoal', 'pergunta_rotina', 'pergunta_fato', 'pergunta_idade', 'pergunta_sobre_mim',
-    'pergunta_familiar', 'pedido_historia', 'conselho', 'mensagem_enviada'].includes(intencao);
-  const temaRecepcao = intencao === 'pergunta_familiar' && relacao.familiares.length ? 'familia' : temas.find(tema => RECEPCOES_TEMA[tema]);
+    'pergunta_familiar', 'conselho', 'mensagem_enviada'].includes(intencao);
+  const temaRecepcao = intencao === 'pergunta_familiar' && relacao.familiares.length
+    ? 'familia'
+    : temasOuvidos.find(tema => RECEPCOES_TEMA[tema]);
+  // Reação genérica não serve quando a resposta já é a reação: saudade, obrigado
+  // recebido, provocação e ciúmes não levam "que sorte a minha falar com você".
+  const semReacaoGenerica = ['saudade', 'agradecimento', 'gratidao_recebida', 'provocacao', 'ciumes'].includes(intencao);
   // Leitura do assunto antes da resposta: é o que mostra que ela entendeu.
   if (!criancaLimitada && cabeReacao) {
     if (temaRecepcao && rand() < 0.5) bolhas.push(preencherEscolhido(RECEPCOES_TEMA[temaRecepcao], rand));
-    // Saudade não recebe reação genérica ("você tem razão, foi um bom dia" não responde falta).
-    else if (intencao !== 'saudade' && rand() < chanceReacao) {
+    else if (!semReacaoGenerica && rand() < chanceReacao) {
       const bordoes = persona.assinatura?.bordoes || [];
       const base = ehMadura(persona) ? RECEPCOES_MADURA[sentimento] : RECEPCOES[sentimento];
-      const brutas = soPergunta
-        ? [...RECEPCOES_QUESTAO, ...(sentimento === 'neutro' ? base : [])]
-        : [...base, ...filtrarInfantil(MAIS_RECEPCOES[sentimento], persona)];
+      const brutas = intencao === 'pedido_historia'
+        ? RECEPCOES_HISTORIA
+        : soPergunta
+          ? [...RECEPCOES_QUESTAO, ...(sentimento === 'neutro' ? base : [])]
+          : [...base, ...filtrarInfantil(MAIS_RECEPCOES[sentimento], persona)];
       // Recepção fora de contexto ("Combinado" depois de um desabafo) entrega resposta automática.
       const cabem = brutas.filter(reacao => recepcaoVale(reacao, intencao, pessoa));
       const reacoes = cabem.length ? cabem : brutas;
@@ -1804,14 +1853,14 @@ const RECEPCOES_QUESTAO: string[] = [
     const complemento = efetivo === 'provocante' || efetivo === 'intenso' ? COMPLEMENTOS_PICANTES : COMPLEMENTOS;
     bolhas.push(preencherEscolhido(complemento, rand));
   } else if (humor === 'fechada' && rand() < 0.4) {
-    bolhas.push(preencherEscolhido(COMPLEMENTOS_FECHADA, rand));
+    bolhas.push(preencherEscolhido(ehMadura(persona) ? COMPLEMENTOS_FECHADA_ADULTA : COMPLEMENTOS_FECHADA, rand));
   }
 
   // 3d. Voz da relação: tia dá conselho, quem cuida pergunta da rotina e a
   // família entra no papo de vez em quando (só com o vínculo cadastrado).
   if (relacao.ehTia || relacao.veCrianca) {
     const tia = relacao.veCrianca ? COMPLEMENTOS_TIA : COMPLEMENTOS_TIA.filter(item => !/você é novo/i.test(item));
-    if (rand() < 0.34) bolhas.push(preencherEscolhido(tia, rand));
+    if (rand() < 0.34) bolhas.push(preencherEscolhido(filtrarInfantil(tia, persona), rand));
   }
   if (relacao.veCrianca && rand() < 0.32) bolhas.push(preencherEscolhido(PAPO_CRIANCA, rand));
   if (relacao.familiares.length && rand() < 0.24) bolhas.push(preencherEscolhido(FALAS_FAMILIA, rand));
@@ -1984,7 +2033,12 @@ export function sugerirRespostas(input: { person: Person; persona?: Persona; sta
   const permitido = tonsDisponiveis(persona, input.state, adulto, relacao);
   const texto = normalizeText(input.mensagemDela);
   let chave = 'ela-neutra';
-  if (input.state.humor === 'fechada') chave = 'ela-fechada';
+  // A chave sai do que ela escreveu, nao do humor guardado: quem cuidou de voce
+  // merece sugestao de agradecimento, nao de dar espaco.
+  const curtaOuFechada = texto.trim().split(/\s+/).length <= 8
+    || /\b(tô meio baixa|to meio baixa|desculpa a secura|cabeça em outra coisa|cabeca em outra coisa|deixa pra depois|depois eu falo|não tô bem|nao to bem|hoje não|hoje nao)\b/.test(texto);
+  if (/\b(sinto muito|conta comigo|tô aqui|estou aqui|me conta com calma|vamos por partes|respira|descansa|bebe água|bebe agua|fica calmo|fica bem|tenta deitar|noite ruim|isso pesa|quer conselho|pode desabafar|desabafar|escuto|do seu lado|sem julgar|cuida de você|sem cobrança|não precisa carregar|nao precisa carregar|vou te escutar)\b/.test(texto)) chave = 'ela-apoiou';
+  else if (curtaOuFechada && input.state.humor === 'fechada') chave = 'ela-fechada';
   else if (/\b(mãe|mae|pai|filho|filha|irmã|irma|irmão|irmao|família|familia|tia|vó|vo)\b/.test(texto)) chave = 'ela-familia';
   else if (/\?|^(qu|como|qual|quando|onde|por que|porque|quem)/.test(texto)) chave = 'ela-perguntou';
   else if (/\b(convite|vamos|bora|sair|encontro|café|cinema|jantar|topa)\b/.test(texto)) chave = 'ela-convidou';
@@ -1992,7 +2046,12 @@ export function sugerirRespostas(input: { person: Person; persona?: Persona; sta
   else if (/\b(saudade|pensando em você|queria você aqui)\b/.test(texto)) chave = 'ela-saudade';
   else if (/\b(tô|estou|foi|aconteceu|hoje|trabalho|corrido|cansa)\b/.test(texto)) chave = 'ela-contou';
   const banco = RESPOSTAS_SUGERIDAS[chave] || {};
-  const reforco = MAIS_SUGESTOES[chave] || {};
+  const daVoz = MAIS_SUGESTOES[chave] || {};
+  const extra = MAIS_SUGESTOES_EXTRA[chave] || {};
+  const reforco: { amizade: string[]; flerte: string[]; picante: string[] } = { amizade: [], flerte: [], picante: [] };
+  (['amizade', 'flerte', 'picante'] as const).forEach(familia => {
+    reforco[familia] = [...(daVoz[familia] || []), ...(extra[familia] || [])];
+  });
   const familiar = persona.familiares[0];
   const preencherSugestao = (linha: string) => trocarMarcadores(linha, persona, rand, input.person.musicaFavorita, {
     nomeUsuario: persona.primeiro,
@@ -2003,7 +2062,7 @@ export function sugerirRespostas(input: { person: Person; persona?: Persona; sta
   }).replace(/\{vc\}/g, persona.fala.vocativos[2] || 'você');
   const rotulos: Record<string, string> = {
     'ela-perguntou': 'Responder a pergunta e devolver', 'ela-contou': 'Mostrar interesse no que ela contou',
-    'ela-convidou': 'Fechar o convite', 'ela-fechada': 'Dar espaço com cuidado',
+    'ela-convidou': 'Fechar o convite', 'ela-fechada': 'Dar espaço com cuidado', 'ela-apoiou': 'Agradecer o cuidado e seguir',
     'ela-elogiou': 'Agradecer e retribuir', 'ela-saudade': 'Corresponder a saudade',
     'ela-familia': 'Cuidar do assunto da família', 'ela-neutra': 'Manter o papo andando',
   };
