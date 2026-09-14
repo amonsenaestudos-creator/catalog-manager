@@ -17,6 +17,7 @@
 import type { AppData, ChatMessage, ChatMood, ChatState, ChatTone, Person } from '../types';
 import { INTIMATE_MIN_AGE } from '../types';
 import { isAdult, normalizeText } from '../store';
+import { abreviacoesNaMensagem, expandirAbreviacoes } from './abreviacoes';
 import { buildPersona, ganchoDe, type Genero, type Persona } from './persona';
 import { analisarRelacao, motivoDoLimite, type Relacao } from './relacao';
 import {
@@ -232,9 +233,15 @@ export function familiarDaMensagem(texto: string, familiares: { nome: string; pa
 }
 
 export function detectarIntencao(texto: string): { id: IntentId; sentimento: Sentimento } {
-  const normalizado = normalizeText(texto);
+  // Duas leituras da mesma mensagem: do jeito que veio e com as abreviações
+  // abertas ("vc viu hj?"). A frase crua continua valendo para os padrões que já
+  // contam com o jeito falado ("tá me evitando", "tô mal", "blz").
+  const cru = normalizeText(texto);
+  const expandido = normalizeText(expandirAbreviacoes(texto));
   for (const regra of REGRAS_INTENCAO) {
-    if (regra.padrao.test(normalizado)) return { id: regra.id, sentimento: regra.sentimento || sentimentoDe(texto) };
+    if (regra.padrao.test(cru) || (expandido !== cru && regra.padrao.test(expandido))) {
+      return { id: regra.id, sentimento: regra.sentimento || sentimentoDe(texto) };
+    }
   }
   if (!texto.trim()) return { id: 'resposta_curta', sentimento: 'neutro' };
   return { id: texto.trim().split(/\s+/).length <= 3 ? 'resposta_curta' : 'desconhecido', sentimento: sentimentoDe(texto) };
@@ -930,6 +937,8 @@ export interface EstiloContexto {
   nomeUsuario: string;
   /** Proporção de abreviações (vc, pq, mds). Desligado em Ajustes → Conversas. */
   abreviar?: boolean;
+  /** Emojis ligados/desligados em Ajustes → Conversas. */
+  emojis?: boolean;
 }
 
 const TROCAS_ABREVIACAO: [RegExp, string][] = [
@@ -964,6 +973,21 @@ function abreviar(texto: string, ctx: EstiloContexto) {
 function estilizar(texto: string, ctx: EstiloContexto) {
   const { persona, tom, humor, rand } = ctx;
   let saida = texto;
+  // Orçamento de enfeites: mensagem curta ganha no máximo um (risada, emoji ou
+  // sinal). Sem isso ela virava um amontoado de "kkk 😊!" na mesma bolha.
+  const limiteFloreios = normalizeText(texto).length < 28 ? 1 : 2;
+  let floreios = 0;
+  /** Coloca o sinal no fim de verdade — antes do emoji, nunca depois dele. */
+  const aplicarSinal = (bruto: string, sinal: string) => {
+    const tokens = bruto.trim().split(' ');
+    const ultimo = tokens[tokens.length - 1] || '';
+    const soEmoji = ultimo.length <= 8 && [...ultimo].every(caractere => (caractere.codePointAt(0) || 0) >= 0x2190);
+    if (soEmoji && tokens.length > 1) {
+      tokens[tokens.length - 2] = tokens[tokens.length - 2].replace(/[.!?]*$/, '') + sinal;
+      return tokens.join(' ');
+    }
+    return bruto.trim().replace(/[.!?]*$/, '') + sinal;
+  };
   if (temCaractereGenero(saida)) saida = ajustarGenero(saida, persona.genero);
 
   // Vocativos por tom, entrando só no começo e com parcimônia.
@@ -975,28 +999,51 @@ function estilizar(texto: string, ctx: EstiloContexto) {
   // Nome do usuário aparece de vez em quando, como numa conversa de verdade.
   if (/\{nome\}/.test(saida)) saida = saida.replace(/\{nome\}/g, rand() < 0.22 ? ctx.nomeUsuario : '');
 
+  // Abertura com o jeito dela: "Olha, ...", "Mano, ...", "Vou te falar, ...".
+  const marca = persona.assinatura;
+  const jaTemAbertura = marca ? marca.aberturas.some(abertura => normalizeText(saida).startsWith(normalizeText(abertura))) : true;
+  if (marca && !jaTemAbertura && rand() < 0.2) {
+    const abertura = marca.aberturas[Math.floor(rand() * marca.aberturas.length)];
+    saida = `${abertura} ${saida.charAt(0).toLowerCase()}${saida.slice(1)}`;
+  }
+
   // Risada e gíria: só quando a persona é informal e ainda não tem risada na frase.
   const jaRi = /(kkk+|haha+|rsrs?|rs)$/i.test(saida.trim());
-  if (!jaRi && persona.fala.informalidade > 0.55 && rand() < persona.traits.girias * 0.35) saida += ` ${persona.fala.risadas[Math.floor(rand() * persona.fala.risadas.length)]}`;
-  if (persona.fala.informalidade > 0.7 && rand() < 0.22) saida = `${persona.fala.girias[Math.floor(rand() * persona.fala.girias.length)]}, ${saida.charAt(0).toLowerCase()}${saida.slice(1)}`;
+  if (floreios < limiteFloreios && !jaRi && persona.fala.informalidade > 0.55 && rand() < persona.traits.girias * 0.35) {
+    const risada = marca && rand() < 0.7 ? marca.risada : persona.fala.risadas[Math.floor(rand() * persona.fala.risadas.length)];
+    saida += ` ${risada}`;
+    floreios += 1;
+  }
+  if (floreios < limiteFloreios && persona.fala.informalidade > 0.7 && rand() < 0.22) {
+    saida = `${persona.fala.girias[Math.floor(rand() * persona.fala.girias.length)]}, ${saida.charAt(0).toLowerCase()}${saida.slice(1)}`;
+    floreios += 1;
+  }
 
   // Emoji no fim, proporcional ao perfil. Nunca dois emojis colados.
   const terminaComEmoji = () => EMOJI_NO_FIM.test(saida);
-  const emojiChance = persona.traits.emojis * (humor === 'fechada' ? 0.3 : 1) * (tom === 'flerte' ? 1.15 : 1);
-  if (!terminaComEmoji() && rand() < emojiChance * 0.75) {
+  const emojiChance = ctx.emojis === false ? 0 : persona.traits.emojis * (humor === 'fechada' ? 0.3 : 1) * (tom === 'flerte' ? 1.15 : 1);
+  if (floreios < limiteFloreios && !terminaComEmoji() && rand() < emojiChance * 0.75) {
     const paleta = persona.fala.emojis.filter(Boolean);
     if (paleta.length) {
       const emoji = paleta[Math.floor(rand() * paleta.length)];
       saida = /\s$/.test(saida) ? `${saida}${emoji}` : `${saida} ${emoji}`;
+      floreios += 1;
     }
   }
 
-  if (!terminaComEmoji() && persona.traits.emojis > 0.6 && rand() < 0.25) {
+  if (floreios < limiteFloreios && ctx.emojis !== false && !terminaComEmoji() && persona.traits.emojis > 0.6 && rand() < 0.25) {
     const paleta = persona.fala.emojis.filter(Boolean);
     if (paleta.length >= 2) {
-      const a = paleta[Math.floor(rand() * paleta.length)];
+      const a = marca?.emojiMarca && rand() < 0.55 ? marca.emojiMarca : paleta[Math.floor(rand() * paleta.length)];
       saida += ` ${a}`;
     }
+  }
+
+  // Pontuação é hábito — e só entra se a bolha ainda estiver limpa.
+  if (floreios === 0 && marca) {
+    if (marca.pontuacao === 'reticencias' && rand() < 0.34 && /\.$/.test(saida.trim())) saida = aplicarSinal(saida, '...');
+    else if (marca.pontuacao === 'exclamacao' && rand() < 0.3 && /\.$/.test(saida.trim())) saida = aplicarSinal(saida, '!');
+    else if (marca.pontuacao === 'seca' && rand() < 0.35 && /!$/.test(saida.trim())) saida = aplicarSinal(saida, '.');
   }
 
   saida = abreviar(saida, ctx);
@@ -1071,6 +1118,10 @@ export interface ChatInput {
   relacao?: Relacao;
   /** Contagem de abreviações ligada/desligada (Ajustes → Conversas). */
   abreviar?: boolean;
+  /** Emojis ligados/desligados (Ajustes → Conversas). */
+  emojis?: boolean;
+  /** Ritmo pausado: ela digita mais devagar (Ajustes → Conversas). */
+  pausado?: boolean;
 }
 
 /**
@@ -1134,11 +1185,14 @@ function escolher(opcoes: string[], usados: string[], rand: () => number, recent
 }
 
 /** começar a frase como quem conversa no zap, sem fazer disso a regra. */
-function abrirNatural(texto: string, rand: () => number) {
+function abrirNatural(texto: string, rand: () => number, persona?: Persona) {
   if (!texto || rand() > 0.16) return texto;
   const primeira = normalizeText(texto).split(' ')[0] || '';
-  if (MANEIRISMOS.some(item => normalizeText(item) === primeira)) return texto;
-  const abertura = MANEIRISMOS[Math.floor(rand() * MANEIRISMOS.length)];
+  const minhas = persona?.assinatura?.aberturas || [];
+  if (MANEIRISMOS.some(item => normalizeText(item) === primeira) || minhas.some(item => normalizeText(item) === primeira)) return texto;
+  // Metade das vezes ela abre do jeito dela, metade do jeito geral do zap.
+  const fonte = minhas.length && rand() < 0.55 ? minhas : MANEIRISMOS;
+  const abertura = fonte[Math.floor(rand() * fonte.length)];
   return `${abertura} ${texto.charAt(0).toLowerCase()}${texto.slice(1)}`;
 }
 
@@ -1246,12 +1300,18 @@ function dividirEmBolhas(texto: string, maximo: number, tamanho: number): string
   return bolhas.slice(0, maximo);
 }
 
-function montarAtrasos(bolhas: string[], persona: Persona, rand: () => number, rapido?: boolean, humor?: Mood) {
-  const lento = humor === 'fechada' ? 1.4 : 1;
-  const fator = (rapido ? 0.35 : 1) * lento * (0.72 + rand() * 0.65);
+export function montarAtrasos(bolhas: string[], persona: Persona, rand: () => number, rapido?: boolean, humor?: Mood, pausado?: boolean, teto = 8200) {
+  const lento = (humor === 'fechada' ? 1.4 : 1) * (pausado ? 1.7 : 1);
   return bolhas.map((texto, indice) => {
-    const base = texto.length * persona.fala.porCaractere * (indice === 0 ? 1.15 : 0.85);
-    return Math.max(rapido ? 260 : 700, Math.min(rapido ? 2200 : 5200, base * fator));
+    // Tempo de digitação de verdade: mais devagar que "colar texto", com pausa
+    // de leitura antes da primeira bolha e respiro entre uma e outra.
+    const digitacao = texto.length * persona.fala.porCaractere * (indice === 0 ? 1.1 : 0.9) * (0.85 + rand() * 0.4);
+    const leitura = indice === 0 ? 420 + rand() * 900 : 0;
+    const respiro = indice === 0 ? 0 : 380 + rand() * 620;
+    const bruto = (digitacao + leitura + respiro) * lento;
+    return rapido
+      ? Math.max(400, Math.min(2800, bruto * 0.32))
+      : Math.max(1400, Math.min(teto, bruto));
   });
 }
 
@@ -1340,7 +1400,7 @@ export function planOpening(input: Omit<ChatInput, 'message'> & { primeiraVez?: 
   const tom = input.tom || 'amizade';
   const efetivo = tomEfetivo(tom, persona, state, adulto, relacao);
   const hora = (input.agora || new Date()).getHours();
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis };
   const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
   const primeiraVez = input.primeiraVez !== false;
   const familia = familiaDe(efetivo, 'saudacao');
@@ -1356,7 +1416,7 @@ export function planOpening(input: Omit<ChatInput, 'message'> & { primeiraVez?: 
   const texto = preencher(base, ctx);
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
   const proximo = { ...state, humor: state.humor === 'neutral' ? 'happy' : state.humor, recentes: [...state.recentes, texto].slice(-14), usados: [...state.usados, base].slice(-60), ultimaMensagem: new Date().toISOString(), visitas: state.visitas + 1 };
-  return { bolhas: bolhas.map((t, i) => ({ texto: t, atraso: montarAtrasos(bolhas, persona, rand, input.rapido, state.humor)[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: [], desviado: false };
+  return { bolhas: bolhas.map((t, i) => ({ texto: t, atraso: montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado, 5200)[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: [], desviado: false };
 }
 
 /** Mensagem espontânea da pessoa (quando o app fica parado ou no modo automático). */
@@ -1367,7 +1427,7 @@ export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: '
   const state = input.state;
   const adulto = !!input.adulto;
   const efetivo = tomEfetivo(input.tom || state.tom, persona, state, adulto, relacao);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis };
   const motivo = input.motivo || (['saudade', 'lembranca', 'assunto'] as const)[Math.floor(rand() * 3)];
   const familia = familiaDe(efetivo, 'cotidiano');
   let texto: string;
@@ -1394,7 +1454,7 @@ export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: '
     ], state.usados, rand), ctx, { familiar: relacao.familiares[0]?.nome });
   }
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
-  const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor);
+  const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado);
   const proximo = { ...state, humor: motivo === 'saudade' ? 'carinhosa' : state.humor, recentes: [...state.recentes, texto].slice(-14), usados: [...state.usados, texto].slice(-60), ultimaMensagem: new Date().toISOString() };
   return { bolhas: bolhas.map((t, i) => ({ texto: t, atraso: atrasos[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: input.tom || state.tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: ['espontanea'], desviado: false };
 }
@@ -1413,7 +1473,7 @@ export function planDoNada(input: Omit<ChatInput, 'message'>): ChatPlan {
   const relacao = relacaoDe(input);
   const state = input.state;
   const efetivo = tomEfetivo(input.tom || 'amizade', persona, state, !!input.adulto, relacao);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor: state.humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis };
   const familiares = relacao.familiares;
   const opcoes: string[] = [
     ...(familiares.length ? DO_NADA_FAMILIA : []),
@@ -1424,7 +1484,7 @@ export function planDoNada(input: Omit<ChatInput, 'message'>): ChatPlan {
   const escolhido = escolher(opcoes, state.usados, rand);
   const texto = preencher(escolhido, ctx, { familiar: familiares[Math.floor(rand() * familiares.length)]?.nome });
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
-  const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor);
+  const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado);
   const proximo = {
     ...state,
     humor: state.humor === 'fechada' || state.humor === 'neutral' ? 'happy' as Mood : state.humor,
@@ -1460,8 +1520,12 @@ export function planReply(input: ChatInput): ChatPlan {
   const eventos: string[] = [];
   const desviadoTom = efetivo !== tomPedido;
 
-  const pessoa = (input.message || '').trim();
-  const detectada = detectarIntencao(pessoa);
+  // "vc viu o q eu te mandei hj?" precisa ser lido como uma frase inteira.
+  const abreviacoes = abreviacoesNaMensagem(input.message || '');
+  const pessoa = expandirAbreviacoes((input.message || '').trim());
+  if (abreviacoes.length) eventos.push(`abreviacoes:${abreviacoes.join(',')}`);
+  // A detecção lê as duas versões (crua e aberta); o resto do motor usa a aberta.
+  const detectada = detectarIntencao(input.message || '');
   // Nomes: ela reconhece o próprio nome, o seu e o de qualquer familiar da ficha.
   const familiarPorNome = nomesNaMensagem(pessoa, relacao.familiares)[0] || null;
   const chamouEla = nomesNaMensagem(pessoa, nomesDaPessoa(input.person).map(nome => ({ nome }))).length > 0;
@@ -1492,7 +1556,7 @@ export function planReply(input: ChatInput): ChatPlan {
   const afinidade = Math.max(0, Math.min(100, state.afinidade + delta));
 
   const familia = familiaDe(efetivo, intencao);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis };
   const bolhas: string[] = [];
   const usados = [...state.usados];
   const modelosUsados: string[] = [];
@@ -1539,7 +1603,11 @@ export function planReply(input: ChatInput): ChatPlan {
   // Leitura do assunto antes da resposta: é o que mostra que ela entendeu.
   if (!criancaLimitada && cabeReacao) {
     if (temaRecepcao && rand() < 0.5) bolhas.push(preencherEscolhido(RECEPCOES_TEMA[temaRecepcao], rand));
-    else if (rand() < chanceReacao) bolhas.push(preencherEscolhido([...RECEPCOES[sentimento], ...MAIS_RECEPCOES[sentimento]], rand));
+    else if (rand() < chanceReacao) {
+      const bordoes = persona.assinatura?.bordoes || [];
+      const reacoes = bordoes.length && rand() < 0.3 ? bordoes : [...RECEPCOES[sentimento], ...MAIS_RECEPCOES[sentimento]];
+      bolhas.push(preencherEscolhido(reacoes, rand));
+    }
   }
   // 2b. Nomes: ela percebe quando você fala com ela pelo nome (ou escreve o seu).
   if (!desviado && chamouEla && !['despedida', 'confusao'].includes(intencao) && rand() < 0.7) {
@@ -1560,7 +1628,7 @@ export function planReply(input: ChatInput): ChatPlan {
       ? SEM_FAMILIAR
       : doTom.length ? doTom : (opcoesDe(intencao, A).length ? opcoesDe(intencao, A) : opcoesDe('desconhecido', A));
   const principalBase = preencherEscolhido(opcoes, rand);
-  let principal = intencao === 'saudacao' || intencao === 'despedida' ? principalBase : abrirNatural(principalBase, rand);
+  let principal = intencao === 'saudacao' || intencao === 'despedida' ? principalBase : abrirNatural(principalBase, rand, persona);
 
   // 3b. Ponte de memória: puxa algo que você contou, de vez em quando.
   if (state.lembrancas.length && rand() < 0.28 && sentimento !== 'negativo') {
@@ -1622,7 +1690,7 @@ export function planReply(input: ChatInput): ChatPlan {
       finais[finais.length - 1] = `${ultima}. ${fecho.charAt(0).toUpperCase()}${fecho.slice(1)}`;
     }
   }
-  const atrasos = montarAtrasos(finais, persona, rand, input.rapido, humor);
+  const atrasos = montarAtrasos(finais, persona, rand, input.rapido, humor, input.pausado);
 
   // 6. Atualiza a memória da conversa.
   const novas = extrairMemorias(pessoa);
@@ -1677,6 +1745,10 @@ export interface SugestaoContexto {
   quantas?: number;
   rand?: () => number;
   agora?: Date;
+  /** Estilo do chat (Ajustes → Conversas) — as sugestões seguem o mesmo ajuste. */
+  abreviar?: boolean;
+  emojis?: boolean;
+  pausado?: boolean;
   /** Catálogo e idade do dono: deixam as sugestões coerentes com a relação. */
   pessoas?: Person[];
   dono?: { ownerAge?: number | null; ownerBirthday?: string | null } | null;
@@ -1856,6 +1928,10 @@ export function cartaoDaPersona(persona: Persona) {
     familiares: relacao.familiares.map(item => `${item.papel}: ${item.nome}`),
     flertePermitido: relacao.flertePermitido,
     adultoPermitido: relacao.adultoPermitido,
+    assinatura: persona.assinatura,
+    marcaRegistrada: persona.assinatura?.descricao || '',
+    aberturas: persona.assinatura?.aberturas || [],
+    bordoes: persona.assinatura?.bordoes || [],
   };
 }
 

@@ -106,12 +106,14 @@ export default function Conversations() {
 
 function ConversationCard({ resumo }: { resumo: ResumoConversa }) {
   const ctx = useCatalog();
-  const { person, ultima, mensagens, estado, estagio, relacao } = resumo;
+  const { person, ultima, mensagens, estado, estagio, relacao, persona } = resumo;
+  // A bola está com você quando a última mensagem foi dela.
+  const esperandoVoce = ultima?.role === 'them';
   const previa = ultima ? `${ultima.role === 'user' ? 'Você: ' : ''}${ultima.text}` : 'Conversa ainda não começou. Toque para abrir e ela manda o primeiro oi.';
   const online = !!(person.ultimoVisto && Date.now() - Date.parse(person.ultimoVisto) < 3 * 86400000);
   const crianca = relacao.veCrianca;
   const tia = relacao.ehTia && !crianca;
-  return <article className={`conversation-card ${mensagens.length ? '' : 'empty'}`}>
+  return <article className={`conversation-card ${mensagens.length ? '' : 'empty'} ${esperandoVoce ? 'esperando' : ''}`}>
     <button className="conversation-card-main" onClick={() => ctx.openChat(person)}>
       <span className="conversation-avatar">
         <Avatar person={person} size={46} />
@@ -126,11 +128,14 @@ function ConversationCard({ resumo }: { resumo: ResumoConversa }) {
           {relacao.familiar && <em className="relation-chip familia">{relacao.vinculoComigo}</em>}
         </small>
         <small className="conversation-preview">{previa}</small>
+        <small className="conversation-voice" title={`Jeito de falar só dela: ${persona.assinatura.descricao}`}>{persona.assinatura.descricao}</small>
       </span>
       <span className="conversation-meta">
         <time>{ultima ? formatDate(ultima.timestamp, true) : '—'}</time>
+        {esperandoVoce && <em className="conversation-waiting">respondeu por último</em>}
         <em className={`conversation-stage stage-${estagio.id}`}>{estagio.label}</em>
         <span className="conversation-meter" title={`${Math.round(estado.afinidade)}% de química`}><i style={{ width: `${estado.afinidade}%` }} /></span>
+        <span className="conversation-count">{mensagens.length} mensagem(ns)</span>
       </span>
     </button>
     <div className="conversation-card-actions">

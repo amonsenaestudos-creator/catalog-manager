@@ -1227,3 +1227,66 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .conversation-card-actions { flex-direction: row; border-left: 0; border-top: 1px solid var(--line); }
   .conversation-meta { justify-items: start; }
 }
+
+/* ---------------------------------------------------------------------------
+   Conversas: ritmo, ticks e o jeito de cada pessoa
+   Aqui ficam as bolhas agrupadas, o "✓✓" das mensagens e a calma da animação:
+   nada aparece de uma vez, e cada ficha tem a sua cara.
+--------------------------------------------------------------------------- */
+
+/* Cabeçalho: além da relação, a marca registrada da fala dela */
+.chat-voz-line { display: block; font-size: 9.5px; color: var(--muted); font-style: normal; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-voz-line::before { content: '“'; }
+.chat-voz-line::after { content: '”'; }
+.chat-header-info div > em + em { margin-top: 1px; }
+
+/* Conversa com mais respiro: bolha por bolha, sem parede de texto */
+.chat-messages { gap: 4px; padding: 18px 16px 12px; scroll-behavior: smooth; }
+.chat-bubble-wrap { gap: 7px; }
+.chat-bubble-wrap.agrupada { margin-top: 1px; }
+.chat-bubble-wrap.fecha-grupo { margin-bottom: 8px; }
+.chat-avatar-slot { width: 30px; flex: 0 0 30px; }
+.chat-bubble { padding: 9px 13px 7px; border-radius: 16px; box-shadow: 0 1px 2px #00000024; }
+.chat-bubble.them { border-bottom-left-radius: 6px; }
+.chat-bubble.user { border-bottom-right-radius: 6px; }
+.chat-bubble-wrap.agrupada .chat-bubble { border-bottom-left-radius: 9px; border-bottom-right-radius: 9px; }
+.chat-bubble.typing { padding: 13px 16px; }
+.chat-bubble.typing span { animation-duration: 1.7s; }
+.chat-bubble.typing span:nth-child(2) { animation-delay: .22s; }
+.chat-bubble.typing span:nth-child(3) { animation-delay: .44s; }
+.chat-typing-label { font-size: 9.5px; color: var(--faint); margin-left: 2px; }
+
+/* Tick das suas mensagens: enviado, entregue e lida */
+.chat-hora { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.chat-tick { font-size: 9.5px; letter-spacing: -.08em; opacity: .75; transition: color .25s ease, opacity .25s ease; }
+.chat-tick.enviado { opacity: .55; }
+.chat-tick.entregue { opacity: .7; }
+.chat-tick.lido { color: #8fd6ff; opacity: 1; }
+.light .chat-tick.lido { color: #1d7fbd; }
+
+/* Divisor de dia fixo enquanto a conversa rola */
+.chat-day-divider { position: sticky; top: 0; z-index: 2; padding: 4px 0 2px; background: linear-gradient(180deg, var(--bg-chat, transparent) 60%, transparent); }
+
+/* Sugestões: mais opções, cada uma com o motivo e o botão de trocar */
+.chat-icebreakers { display: grid; gap: 6px; padding: 0 14px 10px; }
+.chat-icebreakers-title { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--faint); margin: 0 0 2px; }
+.chat-icebreakers-trocar { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.chat-icebreakers-trocar:hover { color: var(--accent); border-color: var(--accent); }
+.chat-icebreakers button { flex-direction: column; align-items: flex-start; gap: 3px; }
+.chat-sugestao-texto { font-size: 11.5px; line-height: 1.35; }
+.chat-sugestao-motivo { font-size: 9px; color: var(--faint); text-transform: none; }
+.chat-sugestao-motivo.tom-flerte { color: #e58fb1; }
+.chat-sugestao-motivo.tom-provocante { color: #e7769c; }
+.chat-sugestao-motivo.tom-intenso { color: #d9618a; }
+.chat-sugestao-motivo.tom-amizade { color: var(--muted); }
+
+/* Quem pediu menos animação recebe menos animação */
+.reduce-motion .chat-bubble { box-shadow: none; }
+.reduce-motion .chat-tick { transition: none; }
+
+/* Lista de conversas: quem respondeu por último e o jeito de falar de cada uma */
+.conversation-card.esperando { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.conversation-card.esperando .conversation-preview { color: var(--txt); }
+.conversation-voice { display: block; font-size: 10px; color: var(--faint); margin-top: 3px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-waiting { font-size: 9px; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 8px; }
+.conversation-count { font-size: 9px; color: var(--faint); }

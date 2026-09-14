@@ -57,6 +57,55 @@ describe("aba Conversas", () => {
     await waitFor(() => expect(document.querySelector(".conversation-list-cards")).toBeTruthy());
   });
 
+  it("marca a sua mensagem com tick e agrupa as bolhas seguidas", async () => {
+    const user = userEvent.setup();
+    await bootApp(user);
+    await goto(/Conversas/i);
+    const card = await waitFor(() => {
+      const encontrado = document.querySelector(".conversation-card") as HTMLElement;
+      expect(encontrado).toBeTruthy();
+      return encontrado;
+    });
+    await clicar(card.querySelector(".conversation-card-main") as HTMLElement);
+    await waitFor(() => expect(document.querySelector(".chat-simulator")).toBeTruthy(), { timeout: 12000 });
+
+    const campo = screen.getByLabelText("Mensagem") as HTMLInputElement;
+    await user.click(campo);
+    await user.keyboard("oi, tudo bem?{enter}");
+
+    // O tick aparece na hora do envio e depois vira "lida".
+    await waitFor(() => expect(document.querySelector(".chat-bubble.user .chat-tick")).toBeTruthy());
+    expect(document.querySelector(".chat-bubble.user .chat-tick")?.textContent).toBe("✓");
+    await waitFor(() => expect(document.querySelector(".chat-tick.lido")).toBeTruthy(), { timeout: 6000 });
+    expect(document.querySelector(".chat-bubble-wrap.fecha-grupo")).toBeTruthy();
+    // O jeito de falar da ficha aparece no cabeçalho.
+    expect(document.querySelector(".chat-voz-line")?.textContent?.length || 0).toBeGreaterThan(10);
+  });
+
+  it("oferece sugestões com motivo e um botão de trocar as opções", async () => {
+    const user = userEvent.setup();
+    await bootApp(user);
+    await goto(/Conversas/i);
+    const card = await waitFor(() => {
+      const encontrado = document.querySelector(".conversation-card") as HTMLElement;
+      expect(encontrado).toBeTruthy();
+      return encontrado;
+    });
+    await clicar(card.querySelector(".conversation-card-main") as HTMLElement);
+    await waitFor(() => expect(document.querySelector(".chat-simulator")).toBeTruthy(), { timeout: 12000 });
+
+    await clicar(screen.getByLabelText("Sugestões de mensagem"));
+    await waitFor(() => expect(document.querySelectorAll(".chat-icebreakers button").length).toBeGreaterThan(3));
+    expect(document.querySelector(".chat-icebreakers-trocar")).toBeTruthy();
+    expect(document.querySelectorAll(".chat-sugestao-motivo").length).toBeGreaterThan(0);
+    const antes = [...document.querySelectorAll(".chat-sugestao-texto")].map(item => item.textContent).join("|");
+    await clicar(document.querySelector(".chat-icebreakers-trocar") as HTMLElement);
+    await waitFor(() => {
+      const depois = [...document.querySelectorAll(".chat-sugestao-texto")].map(item => item.textContent).join("|");
+      expect(depois).not.toBe(antes);
+    });
+  });
+
   it("mostra o selo da relação e a química de cada conversa", async () => {
     const user = userEvent.setup();
     await bootApp(user);

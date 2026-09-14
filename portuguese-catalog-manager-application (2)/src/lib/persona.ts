@@ -71,6 +71,26 @@ export interface SpeechProfile {
   abreviacoes: string[];
 }
 
+/**
+ * Assinatura de voz: o que faz cada ficha soar como uma pessoa diferente, e não
+ * como o mesmo robô. Sai sempre do mesmo gerador semeado, então a Ana nunca vira
+ * a Célia por acidente.
+ */
+export interface Assinatura {
+  /** A risada dela: "kkkk", "rs", "hahaha"... */
+  risada: string;
+  /** Como ela costuma começar a mensagem. */
+  aberturas: string[];
+  /** Expressões que ela repete sem perceber. */
+  bordoes: string[];
+  /** Emoji que ela usa mais que os outros. */
+  emojiMarca: string;
+  /** Hábito de pontuação. */
+  pontuacao: 'reticencias' | 'exclamacao' | 'seca';
+  /** Frase curta para a tela explicar o jeito dela. */
+  descricao: string;
+}
+
 export interface Persona {
   id: string;
   nome: string;
@@ -101,6 +121,8 @@ export interface Persona {
   familiares: Familiar[];
   /** Como ela te chama nesta relação (menino, meu bem, querida...). */
   tratamento: string[];
+  /** Marca registrada da fala dela: risada, aberturas, bordões e pontuação. */
+  assinatura: Assinatura;
 }
 
 export interface PersonaContexto {
@@ -355,6 +377,7 @@ export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Pe
   };
 
   const primeiro = (person.apelido?.trim() || person.nome.trim().split(/\s+/)[0] || 'você');
+  const assinatura = montarAssinatura({ person, traits, estilo, fala, marcadores });
   const interesses = interessesDe(person, texto, rand);
   const familiares = relacao.familiares;
   const resumo = montarResumo({ traits, marcadores, interesses, idade, categoria: person.localizacaoOnde, subcategoria: person.localizacaoSub, contexto, relacao });
@@ -383,7 +406,79 @@ export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Pe
     relacao,
     familiares,
     tratamento: relacao.tratamento,
+    assinatura,
   };
+}
+
+/** Aberturas típicas de cada faixa — é o que diferencia uma adolescente de uma tia. */
+const ABERTURAS_VOZ: Record<string, string[]> = {
+  adolescente: ['Mano,', 'Tipo,', 'Nossa,', 'Cara,', 'Gente,', 'Ah,', 'Poxa,', 'Vey,', 'Sério,', 'Ai,'],
+  tia: ['Olha,', 'Escuta,', 'Viu,', 'Vixe,', 'Eita,', 'Meu bem,', 'Ó,', 'Credo,', 'Sabe,', 'Ah,'],
+  adulta: ['Olha,', 'Ó,', 'Sabe,', 'Vou te falar,', 'Gente,', 'Nossa,', 'Escuta,', 'Ah,', 'Pois é,', 'Juro,'],
+  madura: ['Olha,', 'Ó,', 'Viu,', 'Escuta,', 'Eita,', 'Pois é,', 'Sabe,', 'Vou te contar,', 'Ah,', 'Vixe,'],
+};
+
+/** Bordões que nascem do que a ficha diz de verdade (marcadores lidos da ficha). */
+const BORDOES_POR_MARCADOR: Record<string, string[]> = {
+  'ligada à fé': ['graças a Deus', 'se Deus quiser', 'Deus me livre', 'é uma bênção'],
+  'fitness': ['treino é treino', 'bora treinar', 'a perna tá doendo ainda'],
+  'com vida em família': ['mãe é mãe', 'filho é tudo', 'a casa vive cheia'],
+  'criativa': ['maratonei de novo', 'essa série é boa demais', 'nada como um bom filme'],
+  'gamer': ['perdi a hora jogando', 'a partida tá marcada', 'gamer sofre'],
+  'apaixonada por bichos': ['meu bichinho', 'o bichinho tá deitado aqui', 'cachorro igual filho'],
+  'caseira': ['a casa não se arruma sozinha', 'mercado tomou meu dia', 'ai, que preguiça boa'],
+  'vive na correria': ['na correria', 'é isso', 'melhor nem falar do serviço'],
+  'estudante': ['é muita matéria', 'vou tirar um tempo', 'prova me tira o sono'],
+  'romântica': ['coração mole', 'sou dessas', 'meu bem'],
+  'brincalhona': ['tô rindo sozinha', 'só sei que foi assim', 'juro'],
+  'tímida': ['deixa eu ver', 'sei não', 'vou pensando'],
+  'ousada no jeito de falar': ['meu bem', 'sem vergonha nenhuma', 'vem cá'],
+  'direta e centrada': ['é isso', 'sem enrolação', 'vamos ao que interessa'],
+  'carinhosa': ['meu bem', 'cuida de você', 'tô aqui'],
+  'vaidosa': ['unha feita, autoestima na hora', 'hoje é meu dia', 'banho demorado é terapia'],
+  'gosta de sair e viajar': ['bora viajar', 'preciso ver o mar', 'de mala pronta'],
+  'festeira': ['meu grupo tá uma bagunça', 'as amigas me chamaram', 'só alegria'],
+  'ligada em música': ['essa música não sai da minha cabeça', 'aumentei o volume', 'playlist salvou'],
+  'curiosa e estudiosa': ['deixa eu ver', 'interessante isso', 'nunca tinha pensado'],
+  'intensa': ['sou intensa mesmo', 'não sei ser diferente', 'melhor nem me provocar'],
+  'reservada em assuntos íntimos': ['calma lá', 'devagar', 'cada coisa no seu tempo'],
+};
+
+function montarAssinatura(input: { person: Person; traits: PersonaTraits; estilo: EstiloVoz; fala: SpeechProfile; marcadores: string[] }): Assinatura {
+  const { person, traits, estilo, fala, marcadores } = input;
+  // Gerador próprio: a marca registrada de cada pessoa não mexe nos sorteios que
+  // já existiam (interesses e tempero dos traços continuam iguais).
+  const rand = seededRandom(hashString(`${person.id || person.nome || 'pessoa'}#voz`));
+  const pool = ABERTURAS_VOZ[estilo] || ABERTURAS_VOZ.adulta;
+  const aberturas: string[] = [];
+  while (aberturas.length < 3 && aberturas.length < pool.length) {
+    const escolhida = pool[Math.floor(rand() * pool.length)];
+    if (!aberturas.includes(escolhida)) aberturas.push(escolhida);
+  }
+
+  const gerais = ['juro', 'sério', 'é isso', 'só sei que foi assim', 'deixa eu ver', 'quando você menos espera', 'tô rindo sozinha'];
+  const especificos = marcadores.flatMap(marcador => BORDOES_POR_MARCADOR[marcador] || []);
+  const bordoes: string[] = [];
+  while (bordoes.length < 3) {
+    // Dois bordões vêm dos assuntos da ficha, um é genérico do jeito dela falar.
+    const fonte = bordoes.length < 2 && especificos.length ? especificos : gerais;
+    const escolhido = fonte[Math.floor(rand() * fonte.length)];
+    if (!escolhido || bordoes.includes(escolhido)) {
+      if (fonte === especificos) continue;
+      break;
+    }
+    bordoes.push(escolhido);
+  }
+
+  const paleta = fala.emojis.filter(Boolean);
+  const emojiMarca = paleta.length ? paleta[Math.floor(rand() * paleta.length)] : '';
+  const pontuacao: Assinatura['pontuacao'] = traits.timidez > 0.6 || traits.reserva > 0.68 ? 'seca'
+    : traits.calor > 0.62 && traits.emojis > 0.55 ? 'exclamacao'
+      : rand() < 0.5 ? 'reticencias' : 'exclamacao';
+  const ritmo = traits.agilidade > 0.7 ? 'digita rápido' : traits.agilidade < 0.4 ? 'demora pra responder' : 'responde quando dá';
+  const tamanho = traits.verbosidade > 0.7 ? 'escreve bastante' : traits.verbosidade < 0.38 ? 'escreve curto' : 'escreve no tamanho normal';
+  const descricao = `${ritmo}, ri com "${fala.risadas[0]}"${bordoes[0] ? `, vive dizendo "${bordoes[0]}"` : ''} e ${tamanho}`;
+  return { risada: fala.risadas[0], aberturas, bordoes, emojiMarca, pontuacao, descricao };
 }
 
 function montarResumo(input: { traits: PersonaTraits; marcadores: string[]; interesses: Interesse[]; idade: number | null; categoria: string; subcategoria: string; contexto: string[]; relacao: Relacao }) {

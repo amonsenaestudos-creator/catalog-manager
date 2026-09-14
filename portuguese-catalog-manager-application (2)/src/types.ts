@@ -420,7 +420,7 @@ export interface AppData {
     // Conversas: modo adulto (opt-in), ritmo e estilo da simulação.
     // O clima da conversa sobe sozinho conforme a química — não há tom para escolher.
     adultMode?: boolean;
-    chatSpeed?: 'realista' | 'rapido';
+    chatSpeed?: 'pausado' | 'realista' | 'rapido';
     chatSlang?: boolean;
     chatEmojis?: boolean;
     chatMeter?: boolean;
