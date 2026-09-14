@@ -4,6 +4,7 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Conversa que entende desabafo', 'Dia ruim é reconhecido como dia ruim: a resposta acolhe, sem carinha alegre e sem pergunta de rotina no meio. A pergunta de volta é de cuidado.', 'conversas'],
   ['Botões que apareciam só com o mouse', 'No celular, ações como editar uma anotação, ajustar um cartão do quadro ou trocar alguém de faixa agora ficam sempre à vista, com tamanho de dedo. Nada de adivinhar onde tocar.', 'notes'],
   ['Instruções que falam a língua do toque', 'Em tela de dedo, as dicas trocam “arraste” pelo caminho que funciona: o botão ↔ para mudar de faixa, a pasta mãe para aninhar e a etapa do cartão para mudar de coluna.', 'tierlists'],
   ['Conversa em tela cheia', 'No celular, abrir um papo esconde a barra de baixo e o cabeçalho: sobra a conversa inteira, com o campo de escrita colado na parte inferior.', 'conversas'],

@@ -176,7 +176,7 @@ const REGRAS_INTENCAO: RegraIntencao[] = [
   { id: 'reclamacao_sem_dormir', padrao: rx("\\b(não consigo dormir|nao consigo dormir|não dormi|só dormi|insônia|insonia|de madrugada acordado|acordei no meio da noite|não peguei no sono|nao peguei no sono|a cabeça não para|a cabeca nao para|mente acelerada|sem sono)\\b", "i"), peso: 1.8, sentimento: 'negativo' },
   // Gratidão pela conversa: ela recebe o obrigado e devolve com cuidado.
   { id: 'gratidao_recebida', padrao: rx("\\b(agradecer a conversa|obrigado pela conversa|obrigada pela conversa|valeu pela conversa|obrigado pelo papo|obrigada pelo papo|valeu pelo papo|obrigado por ouvir|obrigada por ouvir|obrigado pela paciência|obrigado pela ajuda|obrigada pela ajuda|obrigado pelo conselho|obrigada pelo conselho|obrigado pelo carinho|obrigada pelo carinho)\\b", "i"), peso: 1.5, sentimento: 'positivo' },
-  { id: 'apoio', padrao: rx("\\b(triste|pra baixo|para baixo|deprimid[oa]s?|cansad[oa]s?|exaust[oa]s?|estressad[oa]s?|ansios[oa]s?|chorando|chorei|difícil|problema|briga|briguei|perdi o emprego|doente|com medo|preocupad[oa]s?|sozinh[oa]s?|desanimad[oa]s?|no fundo do poço|acabou o namoro|terminamos|meu dia foi horrível|dia horrivel|perdi a paciência|perdi a paciencia|tô mal|to mal|não tô bem|nao to bem|tô exausto|to exausto|sem sono|não consigo dormir|nao consigo dormir|não dormi|nao dormi|dormi mal|acordei de madrugada|sem energia)\\b", "i"), peso: 2.1, sentimento: 'negativo' },
+  { id: 'apoio', padrao: rx("\\b(triste|muito triste|pra baixo|para baixo|deprimid[oa]s?|cansad[oa]s?|exaust[oa]s?|estressad[oa]s?|ansios[oa]s?|chorando|chorei|difícil|problema|briga|briguei|perdi (o |meu )?emprego|fui demitid[oa]|me demitiram|demitid[oa]s?|doente|com medo|preocupad[oa]s?|sozinh[oa]s?|desanimad[oa]s?|chatead[oa]s?|magoad[oa]s?|no fundo do poço|acabou o namoro|terminamos|me separei|separação|meu dia foi horrível|dia horrivel|perdi a paciência|perdi a paciencia|t[ôo] (muito )?mal|estou mal|me sinto mal|não tô bem|nao to bem|não estou bem|nao estou bem|tô exausto|to exausto|tô acabado|to acabado|sem forças|sem forcas|sem ânimo|sem animo|sobrecarregad[oa]s?|sem sono|não consigo dormir|nao consigo dormir|não dormi|nao dormi|dormi mal|acordei de madrugada|sem energia)\\b", "i"), peso: 2.1, sentimento: 'negativo' },
   { id: 'alegria', padrao: rx("\\b(passei na prova|passei de ano|passei no concurso|passei no vestibular|passei de fase|aprovei|consegui|ganhei|promoção|aumento|fui aprovad[oa]|deu certo|melhor dia|feliz|felizona|notícia boa|formei|conquistei|mudança|novo emprego|deu tudo certo|recebi a notícia|recebi a noticia|me elogiaram|fui elogiado)\\b", "i"), peso: 2.0, sentimento: 'positivo' },
   { id: 'desculpa', padrao: rx("\\b(desculpa|desculpe|foi mal|perdão|me perdoa|não quis|nao quis|vacilei|errei|demorei pra responder|sumi)\\b", "i"), peso: 1.9, sentimento: 'negativo' },
   { id: 'agradecimento', padrao: rx("\\b(obrigad[oa]s?|valeu|agradeço|agradecer|vim aqui agradecer|muito gentil|você me ajudou|salvou meu dia|gratidão)\\b", "i"), peso: 1.7, sentimento: 'positivo' },
@@ -1049,6 +1049,33 @@ function abreviar(texto: string, ctx: EstiloContexto) {
   return saida;
 }
 
+/** Perguntas de cuidado: entram no lugar da pergunta de rotina em assunto pesado. */
+const PERGUNTAS_APOIO: string[] = [
+  'Quer me contar o que aconteceu?',
+  'Você tem com quem contar aí?',
+  'Como você tá se sentindo agora?',
+  'Quer desabafar ou prefere que eu te distraia?',
+  'Faz muito tempo que você tá assim?',
+  'Você conseguiu descansar um pouco?',
+];
+
+/** Complementos para quando o assunto é pesado: acolher, não perguntar da rotina. */
+const COMPLEMENTOS_APOIO: string[] = [
+  'Tô aqui, sem pressa nenhuma',
+  'Você não precisa passar por isso calado',
+  'Se quiser desabafar mais, eu escuto',
+  'Respira. Um passo de cada vez',
+  'Conte comigo hoje, tá?',
+  'Não precisa responder agora, só queria que você soubesse',
+  'Manda quando você estiver melhor, eu entendo',
+];
+
+/** Convites para contar mais: dois deles na mesma mensagem soam repetidos. */
+const PEDE_MAIS = /\b(me conta|conta mais|fala mais|continua contando|conte mais|me fala|quero ouvir|me diz|me explica|conta tudo)\b/i;
+
+/** Carinhas que continuam cabendo quando o assunto é pesado. */
+const ACOLHEDOR = /^(🥰|❤️|💜|💗|🤗|🫂|🙏|🥺|😔|😥|😢|😞)$/u;
+
 /** Aplica emoji, risada, gíria, vocativo, erros de digitação e gênero. */
 function estilizar(texto: string, ctx: EstiloContexto) {
   const { persona, tom, humor, rand } = ctx;
@@ -1104,10 +1131,15 @@ function estilizar(texto: string, ctx: EstiloContexto) {
   }
 
   // Emoji no fim, proporcional ao perfil. Nunca dois emojis colados.
+  // Em assunto pesado carinha alegre soa fora de hora: sobra só o acolhimento.
   const terminaComEmoji = () => EMOJI_NO_FIM.test(saida);
-  const emojiChance = ctx.emojis === false ? 0 : persona.traits.emojis * (humor === 'fechada' ? 0.3 : 1) * (tom === 'flerte' ? 1.15 : 1);
-  if (floreios < limiteFloreios && !terminaComEmoji() && rand() < emojiChance * 0.75) {
+  const paletaDeEmoji = () => {
     const paleta = persona.fala.emojis.filter(Boolean);
+    return pesado ? paleta.filter(emoji => ACOLHEDOR.test(emoji)) : paleta;
+  };
+  const emojiChance = ctx.emojis === false ? 0 : persona.traits.emojis * (humor === 'fechada' ? 0.3 : 1) * (tom === 'flerte' ? 1.15 : 1) * (pesado ? 0.45 : 1);
+  if (floreios < limiteFloreios && !terminaComEmoji() && rand() < emojiChance * 0.75) {
+    const paleta = paletaDeEmoji();
     if (paleta.length) {
       const emoji = paleta[Math.floor(rand() * paleta.length)];
       saida = /\s$/.test(saida) ? `${saida}${emoji}` : `${saida} ${emoji}`;
@@ -1115,7 +1147,7 @@ function estilizar(texto: string, ctx: EstiloContexto) {
     }
   }
 
-  if (floreios < limiteFloreios && ctx.emojis !== false && !terminaComEmoji() && persona.traits.emojis > 0.6 && rand() < 0.25) {
+  if (floreios < limiteFloreios && !pesado && ctx.emojis !== false && !terminaComEmoji() && persona.traits.emojis > 0.6 && rand() < 0.25) {
     const paleta = persona.fala.emojis.filter(Boolean);
     if (paleta.length >= 2) {
       const a = marca?.emojiMarca && rand() < 0.55 ? marca.emojiMarca : paleta[Math.floor(rand() * paleta.length)];
@@ -1842,10 +1874,13 @@ const RECEPCOES_QUESTAO: string[] = [
     : intencao === 'pergunta_familiar' && !relacao.familiares.length
       ? SEM_FAMILIAR
       : doTom.length ? doTom : (opcoesDe(intencao, A, persona).length ? opcoesDe(intencao, A, persona) : opcoesDe('desconhecido', A, persona));
-  // Se a abertura já perguntou ("É seu amigo?"), a resposta entra sem outra pergunta.
-  if (bolhas.some(bolha => /\?\s*$/.test(bolha.trim()))) {
+  // Se a abertura já perguntou ("É seu amigo?"), a resposta entra sem outra pergunta
+  // e sem outro convite pra contar mais: era o "me conta" depois do "me conta".
+  const jaPerguntou = () => bolhas.some(bolha => /\?\s*$/.test(bolha.trim()));
+  if (jaPerguntou()) {
     const semPergunta = opcoes.filter(opcao => !/\?\s*$/.test(opcao));
-    if (semPergunta.length) opcoes = semPergunta;
+    const semConvite = semPergunta.filter(opcao => !PEDE_MAIS.test(opcao));
+    opcoes = semConvite.length ? semConvite : (semPergunta.length ? semPergunta : opcoes);
   }
   const principalBase = preencherEscolhido(opcoes, rand);
   let principal = intencao === 'saudacao' || intencao === 'despedida' ? principalBase : abrirNatural(principalBase, rand, persona);
@@ -1860,8 +1895,12 @@ const RECEPCOES_QUESTAO: string[] = [
 
   // 3c. Complemento de personalidade para quem escreve muito.
   if (rand() < (persona.traits.verbosidade - 0.5) * 0.9 && efetivo !== 'amizade') {
-    const complemento = efetivo === 'provocante' || efetivo === 'intenso' ? COMPLEMENTOS_PICANTES : COMPLEMENTOS;
-    bolhas.push(preencherEscolhido(complemento, rand));
+    // Assunto pesado não recebe "já almoçou?" no meio: o complemento também acolhe.
+    const complemento = sentimento === 'negativo'
+      ? COMPLEMENTOS_APOIO
+      : efetivo === 'provocante' || efetivo === 'intenso' ? COMPLEMENTOS_PICANTES : COMPLEMENTOS;
+    const cabem = jaPerguntou() ? complemento.filter(texto => !/\?\s*$/.test(texto) && !PEDE_MAIS.test(texto)) : complemento;
+    bolhas.push(preencherEscolhido(cabem.length ? cabem : complemento, rand));
   } else if (humor === 'fechada' && rand() < 0.4) {
     bolhas.push(preencherEscolhido(ehMadura(persona) ? COMPLEMENTOS_FECHADA_ADULTA : COMPLEMENTOS_FECHADA, rand));
   }
@@ -1891,6 +1930,11 @@ const RECEPCOES_QUESTAO: string[] = [
     ...(temaExtra !== temaBase ? [...(PERGUNTAS[temaExtra] || []), ...(MAIS_PERGUNTAS[temaExtra] || [])] : []),
     ...PERGUNTAS.dia,
   ].filter((pergunta, indice, lista) => lista.indexOf(pergunta) === indice && !state.perguntas.includes(pergunta));
+  // Assunto pesado não recebe "você almoçou?": a pergunta de volta é de cuidado.
+  const poolApoio = sentimento === 'negativo'
+    ? PERGUNTAS_APOIO.filter(pergunta => !state.perguntas.includes(pergunta))
+    : [];
+  const perguntasCabiveis = poolApoio.length ? poolApoio : poolPerguntas;
   const chancePergunta = (0.3 + persona.traits.curiosidade * 0.42 - (humor === 'fechada' ? 0.3 : 0)) * (intencao === 'despedida' ? 0.35 : 1);
   let perguntaNova: string | undefined;
   let textoPerguntaNova = '';
@@ -1904,8 +1948,8 @@ const RECEPCOES_QUESTAO: string[] = [
     eventos.push('pessoa:lembrete');
   } else if (bolhas.some(bolha => /\?\s*$/.test(bolha.trim()))) {
     // A resposta já terminou perguntando: outra pergunta em cima vira interrogatório.
-  } else if (poolPerguntas.length && rand() < chancePergunta) {
-    perguntaNova = poolPerguntas[Math.floor(rand() * poolPerguntas.length)];
+  } else if (perguntasCabiveis.length && rand() < chancePergunta) {
+    perguntaNova = perguntasCabiveis[Math.floor(rand() * perguntasCabiveis.length)];
     usados.push(perguntaNova);
     modelosUsados.push(perguntaNova);
     textoPerguntaNova = preencher(perguntaNova, ctx);

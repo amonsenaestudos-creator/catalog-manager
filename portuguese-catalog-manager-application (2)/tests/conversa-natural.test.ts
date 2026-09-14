@@ -199,3 +199,56 @@ describe("conversa sem cara de robô", () => {
     }
   });
 });
+
+/**
+ * Desabafo é o teste de maturidade da conversa: quem perdeu o emprego não
+ * quer ouvir "você almoçou?" nem receber carinha alegre no meio da resposta.
+ */
+describe("assunto pesado", () => {
+  const alegre = ficha({ id: "marina", nome: "Marina", idade: 34, comportamento: "Alegre, brincalhona, cheia de emojis e kkk", tags: ["amiga"] });
+  const rodada = (mensagem: string, semente: number) => responder(mensagem, { semente, person: alegre });
+
+  it("reconhece um desabafo escrito com outras palavras", () => {
+    const { plano } = rodada("perdi meu emprego hoje e tô muito mal com isso", 1);
+    expect(plano.intencao).toBe("apoio");
+    expect(plano.sentimento).toBe("negativo");
+    for (const variacao of ["fui demitida hoje", "meu dia foi horrível", "tô muito mal com uma coisa", "ando sem ânimo pra nada"]) {
+      expect(rodada(variacao, 2).plano.sentimento, variacao).toBe("negativo");
+    }
+  });
+
+  it("não manda carinha alegre nem pergunta de rotina", () => {
+    const carinhasAlegres = /[😊😜😏😍😂🤣😄😁🥳]/u;
+    const rotina = /(almoçou|fim de semana|acordar cedo|dormido quantas|planejado)/i;
+    for (let i = 0; i < 30; i++) {
+      const { texto } = rodada("perdi meu emprego hoje e tô muito mal com isso", i + 1);
+      expect(texto, texto).not.toMatch(carinhasAlegres);
+      expect(texto, texto).not.toMatch(rotina);
+    }
+    const todas = Array.from({ length: 30 }, (_, i) => rodada("perdi meu emprego hoje e tô muito mal com isso", i + 1).texto).join(" ");
+    expect(todas).toMatch(/sinto muito|poxa|fico triste|conte comigo|tô aqui|ninguém merece|desabafar|te escut/i);
+  });
+
+  it("mas assunto bom continua recebendo carinha", () => {
+    const todas = Array.from({ length: 30 }, (_, i) => rodada("ganhei uma promoção hoje, tô feliz demais", i + 1).texto).join(" ");
+    expect(todas).toMatch(/[🙂😊😄😍🥰🔥]/u);
+  });
+});
+
+/** Ninguém pergunta duas vezes nem pede "me conta" duas vezes na mesma mensagem. */
+describe("mensagem sem repetição de convite", () => {
+  it("fica com no máximo uma pergunta e um convite", () => {
+    const fichas = [ficha(), ficha({ id: "marina", nome: "Marina", idade: 34, comportamento: "Falante e curiosa", tags: ["amiga"] })];
+    const mensagens = ["o joão me ligou ontem", "cheguei do trabalho agora e o dia foi longo", "e aí, tudo bem?"];
+    for (const person of fichas) {
+      for (const mensagem of mensagens) {
+        for (let i = 0; i < 12; i++) {
+          const bolhas = responder(mensagem, { semente: i + 1, person }).plano.bolhas.map(bolha => bolha.texto);
+          const junto = bolhas.join(" // ");
+          expect(bolhas.filter(texto => /\?\s*$/.test(texto.trim())).length, junto).toBeLessThanOrEqual(1);
+          expect(bolhas.filter(texto => /(me conta|fala mais|conta mais|quero ouvir|me diz|me fala|continua contando)/i.test(texto)).length, junto).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+  });
+});
