@@ -119,8 +119,8 @@ export const MAIS_RESPOSTAS: Record<string, BancoVoz> = {
       'Resposta curta: sim. Resposta longa: a gente conversa no domingo',
       'Nunca me pegaram nessa antes, olha só',
       'Eu ia mentir, mas vou te falar a verdade: não sei 😅',
-      'Depende. Você vai ter que me dar mais contexto, doutor kkk',
-      'Boa pergunta. Aprendi isso do jeito difícil',
+      'Depende do contexto. Me conta um pouco mais que eu respondo direito',
+      'Boa pergunta, e eu não tenho resposta pronta. Vou pensar com você',
       'Vou responder a sua com uma pergunta: e você, já viveu isso?',
     ],
     flerte: [
@@ -514,7 +514,7 @@ export const MAIS_RESPOSTAS: Record<string, BancoVoz> = {
   agradecimento: {
     amizade: [
       'Imagina! Tô aqui pra isso, de verdade',
-      'Fico feliz em ajudar 😊 você fez o mesmo por mim quando precisei',
+      'Fico feliz em ajudar, e você fez o mesmo por mim quando precisei 😊',
       'Nada disso, foi pouca coisa. Me conta se resolveu',
       'De nada! Se precisar de novo é só chamar, sem cerimônia',
       'Você não precisa agradecer em dobro, mas fico feliz 😄',
@@ -1009,6 +1009,40 @@ export const MAIS_RESPOSTAS: Record<string, BancoVoz> = {
       'Gosto quando você fala assim, mas gosto mais quando chega perto',
     ],
   },
+  pedido_historia: {
+    amizade: [
+      'Vou te contar uma coisa que aconteceu comigo essa semana: eu perdi o horário e fui parar num lugar que não conhecia. Acabou sendo o melhor passeio do mês',
+      'Estava organizando uma gaveta e achei uma foto antiga. Fiquei parada olhando, lembrando de um tempo que não volta mais',
+      'Hoje eu parei e fiz nada por meia hora. Só isso, e foi a melhor parte do dia',
+    ],
+    flerte: [
+      'Tenho uma coisa pra te contar, mas prefiro contar de perto 😏',
+      'Uma coisa que eu quase nunca conto: eu guardo as conversas que me deixam bem. A nossa entrou na lista',
+    ],
+    picante: [
+      'História eu conto, mas o final depende de como você se comportar 😏',
+    ],
+  },
+  reclamacao_sem_dormir: {
+    amizade: [
+      'Noite ruim é assim mesmo: o corpo cansa e a cabeça acelera. Levanta, bebe água e anota o que está te apertando, ajuda de verdade',
+      'Tenta deitar com o celular longe por vinte minutos. Pouca luz, chá e nada de tela',
+      'Se isso está virando rotina, vale conversar com um médico. Enquanto isso, fica calmo que amanhã o mundo espera',
+    ],
+    flerte: [
+      'Queria estar aí pra te fazer companhia até o sono chegar. Por enquanto, deita e pensa em coisa boa',
+    ],
+  },
+  gratidao_recebida: {
+    amizade: [
+      'Não precisa agradecer de verdade. Eu gosto de conversar com você, isso basta',
+      'Fico feliz em ler isso. E olha que o papo só flui porque você também faz a sua parte',
+    ],
+    flerte: [
+      'Agradece não, que eu fico querendo mais 😏',
+      'Fico feliz de verdade. E a melhor parte da conversa foi você',
+    ],
+  },
   pergunta_rotina: {
     amizade: [
       'Hoje eu tô no modo preguiça, de fone no ouvido e nada me tira do sofá kkk',
@@ -1050,11 +1084,10 @@ export const MAIS_RESPOSTAS: Record<string, BancoVoz> = {
 /** Recepções extras: a bolha curta que mostra que ela entendeu. */
 export const MAIS_RECEPCOES: Record<'positivo' | 'negativo' | 'neutro', string[]> = {
   positivo: [
-    'Ai que bom 🥰', 'Oxi, gostei disso', 'Que delícia de ler', 'Isso aqui me animou',
-    'Pronto, já tô sorrindo', 'Uai, você é rápido no carinho', 'Melhor coisa que eu li hoje',
-    'Sério? Conta mais', 'Amei, viu', 'Fiquei boba agora', 'Nossa, que bom 😄',
-    'Gostei tanto que li duas vezes', 'Você chegou chegando', 'Olha, isso me pegou',
-    'Que sorte a minha falar com você hoje',
+    'Ai que bom 🥰', 'Oxi, gostei disso', 'Pronto, já tô sorrindo', 'Nossa, que bom 😄',
+    'Olha, isso me pegou', 'Que sorte a minha falar com você hoje', 'Boa notícia, viu',
+    'Fico contente com isso', 'Isso me deixou bem', 'Que bom, sério', 'Gostei de saber',
+    'Sério, conta mais', 'Isso aquece o coração', 'Que dia bom de conversar',
   ],
   negativo: [
     'Oxente, que ruim 😟', 'Ei, fala comigo', 'Puxa vida', 'Isso doeu de ler',
@@ -1063,10 +1096,9 @@ export const MAIS_RECEPCOES: Record<'positivo' | 'negativo' | 'neutro', string[]
     'Aguenta firme, meu bem', 'Fico triste contigo', 'Não fica assim, não',
   ],
   neutro: [
-    'Pois é', 'Hmm, faz sentido', 'Sei como é', 'Anotado aqui', 'Uai, olha só',
-    'Jura?', 'Interessante', 'Tendi', 'Combinado', 'Beleza então', 'Boa, entendi',
-    'Hmm, deixa eu pensar', 'Ah, agora entendi', 'Que situação, né', 'Tá certo',
-    'Ok, continuei te seguindo',
+    'Pois é', 'Hmm, faz sentido', 'Sei como é', 'Uai, olha só',
+    'Jura?', 'Interessante', 'Entendi', 'Ah, agora entendi', 'Que situação, né',
+    'Faz sentido o que você disse', 'Certo', 'Vamos por partes',
   ],
 };
 
@@ -1242,6 +1274,49 @@ export const FECHOS: string[] = [
   'agora me conta mais', 'e você, como tá?', 'vou pensando em você',
 ];
 
+/**
+ * Recepções que só fazem sentido em certos contextos.
+ *
+ * "Combinado" na frente de um desabafo e "melhor coisa que eu li hoje" na
+ * frente de um obrigado entregam que a resposta é automática. Aqui elas ficam
+ * presas a um contexto: acordo só entra se você combinou algo, elogio a
+ * conteúdo só entra se você mandou algo para ser lido ou visto.
+ */
+export const RECEPCOES_CONTEXTO: { padrao: RegExp; intencoes: string[]; pistas?: RegExp }[] = [
+  {
+    padrao: /\b(combinado|beleza então|fechado|pode deixar|tá certo|tá bom|ok)\b/i,
+    intencoes: ['convite', 'despedida', 'mensagem_enviada'],
+    pistas: /\b(vamos|bora|pode ser|combinado|kombinado|fechado|aman[hã]a|depois eu|te chamo|me chama|que horas|pode deixar)\b/i,
+  },
+  {
+    padrao: /(li hoje|li duas vezes|melhor coisa que eu li|gostei tanto)/i,
+    intencoes: ['mensagem_enviada', 'foto', 'piada'],
+  },
+  {
+    padrao: /\b(sério\?|jura\?)\b/i,
+    intencoes: ['mensagem_enviada', 'foto', 'piada', 'declaracao', 'elogio', 'alegria', 'fofoca'],
+  },
+];
+
+/** Diz se a recepção combina com o assunto e o texto que você mandou. */
+export function recepcaoVale(texto: string, intencao: string, mensagem: string): boolean {
+  return RECEPCOES_CONTEXTO.every(regra => {
+    if (!regra.padrao.test(texto)) return true;
+    if (regra.pistas && regra.pistas.test(mensagem)) return true;
+    return regra.intencoes.includes(intencao);
+  });
+}
+
+/** Nome que ela já anotou numa conversa anterior e volta a aparecer. */
+export const PESSOA_CONHECIDA: string[] = [
+  'Você e o {pessoa}, hein. Eu só tenho o nome anotado aqui, me conta mais dele',
+  'O {pessoa} voltou no nosso papo. Ele é importante pra você, né?',
+  'Sobre o {pessoa}: eu ainda só sei o nome. Me apresenta ele direito',
+  'Ah, o {pessoa}. Você já falou dele comigo, eu lembro',
+  'O {pessoa} de novo. Tá rendendo assunto, esse nome',
+  'Eu anotei o {pessoa} aqui. Me atualiza do que você me contou',
+];
+
 /** Usados quando você chama a ficha pelo nome ou apelido. */
 export const CHAMADO_PELO_NOME: string[] = [
   'Chamou? tô aqui 😊', 'Diga, é comigo mesmo?', 'Oi! Você falou meu nome e eu vim',
@@ -1263,6 +1338,10 @@ export const FALOU_PROPRIA_NOME: string[] = [
 export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
   'ela-perguntou': {
     amizade: [
+      'Deu tudo certo por aqui. Agora estou mais tranquilo, e você?',
+      'Foi um dia cheio, mas rendeu. Me conta como foi o seu',
+      'Nada de novo, o normal. E você, o que anda fazendo de bom?',
+      'Tô bem, sim. Hoje foi calmo, deu até pra descansar um pouco',
       'Foi um dia cheio! Consegui resolver umas coisas e agora tô mais tranquilo. E você?',
       'Tudo certo por aqui. Me conta como você tá de verdade, sem o "tô bem" kk',
       'Dia normal, mas melhorou agora. E o seu, como tá sendo?',
@@ -1270,6 +1349,9 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
       'Tô na correria, mas parei tudo pra te responder 🙂 e aí, me conta',
     ],
     flerte: [
+      'Melhorou de verdade agora, e você sabe o motivo',
+      'Meu dia ficou bom quando vi seu nome na tela',
+      'Tô bem, mas eu tava com saudade de conversar com você',
       'Meu dia ficou melhor agora, viu 😏 e você, pensando em quem?',
       'Tava corrido, mas sempre sobra tempo pra você. Me conta do seu dia',
       'Foi bem! A melhor parte foi abrir o celular e ver mensagem sua',
@@ -1284,6 +1366,10 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
   },
   'ela-contou': {
     amizade: [
+      'Isso cansa mesmo. Você conseguiu descansar um pouco depois?',
+      'Entendi. E o que ficou pendente pra amanhã?',
+      'Você deu conta de tudo sozinho? Precisa de uma mão?',
+      'Nossa, que dia. E olha que você ainda achou tempo pra conversar',
       'Nossa, que semana! Você conseguiu descansar depois?',
       'Isso cansa mesmo. Precisa de alguma coisa? Eu tô por aqui',
       'Você levou tudo com muita calma, admiro isso',
@@ -1291,6 +1377,9 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
       'Sério? Me conta mais, eu quero entender melhor',
     ],
     flerte: [
+      'Queria estar aí pra melhorar o seu dia',
+      'Você merece um cuidado. Me diz o que te faria bem agora',
+      'Se eu estivesse aí, esse cansaço ia embora rápido',
       'Se eu estivesse aí você não teria esse dia ruim, eu prometo',
       'Você merece um descanso bom e alguém querendo seu bem 😊',
       'Queria estar perto pra te ajudar de verdade',
@@ -1305,6 +1394,9 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
   },
   'ela-convidou': {
     amizade: [
+      'Topo. Só me diz o dia que eu me organizo',
+      'Aceito, com prazer. Escolhe o lugar que eu vou',
+      'Vamos sim, que já faz tempo que a gente não se vê',
       'Topo! Me diz o dia e o horário que eu me organizo',
       'Bora sim, gosto de programa assim sem drama',
       'Aceito, mas quero lugar onde a gente consiga conversar',
@@ -1312,6 +1404,9 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
       'Fechado! Vou ver aqui e te confirmo hoje mesmo',
     ],
     flerte: [
+      'Eu tava esperando esse convite, tô dentro',
+      'Aceito, mas escolhe um lugar tranquilo pra conversar direito',
+      'Com você eu topo até coisa que eu não costumo fazer',
       'Eu tava esperando esse convite 😏 tô dentro',
       'Aceito, mas você me deve uma sobremesa',
       'Com você eu topo até o que eu não gosto 😄',
@@ -1326,6 +1421,9 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
   },
   'ela-fechada': {
     amizade: [
+      'Percebi que você tá quieta. Aconteceu algo?',
+      'Se quiser espaço, eu entendo. Tô aqui quando você quiser falar',
+      'Não vou insistir, mas saiba que pode contar comigo',
       'Eu senti que você tá diferente. Quer falar sobre isso?',
       'Se você precisar de espaço eu entendo. Tô aqui quando quiser',
       'Não vou insistir, mas conta comigo pra qualquer coisa',
@@ -1345,6 +1443,9 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
   },
   'ela-elogiou': {
     amizade: [
+      'Obrigado, você também tem um jeito que agrada',
+      'Fico feliz de ler isso, sério mesmo',
+      'Valeu. E o elogio é recíproco, viu?',
       'Obrigado 🙂 você também tem um jeito que agrada',
       'Fico feliz de ler isso, sério mesmo',
       'Valeu! Vou dormir mais leve hoje por causa disso',
@@ -1352,6 +1453,8 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
       'Você é generoso, e isso é bonito de ver',
     ],
     flerte: [
+      'Vindo de você o elogio vale dobrado',
+      'Agora você me deixou animado, vou ter que retribuir',
       'Vindo de você o elogio vale dobrado 😊',
       'Você fala assim e eu já fico querendo te ver',
       'Agora eu tenho motivo pra sorrir o dia inteiro',
@@ -1366,6 +1469,8 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
   },
   'ela-saudade': {
     amizade: [
+      'Também estava com saudade de conversar assim',
+      'Você faz falta nas conversas daqui, sabia?',
       'Também tô com saudade. Bora marcar algo simples então?',
       'Saudade boa essa. Tô com você na cabeça também',
       'Vem cá, me conta tudo que eu quero ouvir',
@@ -1373,6 +1478,8 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
       'Saudade de conversa é a melhor que existe',
     ],
     flerte: [
+      'Também sinto. E confesso que mais do que devia',
+      'Saudade boa é essa, de quem a gente quer bem pertinho',
       'Saudade também. E se a gente resolvesse isso hoje? 😏',
       'Eu ia dizer que tô bem, mas minha cara diz outra coisa',
       'Tô com saudade do seu jeito e da sua voz',
@@ -1387,6 +1494,10 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
   },
   'ela-neutra': {
     amizade: [
+      'Entendi. E o que você acha disso tudo?',
+      'Isso faz sentido. Continua que eu tô acompanhando',
+      'Pois é. Tem coisa que a gente só entende com o tempo',
+      'Boa. E muda o que na sua rotina?',
       'Boa, entendi. E me conta: apareceu alguma novidade por aí?',
       'Faz sentido. Vou pensar nisso e te falo depois',
       'Tá certo. Por falar nisso, como você tá de ânimo hoje?',
@@ -1394,6 +1505,8 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
       'Certo. Vou puxar um assunto melhor então kk',
     ],
     flerte: [
+      'Gostei. Continua falando que eu gosto de te ouvir',
+      'Você fala com uma calma que me agrada',
       'Só entendi que eu preciso de mais tempo com você 😏',
       'Combinado. Mas o próximo assunto eu escolho',
       'Gostei. Continua falando que eu gosto de ouvir',
@@ -1407,6 +1520,9 @@ export const MAIS_SUGESTOES: Record<string, BancoVoz> = {
   },
   'ela-familia': {
     amizade: [
+      'Manda um abraço pra ela de minha parte',
+      'Que bom que a família está bem. Isso é o que importa',
+      'Eu pergunto porque me importo com quem você gosta',
       'Fico feliz de saber! Manda um abraço pra eles de mim',
       'Que bom que eles estão bem. Família é base, né',
       'Conta mais dessa história, eu gosto de coisa de família',
@@ -1489,6 +1605,52 @@ export function nomeAparece(texto: string, nome: string): boolean {
  * Nomes citados na mensagem, na ordem em que aparecem no texto.
  * Serve para ela responder já falando da pessoa certa ("a Ana tá ótima").
  */
+/** Palavras que começam frase com maiúscula e não são nome de ninguém. */
+const PALAVRAS_COMUNS = new Set(['voce', 'vc', 'hoje', 'amanha', 'ontem', 'tudo', 'bom', 'boa', 'oi', 'ola', 'opa',
+  'obrigado', 'obrigada', 'deus', 'senhor', 'senhora', 'dona', 'tia', 'tio', 'mae', 'pai', 'filho', 'filha', 'irmao',
+  'irma', 'amor', 'meu', 'minha', 'eu', 'ele', 'ela', 'esse', 'essa', 'este', 'esta', 'aquele', 'aquela', 'agora',
+  'depois', 'quando', 'como', 'porque', 'mas', 'tambem', 'muito', 'nada', 'alguem', 'ninguem', 'parabens', 'feliz',
+  'saudade', 'igreja', 'trabalho', 'escola', 'faculdade', 'sim', 'nao', 'talvez', 'sera', 'nossa', 'jesus', 'cristo',
+  'natal', 'domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'janeiro', 'fevereiro', 'marco',
+  'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'doutor', 'doutora',
+  'professor', 'professora', 'vamos', 'bora', 'entao', 'olha', 'escuta', 'sabe', 'fala', 'sobre', 'para', 'aqui',
+  'ali', 'quem', 'qual', 'onde', 'casa', 'rua', 'cidade', 'bahia', 'brasil', 'salvador']);
+
+/**
+ * Nomes próprios que aparecem no meio da frase e ela ainda não conhece.
+ * Nomos citados por você viram assunto nas próximas conversas.
+ */
+export function nomesEstranhos(texto: string, conhecidos: string[]): string[] {
+  if (!texto) return [];
+  const sabidos = new Set(conhecidos.flatMap(nome => nomesDaPessoa({ nome })).map(normalizarNome));
+  const achados: string[] = [];
+  const padrao = /[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]{2,}/g;
+  let casado: RegExpExecArray | null;
+  while ((casado = padrao.exec(texto))) {
+    const bruto = casado[0];
+    // Nome no comecinho da mensagem costuma ser só a primeira palavra da frase.
+    const antes = texto.slice(0, casado.index).trimEnd();
+    if (!antes) continue;
+    const chave = normalizarNome(bruto);
+    if (sabidos.has(chave) || PALAVRAS_COMUNS.has(chave) || achados.includes(bruto)) continue;
+    achados.push(bruto);
+  }
+  return achados.slice(0, 2);
+}
+
+/** A reação de quem ouviu um nome novo e quer saber quem é. */
+export const PESSOA_NOVA: string[] = [
+  '{pessoa}? Quem é, me conta', '{pessoa} é quem? Fiquei curiosa', 'Esse {pessoa} aparece bastante, hein',
+  'Anotei o nome: {pessoa}. É seu amigo?', '{pessoa}... esse eu não conheço. Me apresenta depois',
+  'Falou de {pessoa} e eu já fiquei atenta',
+];
+
+/** Ela puxa de volta alguém que você citou antes. */
+export const LEMBRETE_PESSOA: string[] = [
+  'E sobre {pessoa}, tem novidade?', 'Você falou de {pessoa} outro dia. Como ficou?',
+  'Pensou mais em {pessoa}?', 'E {pessoa}, apareceu por aí?',
+];
+
 export function nomesNaMensagem<T extends { nome: string; papel?: string }>(texto: string, alvos: T[]): T[] {
   const achados: { alvo: T; posicao: number }[] = [];
   const normalizado = normalizarNome(texto);
@@ -1501,3 +1663,386 @@ export function nomesNaMensagem<T extends { nome: string; papel?: string }>(text
   }
   return achados.sort((a, b) => a.posicao - b.posicao).map(item => item.alvo);
 }
+
+/* ---------------------------------------------------------------------------
+   Registro adulto
+   Gente adulta conversa de outro jeito: assunto concreto, frase inteira, menos
+   risada solta e quase nenhum "own". Este material entra quando a ficha tem
+   maturidade alta (idade e marcadores da ficha decidem) e sai do caminho das
+   fichas mais novas, que continuam com o repertório leve.
+--------------------------------------------------------------------------- */
+
+/** Reações curtas de quem já passou dos vinte e poucos. */
+export const RECEPCOES_MADURA: Record<'positivo' | 'negativo' | 'neutro', string[]> = {
+  positivo: [
+    'Isso me deixou bem', 'Que notícia boa de ler', 'Fico feliz de verdade com isso',
+    'Você tem razão, foi um bom dia', 'Ótimo saber', 'Gostei do que você disse',
+    'Isso aquece o coração, viu', 'Boa, isso me animou', 'Fico contente por você',
+    'Boa notícia, viu', 'Que bom saber disso', 'Fico feliz por você',
+    'Isso me alegra o dia', 'Boa, muito bom', 'Que coisa boa de ler',
+  ],
+  negativo: [
+    'Que chato isso', 'Sinto muito, de verdade', 'Isso pesa, eu sei', 'Vem cá, me conta com calma',
+    'Poxa, que fase', 'Não é fácil mesmo', 'Entendo o que você está sentindo',
+    'Isso cansa qualquer um', 'Vamos por partes, com calma', 'Isso é duro de passar',
+    'Sinto muito por isso', 'Conta comigo, viu', 'Que situação difícil',
+    'Estou aqui se quiser falar', 'Isso me deixa preocupada com você',
+  ],
+  neutro: [
+    'Entendi', 'Faz sentido', 'Pois é', 'Interessante isso', 'Concordo em parte',
+    'É, dá o que pensar', 'Entendi o ponto', 'Certo, entendi',
+    'Certo, acompanhei', 'Faz sentido, viu', 'Entendi bem', 'Pois é, é assim mesmo',
+    'Concordo', 'Entendi, continue', 'Certo, entendi o que você disse',
+  ],
+};
+
+/**
+ * Respostas adultas por intenção: mais conteúdo e menos enfeite. Somam-se às
+ * normais quando a ficha é madura — o resto do motor continua igual.
+ */
+export const MAIS_RESPOSTAS_MADURA: Record<string, BancoVoz> = {
+  saudacao: {
+    amizade: [
+      'Oi! Tudo bem por aqui. O dia foi cheio, mas agora estou mais tranquila. E você, como está de verdade?',
+      'Oi! Que bom te ver. Estava justamente organizando a semana na cabeça. Me conta como foi a sua',
+      'Olá! Acabei de chegar e sentei um pouco. Como foi o seu dia até agora?',
+      'Oi! Ando na correria, mas sempre sobra um tempo para uma boa conversa. Como estão as coisas por aí?',
+    ],
+    flerte: [
+      'Oi, você! Apareceu na melhor hora. Estava pensando em como você está desde ontem',
+      'Oi! Gostei de ver seu nome aqui. Conta: como foi seu dia, sem resumo',
+    ],
+  },
+  despedida: {
+    amizade: [
+      'Vou indo então. Descansa bem, que amanhã a gente continua',
+      'Boa noite! Foi bom conversar. Cuida de você e dorme cedo',
+      'Até mais! Qualquer coisa, me escreve depois',
+    ],
+    flerte: [
+      'Vou indo, mas foi difícil desligar com você falando assim. Boa noite',
+      'Boa noite! Deixa a saudade trabalhar e me procura amanhã',
+    ],
+  },
+  apoio: {
+    amizade: [
+      'Sinto muito, de verdade. Você não precisa resolver tudo hoje: escolhe uma coisa pequena e começa por ela. Quer pensar junto?',
+      'Isso pesa bastante, e você não precisa carregar sozinho. Me conta o que aconteceu de fato, com calma',
+      'Poxa. Respira um pouco antes de responder qualquer coisa. E me diz o que você precisa agora: conversar ou resolver?',
+      'Já passei por algo parecido e sei que a cabeça fica cheia. Estou aqui, sem pressa, e não vou te cobrar nada',
+    ],
+    flerte: [
+      'Vem cá, desafoga comigo. Eu prefiro te ouvir de verdade a te dar resposta pronta',
+      'Sinto muito, meu bem. Fica perto de quem te faz bem hoje, mesmo que seja por mensagem',
+    ],
+  },
+  alegria: {
+    amizade: [
+      'Que boa notícia. Você trabalhou por isso e merece comemorar, mesmo que seja com um café e um suspiro',
+      'Fico muito feliz por você. Conta como foi o momento em que você percebeu que ia dar certo',
+      'Isso é resultado, não sorte. Aproveita o gostinho e me conta o que vem depois',
+    ],
+    flerte: [
+      'Fico feliz por você, e confesso que gostaria de estar aí para comemorar junto',
+      'Que notícia boa! Isso pede um jantar ou, no mínimo, uma boa conversa à noite',
+    ],
+  },
+  agradecimento: {
+    amizade: [
+      'Imagina, foi um prazer. Se precisar de novo, é só chamar',
+      'Não precisa agradecer. Gosto de saber que ajudei de verdade',
+      'Fico contente em ajudar. E olha que eu não falo isso por educação',
+    ],
+  },
+  pergunta_pessoal: {
+    amizade: [
+      'Deixa eu pensar com honestidade: gosto de conversa boa, café bem passado e sábado sem pressa. Se você me perguntar o que me move, é aprender algo novo de vez em quando',
+      'Gosto de coisas simples e bem feitas: comida em casa, música no fim do dia e gente que fala a verdade. E você, me conta o que te faz bem',
+      'Sinceramente? Hoje eu valorizo mais descanso e boas companhias do que novidade. Já fui mais afoita. E você, se conhece bem?',
+    ],
+    flerte: [
+      'Vou responder com sinceridade: gosto de conversa que rende, de gesto pensado e de quem sabe ouvir. O resto a gente descobre',
+      'Prefiro dizer assim: gosto de química que não precisa ser anunciada. E de um fim de tarde bem acompanhado',
+    ],
+  },
+  pedido_historia: {
+    amizade: [
+      'Vou contar uma: semana passada eu me perdi no mercado e fiquei vinte minutos procurando o carro. Pode rir',
+      'Hoje eu parei no meio da tarde, sentei na varanda e não fiz nada. Foi a melhor decisão do dia',
+      'Achei uma foto antiga da minha mãe numa gaveta e fiquei olhando, sem pressa nenhuma',
+    ],
+    flerte: [
+      'Vou te contar: acordei pensando em você e fiquei com raiva de não estar aí',
+      'Uma coisa que eu nunca contei: eu guardo as conversas que me fazem bem. Essa está indo para a lista',
+    ],
+  },
+  reclamacao_sem_dormir: {
+    amizade: [
+      'Isso é ruim demais. Se a cabeça não para, levanta, bebe água e anota o que está te apertando no papel. Ajuda de verdade',
+      'Noite ruim é assim: o corpo cansa e a cabeça acelera. Tenta deitar com o celular longe por vinte minutos',
+      'Você dormiu mal por causa de problema ou foi a cabeça solta? Me conta, às vezes falar já alivia',
+    ],
+    flerte: [
+      'Queria estar aí para te fazer companhia até o sono chegar. Mas fica meu recado: deita e pensa em coisa boa',
+    ],
+  },
+  gratidao_recebida: {
+    amizade: [
+      'Não precisa agradecer, de verdade. Eu gosto de conversar com você, isso já basta',
+      'Imagina! Se a conversa ajudou em alguma coisa, já valeu o dia',
+      'Nada disso, foi um prazer. E fica combinado: quando quiser falar, eu estou por aqui',
+    ],
+    flerte: [
+      'Agradece não, que eu fico querendo mais. E olha que a melhor parte da conversa foi você',
+    ],
+  },
+  pergunta_rotina: {
+    amizade: [
+      'Agora estou em casa, resolvendo coisa de casa e deixando a cabeça sossegar. E o seu dia, rendeu?',
+      'Nessa hora eu costumo parar. Terminei o que precisava, agora só descanso e converso. Como está a sua noite?',
+      'Acabei de sair do banho e sentei com um chá. Conta o que você está fazendo da vida hoje',
+    ],
+    flerte: [
+      'Estou em casa, tranquila, com tempo de sobra para uma conversa boa. Se você estivesse aqui, o programa era melhor',
+      'Nada planejado para hoje, o que é perigoso quando você aparece para conversar',
+    ],
+  },
+  pergunta_fato: {
+    amizade: [
+      'Boa pergunta. Não tenho resposta decorada, mas posso pensar com você: o que você já tentou?',
+      'Depende do contexto, e isso muda o resultado. Me conta a situação inteira que eu respondo com mais cuidado',
+      'Vou ser honesta: nunca parei para pensar assim. Se você me der um minuto, eu penso direito',
+    ],
+  },
+  mensagem_enviada: {
+    amizade: [
+      'Vi sim, abri quando deu. Ainda vou responder com calma, mas já adianto que gostei',
+      'Chegou aqui e eu li. Tive um dia cheio, por isso a demora. Obrigada por lembrar de mim',
+      'Vi! Estava no meio de uma reunião, mas já guardei para comentar direito',
+    ],
+    flerte: [
+      'Vi, reli e fiquei pensando em você mais tempo do que devia',
+      'Eu abro tudo que vem de você. Inclusive na hora errada',
+    ],
+  },
+  cotidiano_trabalho: {
+    amizade: [
+      'Dia de trabalho é isso: reunião atrás de reunião e a lista que não acaba. Você conseguiu fazer o principal?',
+      'Entendo bem. Eu terminei o que era urgente e deixei o resto para amanhã, senão vira noite. E você, consegue desligar?',
+      'Serviço pesado cobra um preço no fim do dia. Procure descansar de verdade, não só trocar de tela',
+    ],
+  },
+  vida_adulta: {
+    amizade: [
+      'A parte adulta da vida é essa: contas no lugar, casa em ordem e um resto de cansaço. Você está conseguindo cuidar de você no meio disso?',
+      'Depois de um dia desses eu quero silêncio e um banho demorado. E você, o que te recarrega?',
+      'Eu aprendi a deixar uma coisa para amanhã sem culpa. Ainda estou treinando, mas rende',
+    ],
+  },
+  igreja: {
+    amizade: [
+      'Foi bom, como sempre. Fico diferente depois de uma reunião que me faz pensar na semana',
+      'Deu tudo certo, e ainda sobraram conversas boas no fim. Você vai domingo?',
+      'Hoje eu saí de lá com aquela sensação de dever cumprido. Tem coisa que só a fé explica',
+    ],
+  },
+  conselho: {
+    amizade: [
+      'Vou te dar minha opinião, mas quem decide é você. Eu olharia o que você não quer perder e a partir disso escolheria',
+      'Se fosse comigo, eu esperaria um dia antes de responder. Decisão com pressa costuma cobrar depois',
+      'Eu faria o mais simples: conversaria aberto com quem está envolvido e diria o que espero. Você consegue fazer isso?',
+    ],
+  },
+  saudade: {
+    amizade: [
+      'Também tenho pensado em você. A vida corre, mas as pessoas boas a gente não esquece',
+      'Sinto falta do nosso papo, e disso eu não vou fingir o contrário. Como você está de verdade?',
+    ],
+    flerte: [
+      'Também senti. E vou ser sincera: pensar em você está virando hábito',
+      'Saudade é pouco para o que eu ando sentindo. Você aparece na melhor hora',
+    ],
+  },
+  convite: {
+    amizade: [
+      'Aceito, com prazer. Me diga o dia e o lugar que eu me organizo',
+      'Gostei do convite. Essa semana é corrida, mas sábado eu consigo. Combinamos?',
+      'Topo. Só me confirma o dia que eu arrumo a agenda',
+      'Pode contar comigo. Escolhe o lugar e me avisa',
+      'Boa ideia. Sábado à tarde fica bom pra mim, e pra você?',
+      'Gostei. Vamos marcar com calma, sem atropelo',
+    ],
+    flerte: [
+      'Aceito. E escolho lugar com pouca gente, para a gente conversar de verdade',
+      'Vamos marcar. Só vou te avisar: eu sou de conversa longa',
+    ],
+  },
+  tedio: {
+    amizade: [
+      'Também estou num dia morno. Sinceramente, um livro ou uma conversa boa resolve isso melhor que tela',
+      'Nada de interessante por aqui também. Aproveita e faz nada com propósito, faz bem',
+    ],
+  },
+  desconhecido: {
+    amizade: [
+      'Acho que entendi. Me explica de outro jeito pra eu não responder errado',
+      'Interessante. E como você chegou a isso?',
+      'Faz sentido para mim. Me diga o resto quando puder',
+    ],
+  },
+  piada: {
+    amizade: [
+      'rs essa foi boa. Você tem talento para contar história',
+      'Boa, eu ri aqui. Mas confessa que foi ensaiada',
+    ],
+  },
+  elogio: {
+    amizade: [
+      'Obrigada, isso é bom de ouvir. E vale dizer: você também tem presença, sabia?',
+      'Obrigada de verdade. Elogio dito com calma vale mais do que muitos exageros',
+    ],
+    flerte: [
+      'Obrigada. Vindo de você, eu levo a sério e guardo o resto do dia',
+      'Você fala isso com uma calma que me desarma. Anotado',
+    ],
+  },
+  pergunta_familiar: {
+    amizade: [
+      '{familiar} está bem, obrigada por perguntar. Ela vive ocupada e ainda acha tempo para todos',
+      'Está tudo certo com {familiar}. Obrigada por lembrar, isso me deixa bem com você',
+      '{familiar} anda com a rotina cheia, mas está bem. E a sua família, como vai?',
+    ],
+  },
+  resposta_curta: {
+    amizade: [
+      'Tudo bem, sem pressa. Quando você quiser falar mais, eu estou por aqui',
+      'Entendi. Se quiser, me conta como foi de verdade — resposta curta às vezes esconde um dia longo',
+    ],
+  },
+};
+
+/** Perguntas de gente adulta: assunto concreto, sem rodeio. */
+export const MAIS_PERGUNTAS_MADURA: Record<string, string[]> = {
+  dia: [
+    'E o seu dia, foi como você esperava?',
+    'Você conseguiu descansar ou foi dia inteiro de compromisso?',
+    'O que ficou pendente para amanhã?',
+    'Você cuidou de você hoje ou só dos outros?',
+  ],
+  trabalho: [
+    'Como está o trabalho nessa fase?',
+    'Você está conseguindo desligar no fim do dia?',
+    'Aquilo que você comentou do serviço, como terminou?',
+    'Você anda satisfeito com o rumo profissional?',
+  ],
+  familia: [
+    'Como estão as coisas na sua casa?',
+    'Você tem conseguido ver a sua família com calma?',
+    'Como está a saúde dos seus pais?',
+    'Alguém da família passa bem por aí?',
+  ],
+  casa: [
+    'Como está a rotina da casa essa semana?',
+    'Você deu conta do serviço que estava pendente?',
+    'Como você organiza a semana para não estourar?',
+    'Sobrou tempo para você nesse meio todo?',
+  ],
+  saude: [
+    'E a saúde, como está? Pergunto de verdade',
+    'Você tem dormido bem? Isso muda tudo',
+    'Fez algum exame de rotina esse ano?',
+    'Está conseguindo caminhar ou fazer algo por você?',
+  ],
+  dinheiro: [
+    'E as contas, estão em ordem esse mês?',
+    'Você conseguiu guardar alguma coisa ou o mês foi dos gastos?',
+    'Como você está organizando o financeiro?',
+  ],
+  cansaco: [
+    'Você está dormindo bem ou acordando cansado?',
+    'Tem descansado de verdade ou só no fim de semana?',
+    'O que te cansa mais nessa fase?',
+  ],
+  descanso: [
+    'Você tem reservado um tempo só para você?',
+    'O que você faz quando quer descansar de verdade?',
+    'Conseguiu parar no fim de semana?',
+  ],
+  futuro: [
+    'Você pensa muito no que vem depois?',
+    'O que você quer resolver nos próximos meses?',
+    'Tem algum plano que você está adiando?',
+  ],
+  igreja: [
+    'Você conseguiu ir essa semana?',
+    'Como está o seu chamado na ala?',
+    'Você sente que a fé tem sustentado você?',
+  ],
+  fe: [
+    'Você tem reservado tempo para o que te faz bem por dentro?',
+    'A parte espiritual anda bem cuidada?',
+  ],
+  comida: [
+    'Você comeu alguma coisa boa hoje ou foi café e correria?',
+    'Você cozinha em casa ou anda comendo fora?',
+  ],
+  viagem: [
+    'Você precisa de uma viagem para descansar?',
+    'Tem algum lugar que você quer conhecer esse ano?',
+  ],
+  casa_adulta: [
+    'Como você está dando conta da casa e das contas ao mesmo tempo?',
+    'Você consegue delegar alguma coisa ou faz tudo sozinho?',
+  ],
+  amor: [
+    'Como você está lidando com essa parte da vida?',
+    'Você sente que está sendo cuidado como deveria?',
+    'O que você espera de alguém hoje em dia?',
+  ],
+  filhos: [
+    'Como estão as crianças com a rotina?',
+    'Você tem conseguido tempo com eles sem a correria atrapalhar?',
+  ],
+  estudo: [
+    'Você está conseguindo manter a rotina de estudo?',
+    'Essa fase de prova está pesada?',
+  ],
+  musica: [
+    'Qual música tem acompanhado essa fase?',
+    'Você tem parado para ouvir música ou só barulho de fundo?',
+  ],
+  clima: [
+    'Esse tempo por aí está como?',
+    'Você é do calor ou precisa de frio para ficar bem?',
+  ],
+  pet: [
+    'Como está o seu bichinho?',
+    'Quem faz companhia para você em casa?',
+  ],
+  treino: [
+    'Você tem mantido alguma atividade física?',
+    'Como anda o corpo nessa fase?',
+  ],
+  idoso: [
+    'Como estão os mais velhos da família?',
+    'Quem cuida de quem cuida de todos por aí?',
+  ],
+  saudade: [
+    'Do que você anda com saudade ultimamente?',
+    'Sente falta de alguma fase sua?',
+  ],
+  alegria: [
+    'O que melhorou na sua vida nos últimos meses?',
+    'Do que você está contente hoje, sem falsa modéstia?',
+  ],
+};
+
+/**
+ * Enfeite de conversa molecagem: quando a ficha é madura, essas linhas saem do
+ * sorteio (o banco geral continua servindo para as fichas mais novas).
+ */
+export const INFANTIL: RegExp[] = [
+  /\bown\b/i, /kkkk+/i, /sksk/i, /\bmó\b/i, /\bsla\b/i, /tipo assim/i, /\bmds\b/i, /\baff\b/i,
+  /\bfofo|fofa\b/i, /\bboba\b/i, /\bbobo\b/i, /\bmolecagem\b/i, /\bshii\b/i, /\bkk\b/i,
+  /xixi/i, /papo raso/i, /\bnham\b/i, /\btendi\b/i, /\bown\b/i, /🥺/, /😜/, /🙈/, /🥳/, /💕/, /😍/, /😘/,
+];

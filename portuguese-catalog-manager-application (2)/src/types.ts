@@ -326,6 +326,8 @@ export interface ChatState {
   recentes: string[];
   /** Modelos de resposta já usados (ela não repete a mesma frase duas vezes seguidas). */
   usados: string[];
+  /** Nomes de pessoas que você mencionou e ela passou a conhecer. */
+  pessoas?: string[];
   ultimaMensagem: string;
   visitas: number;
   ofensas: number;

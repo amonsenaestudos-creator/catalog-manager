@@ -42,6 +42,8 @@ export interface PersonaTraits {
   timidez: number;
   /** Velocidade de resposta (1 = responde na hora, 0 = demora). */
   agilidade: number;
+  /** Maturidade da conversa: gente adulta fala de assunto adulto, sem encher de kkk. */
+  maturidade: number;
 }
 
 export interface Interesse {
@@ -69,6 +71,8 @@ export interface SpeechProfile {
   informalidade: number;
   /** Abreviações que a persona usa de verdade: vc, pq, mds, bjs... */
   abreviacoes: string[];
+  /** Quanto ela conversa como gente adulta (0 = molecagem, 1 = papo de gente grande). */
+  maturidade: number;
 }
 
 /**
@@ -294,11 +298,18 @@ export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Pe
   const traits: PersonaTraits = {
     calor: 0.5, ousadia: 0.42, brincadeira: 0.45, reserva: 0.42, verbosidade: 0.5, emojis: 0.5,
     girias: 0.45, curiosidade: 0.5, ciumenta: 0.3, romantica: 0.45, timidez: 0.32, agilidade: 0.6,
+    maturidade: 0.5,
   };
   // A idade muda o ritmo e o vocabulário: mais jovem escreve mais rápido e mais solto.
-  if (faixa === 'menor' || faixa === 'jovem') { traits.girias += 0.2; traits.agilidade += 0.12; traits.verbosidade += 0.08; }
+  if (faixa === 'menor') { traits.girias += 0.2; traits.agilidade += 0.12; traits.verbosidade += 0.08; }
+  if (faixa === 'jovem') { traits.girias += 0.12; traits.agilidade += 0.12; traits.verbosidade += 0.08; }
   if (faixa === 'madura' || faixa === 'senior') { traits.girias -= 0.18; traits.reserva += 0.08; traits.agilidade -= 0.04; traits.calor += 0.05; }
   if (faixa === 'menor') { traits.emojis += 0.18; traits.ousadia -= 0.16; traits.brincadeira += 0.12; traits.timidez += 0.1; }
+  // Maturidade: vem da idade e do que a ficha diz sobre ela. É o que separa um
+  // papo de gente grande de uma conversa de molecagem.
+  const baseMaturidade = faixa === 'menor' ? 0.12 : faixa === 'jovem' ? 0.46 : faixa === 'adulta' ? 0.8 : faixa === 'madura' ? 0.86 : faixa === 'senior' ? 0.9 : 0.55;
+  traits.maturidade = baseMaturidade;
+  if (estilo === 'tia') traits.maturidade += 0.04;
   // Dinâmica de tia: mais carinho, conselho e cuidado; menos ousadia.
   if (estilo === 'tia') { traits.calor += 0.16; traits.reserva += 0.12; traits.ousadia -= 0.3; traits.verbosidade += 0.1; traits.ciumenta -= 0.12; traits.romantica -= 0.1; }
   if (relacao.veCrianca) { traits.ousadia -= 0.25; traits.reserva += 0.15; traits.calor += 0.12; }
@@ -336,26 +347,47 @@ export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Pe
   traits.timidez -= level * 0.05;
   traits.romantica += level * 0.02;
 
+  // Marcadores de personalidade mexem no registro da conversa.
+  const efeitoMaturidade: [RegExp, number][] = [
+    [/direta e centrada|vive na correria|com vida em família|curiosa e estudiosa|reservada em assuntos íntimos/, 0.05],
+    [/tímida/, 0.03],
+    // Ficha brincalhona continua brincalhona, mas não vira adolescente por isso.
+    [/brincalhona|festeira|ousada no jeito de falar|gamer/, -0.05],
+  ];
+  for (const [padrao, efeito] of efeitoMaturidade) {
+    if (marcadores.some(marcador => padrao.test(marcador))) traits.maturidade += efeito;
+  }
   // Valores finais com um leve tempero determinístico (não repete pessoas).
-  const tempero: (keyof PersonaTraits)[] = ['calor', 'ousadia', 'brincadeira', 'reserva', 'verbosidade', 'emojis', 'girias', 'curiosidade', 'ciumenta', 'romantica', 'timidez', 'agilidade'];
-  for (const key of tempero) traits[key] = clamp01(traits[key] + (rand() - 0.5) * 0.12);
+  const tempero: (keyof PersonaTraits)[] = ['calor', 'ousadia', 'brincadeira', 'reserva', 'verbosidade', 'emojis', 'girias', 'curiosidade', 'ciumenta', 'romantica', 'timidez', 'agilidade', 'maturidade'];
+  for (const key of tempero) {
+    // A maturidade quase não oscila no sorteio: quem é adulto não vira moleque num detalhe.
+    traits[key] = clamp01(traits[key] + (rand() - 0.5) * (key === 'maturidade' ? 0.04 : 0.08));
+  }
 
-  const emojis = traits.emojis > 0.72 ? ['😂', '🥰', '😍', '💕', '😅', '✨', '😜', '🙈', '😘', '🤭']
-    : traits.emojis > 0.45 ? ['😊', '😅', '🙂', '💛', '😄', '😏', '🙃', '😉']
-      : ['🙂', '😅', '😉', ''];
+  // Gente adulta não enche a mensagem de carinha: o repertório enxuga e amadurece.
+  const emojis = traits.maturidade >= 0.72
+    ? (traits.emojis > 0.6 ? ['🙂', '😊', '😅', '😌', '🙃', '❤️'] : ['🙂', '😊', ''])
+    : traits.emojis > 0.72 ? (faixa === 'jovem' ? ['😂', '😅', '😊', '💛', '😄', '😏', '🙃', '😉'] : ['😂', '🥰', '😍', '💕', '😅', '✨', '😜', '🙈', '😘', '🤭'])
+      : traits.emojis > 0.45 ? ['😊', '😅', '🙂', '💛', '😄', '😏', '🙃', '😉']
+        : ['🙂', '😅', '😉', ''];
   // Risada escrita é obrigatória nesse tipo de conversa: todo mundo ri por mensagem.
-  const risadas = estilo === 'adolescente' ? ['kkk', 'kkkk', 'kkkkk', 'sksksk', 'hahaha', 'risos']
-    : estilo === 'tia' ? ['kkk', 'rs', 'hahaha', 'risos']
-      : traits.girias > 0.66 ? ['kkkk', 'kkkkk', 'kk', 'hahaha']
-        : traits.girias > 0.4 ? ['kkk', 'haha', 'rs'] : ['haha', 'rs'];
-  const girias = estilo === 'adolescente'
-    ? ['né', 'tipo assim', 'sla', 'mó', 'mn', 'pô', 'vixe', 'oxe', 'nossa', 'sério?', 'caraca', 'aff', 'mds']
+  const risadas = traits.maturidade >= 0.72
+    ? (traits.girias > 0.55 ? ['rs', 'haha', 'kkk', 'hahaha'] : ['rs', 'haha', 'hahaha'])
+    : estilo === 'adolescente' ? (faixa === 'jovem' ? ['kkk', 'kkkk', 'hahaha', 'risos'] : ['kkk', 'kkkk', 'kkkkk', 'sksksk', 'hahaha', 'risos'])
+      : estilo === 'tia' ? ['kkk', 'rs', 'hahaha', 'risos']
+        : traits.girias > 0.66 ? ['kkkk', 'kkkkk', 'kk', 'hahaha']
+          : traits.girias > 0.4 ? ['kkk', 'haha', 'rs'] : ['haha', 'rs'];
+  const girias = traits.maturidade >= 0.72
+    ? ['né', 'pois é', 'imagina', 'nossa', 'sério?', 'sem dúvida', 'olha só', 'complicado', 'valeu']
+    : estilo === 'adolescente'
+      ? ['né', 'tipo assim', 'sla', 'mó', 'mn', 'pô', 'vixe', 'oxe', 'nossa', 'sério?', 'caraca', 'aff', 'mds']
     : estilo === 'tia'
       ? ['né', 'nossa', 'vixe', 'credo', 'meu Deus', 'imagina', 'sério?', 'olha só', 'que coisa']
       : traits.girias > 0.7 ? ['né', 'tipo assim', 'sla', 'mó', 'mano', 'pô', 'vixe', 'oxe', 'nossa', 'sério?', 'caraca']
         : traits.girias > 0.45 ? ['né', 'nossa', 'pô', 'sério?', 'cara', 'juro'] : ['nossa', 'que legal', 'sério?'];
   // Abreviações de quem digita no celular: adolescentes abreviam mais, tias usam as clássicas.
-  const abreviacoes = estilo === 'adolescente' ? ['vc', 'tb', 'pq', 'qdo', 'mds', 'aff', 'sqn', 'pfv', 'dps', 'hj', 'n', 'blz', 'vlw', 'td', 'cmg']
+  const abreviacoes = traits.maturidade >= 0.72 ? ['vc', 'tb', 'pq', 'dps', 'msg']
+    : estilo === 'adolescente' ? ['vc', 'tb', 'pq', 'qdo', 'mds', 'aff', 'sqn', 'pfv', 'dps', 'hj', 'n', 'blz', 'vlw', 'td', 'cmg']
     : estilo === 'tia' ? ['vc', 'tb', 'pq', 'dps', 'blz', 'bjs', 'qdo', 'msg']
       : traits.girias > 0.55 ? ['vc', 'tb', 'pq', 'dps', 'blz', 'hj', 'qdo'] : ['vc', 'tb', 'pq'];
 
@@ -366,14 +398,17 @@ export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Pe
     : estilo === 'tia'
       ? (relacao.ambosAdultos ? ['meu bem', 'querida', 'você', 'gente'] : ['meu bem', 'meu filho', 'querido', 'você'])
       : ['você', 'vamos', traits.calor > 0.6 ? 'meu bem' : 'amiga', traits.romantica > 0.6 ? 'amor' : 'querida'];
+  const madura = traits.maturidade >= 0.72;
   const fala: SpeechProfile = {
     emojis, risadas, girias, abreviacoes,
-    tamanho: Math.round(38 + traits.verbosidade * 105 + traits.girias * 12),
-    bolhas: traits.verbosidade > 0.68 ? [2, 3] : traits.verbosidade > 0.4 ? [1, 2] : [1, 1],
-    porCaractere: traits.agilidade > 0.75 ? 22 : traits.agilidade > 0.5 ? 34 : 52,
-    erro: traits.reserva > 0.7 ? 0.02 : traits.girias > 0.6 ? 0.13 : 0.07,
+    // Quem amadureceu escreve um pouco mais e em menos bolhas: assunto, não fragmento.
+    tamanho: Math.round((38 + traits.verbosidade * 105 + traits.girias * 12) * (madura ? 1.18 : 1)),
+    bolhas: traits.verbosidade > 0.68 ? (madura ? [1, 2] : [2, 3]) : traits.verbosidade > 0.4 ? [1, 2] : [1, 1],
+    porCaractere: (traits.agilidade > 0.75 ? 22 : traits.agilidade > 0.5 ? 34 : 52) * (madura ? 1.12 : 1),
+    erro: (traits.reserva > 0.7 ? 0.02 : traits.girias > 0.6 ? 0.13 : 0.07) * (madura ? 0.45 : 1),
     vocativos,
-    informalidade: clamp01(traits.girias * 0.6 + (traits.reserva < 0.4 ? 0.25 : 0) + (faixa === 'jovem' ? 0.15 : 0) + (estilo === 'adolescente' ? 0.3 : 0) - (estilo === 'tia' ? 0.12 : 0)),
+    maturidade: traits.maturidade,
+    informalidade: clamp01(traits.girias * 0.6 + (traits.reserva < 0.4 ? 0.25 : 0) + (faixa === 'jovem' ? 0.15 : 0) + (estilo === 'adolescente' ? 0.3 : 0) - (estilo === 'tia' ? 0.12 : 0) - traits.maturidade * 0.15),
   };
 
   const primeiro = (person.apelido?.trim() || person.nome.trim().split(/\s+/)[0] || 'você');
@@ -444,6 +479,9 @@ const BORDOES_POR_MARCADOR: Record<string, string[]> = {
   'reservada em assuntos íntimos': ['calma lá', 'devagar', 'cada coisa no seu tempo'],
 };
 
+/** Bordão de molecagem que não combina com ficha adulta. */
+const BORDAO_MOLEQUE = /tô rindo sozinha|sksk|kkk|\bmó\b|\bsla\b|\bmds\b|\baff\b|😜|🙈|🥳|🥺|💕/i;
+
 function montarAssinatura(input: { person: Person; traits: PersonaTraits; estilo: EstiloVoz; fala: SpeechProfile; marcadores: string[] }): Assinatura {
   const { person, traits, estilo, fala, marcadores } = input;
   // Gerador próprio: a marca registrada de cada pessoa não mexe nos sorteios que
@@ -456,10 +494,15 @@ function montarAssinatura(input: { person: Person; traits: PersonaTraits; estilo
     if (!aberturas.includes(escolhida)) aberturas.push(escolhida);
   }
 
-  const gerais = ['juro', 'sério', 'é isso', 'só sei que foi assim', 'deixa eu ver', 'quando você menos espera', 'tô rindo sozinha'];
-  const especificos = marcadores.flatMap(marcador => BORDOES_POR_MARCADOR[marcador] || []);
+  const madura = traits.maturidade >= 0.72;
+  const gerais = madura
+    ? ['juro', 'sério', 'é isso', 'deixa eu ver', 'quando você menos espera', 'vou te falar']
+    : ['juro', 'sério', 'é isso', 'só sei que foi assim', 'deixa eu ver', 'quando você menos espera', 'tô rindo sozinha'];
+  const especificos = marcadores.flatMap(marcador => BORDOES_POR_MARCADOR[marcador] || [])
+    .filter(bordao => !(madura && BORDAO_MOLEQUE.test(bordao)));
   const bordoes: string[] = [];
-  while (bordoes.length < 3) {
+  // Gente grande tem um jeito de falar, não um bordão para cada assunto.
+  while (bordoes.length < (madura ? 2 : 3)) {
     // Dois bordões vêm dos assuntos da ficha, um é genérico do jeito dela falar.
     const fonte = bordoes.length < 2 && especificos.length ? especificos : gerais;
     const escolhido = fonte[Math.floor(rand() * fonte.length)];
@@ -473,8 +516,9 @@ function montarAssinatura(input: { person: Person; traits: PersonaTraits; estilo
   const paleta = fala.emojis.filter(Boolean);
   const emojiMarca = paleta.length ? paleta[Math.floor(rand() * paleta.length)] : '';
   const pontuacao: Assinatura['pontuacao'] = traits.timidez > 0.6 || traits.reserva > 0.68 ? 'seca'
-    : traits.calor > 0.62 && traits.emojis > 0.55 ? 'exclamacao'
-      : rand() < 0.5 ? 'reticencias' : 'exclamacao';
+    : madura ? (rand() < 0.6 ? 'reticencias' : 'exclamacao')
+      : traits.calor > 0.62 && traits.emojis > 0.55 ? 'exclamacao'
+        : rand() < 0.5 ? 'reticencias' : 'exclamacao';
   const ritmo = traits.agilidade > 0.7 ? 'digita rápido' : traits.agilidade < 0.4 ? 'demora pra responder' : 'responde quando dá';
   const tamanho = traits.verbosidade > 0.7 ? 'escreve bastante' : traits.verbosidade < 0.38 ? 'escreve curto' : 'escreve no tamanho normal';
   const descricao = `${ritmo}, ri com "${fala.risadas[0]}"${bordoes[0] ? `, vive dizendo "${bordoes[0]}"` : ''} e ${tamanho}`;

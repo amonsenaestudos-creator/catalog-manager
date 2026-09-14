@@ -117,8 +117,8 @@ describe("jeito de falar", () => {
     expect(detectarIntencao("O que eu faço nesse caso?").id).toBe("conselho");
     expect(detectarIntencao("Você tem medo de alguma coisa?").id).toBe("pergunta_pessoal");
     expect(detectarIntencao("Tô de bobeira aqui, nada pra fazer").id).toBe("tedio");
-    // Cansaço e insônia são acolhimento, não tédio.
-    expect(detectarIntencao("Tô sem sono, não consigo dormir").id).toBe("apoio");
+    // Cansaço é acolhimento; insônia tem banco próprio, também de acolhimento — nunca tédio.
+    expect(detectarIntencao("Tô sem sono, não consigo dormir").id).toBe("reclamacao_sem_dormir");
     expect(detectarIntencao("Tô cansado hoje, foi um dia corrido").id).toBe("apoio");
     expect(detectarIntencao("obrigado por tudo").id).toBe("agradecimento");
     expect(detectarIntencao("fui aprovado no processo").id).toBe("alegria");
@@ -152,8 +152,11 @@ describe("entende o que você escreveu", () => {
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach(semente => {
       const plano = responder("Tô cansado hoje, foi um dia corrido", semente);
       const principal = plano.bolhas.findIndex(bolha => /cansad|descansa|peito|for\u00e7a|respira|dormir|sono/i.test(bolha.texto));
-      const pergunta = plano.bolhas.findIndex(bolha => /\?\s*$/.test(bolha.texto.trim()));
-      if (principal >= 0 && pergunta >= 0) expect(principal).toBeLessThan(pergunta);
+      // A pergunta pode ser a própria resposta ("quer desabafar?"); o que não pode é
+      // vir uma pergunta antes dela, nem duas perguntas empilhadas na mesma resposta.
+      const perguntas = plano.bolhas.map((bolha, indice) => (/\?\s*$/.test(bolha.texto.trim()) ? indice : -1)).filter(indice => indice >= 0);
+      if (principal >= 0) perguntas.forEach(indice => expect(indice, `semente ${semente}`).toBeGreaterThanOrEqual(principal));
+      expect(perguntas.length, `semente ${semente}`).toBeLessThanOrEqual(1);
     });
   });
 });
