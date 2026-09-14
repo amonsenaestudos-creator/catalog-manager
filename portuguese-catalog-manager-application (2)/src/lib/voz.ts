@@ -25,6 +25,24 @@ export type BancoVoz = Partial<Record<FamiliaVoz, string[]>>;
  * decorado.
  */
 export const MAIS_RESPOSTAS: Record<string, BancoVoz> = {
+  pedido_audio: {
+    amizade: [
+      'Áudio não, meu bem. Eu escrevo melhor do que falo',
+      'Prefiro escrever. Na voz eu me embolo toda',
+      'Tô sem coragem de gravar hoje, mas o recado vai por aqui',
+      'Não gosto de ouvir a minha voz, mas com você eu converso o quanto quiser',
+      'Se eu gravar, você vai rir do jeito que eu falo. Melhor eu escrever',
+    ],
+    flerte: [
+      'Só se você prometer guardar só pra você',
+      'Mando sim, mas só depois que você contar uma coisa sua primeiro',
+      'Áudio meu tem que merecer, viu? Me conquista mais um pouco',
+    ],
+    picante: [
+      'Mando sim, mas com a voz daquele jeito que você gosta',
+      'Vou gravar um só pra você, e você não mostra pra ninguém',
+    ],
+  },
   saudacao: {
     amizade: [
       'Oi! Bom te ver por aqui, tava justamente pensando em quem me mandaria mensagem hoje',
@@ -1370,6 +1388,10 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
   },
   'ela-perguntou': {
     amizade: [
+      'Boa pergunta. Vou responder com calma: tem dias que sim, tem dias que não',
+      'Olha, depende do dia. Hoje foi tranquilo, e o seu?',
+      'Te respondo direto: não é fácil, mas eu levo bem',
+      'Vou te contar sem enfeite, do jeito que foi',
       'Tô bem, obrigado por perguntar. E a sua semana, como tá sendo?',
       'Deu tudo certo do jeito que deu. Você teve um dia bom?',
       'Tive um dia comum, mas produtivo. E o seu, o que rendeu?',
@@ -1389,6 +1411,10 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
   },
   'ela-contou': {
     amizade: [
+      'Que dia! Isso rendeu assunto por aqui também',
+      'Gostei de saber. E como você ficou depois disso?',
+      'Nossa, não esperava por essa. Conta como você se sentiu',
+      'Esse tipo de dia cansa, mas também ensina. Você tá bem agora?',
       'Entendi. E como você ficou depois disso tudo?',
       'Faz sentido. Você achou um jeito de lidar com isso?',
       'Que semana, hein. Tá conseguindo descansar um pouco?',
@@ -1408,6 +1434,10 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
   },
   'ela-convidou': {
     amizade: [
+      'Combinado. Me diz o dia que eu me organizo com calma',
+      'Topo. Só preciso ver o horário e te aviso',
+      'Vamos sim, faz tempo que a gente não faz nada disso',
+      'Aceito o convite. Você escolhe o lugar e eu escolho a conversa',
       'Combinado. Me diz o dia que eu me organizo',
       'Eu topo. Só me confirma quando for melhor pra você',
       'Vamos sim. Escolhe o lugar e me avisa',
@@ -1427,6 +1457,10 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
   },
   'ela-fechada': {
     amizade: [
+      'Sem problema, eu respeito quando você precisa de espaço',
+      'Tá certo. Fico por aqui, quando você quiser falar',
+      'Eu entendo. Só não some por muito tempo, tá?',
+      'Tudo bem. Cuida de você primeiro, depois a gente conversa',
       'Sem problema. Fica tranquila, eu espero',
       'Entendi. Às vezes a gente precisa de silêncio mesmo',
       'Tá tudo bem entre a gente. Quando você quiser, eu tô aqui',
@@ -1444,6 +1478,10 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
   },
   'ela-elogiou': {
     amizade: [
+      'Obrigado, isso me pegou. Você também tem um jeito bom',
+      'Fico contente de verdade. Costumo desconfiar desses elogios, mas você é sincero',
+      'Valeu. Eu tento fazer o certo, mesmo quando ninguém vê',
+      'Que bom! Você fez meu dia ficar melhor com isso',
       'Fico contente que você gostou. Sério',
       'Obrigado, viu. Vindo de você eu guardo',
       'Que bom ouvir isso. Você melhorou meu dia também',
@@ -1462,6 +1500,10 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
   },
   'ela-saudade': {
     amizade: [
+      'Também sinto. A gente devia se falar mais, sem precisar de motivo',
+      'Senti o mesmo quando li isso. Você foi sincero',
+      'Fico bem de saber que você lembra de mim',
+      'Saudade boa é essa, que a gente pode dizer em voz alta',
       'Também sinto falta disso. Fala comigo mais vezes',
       'Eu penso em você também, sem drama',
       'Bom saber que eu faço falta. Eu gosto de conversar com você',
@@ -1480,6 +1522,10 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
   },
   'ela-neutra': {
     amizade: [
+      'Entendi. E o que você acha disso?',
+      'Faz sentido. Por aqui foi parecido essa semana',
+      'Ah, entendi. Vou pensar no que você disse',
+      'Tá certo. Me conta o resto quando puder',
       'Entendi. Por falar nisso, o que você anda fazendo de novo?',
       'Faz sentido. E o resto do seu dia, como foi?',
       'Boa. Me conta uma coisa que te animou hoje',
@@ -1499,6 +1545,10 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
   },
   'ela-familia': {
     amizade: [
+      'Manda um abraço pra eles, de verdade',
+      'Família dá trabalho e dá sentido. Você faz bem em cuidar',
+      'Como ela tá de saúde? Fiquei preocupado',
+      'Essas coisas de família mexem comigo também',
       'Família é isso mesmo. Manda um abraço pra eles quando falar',
       'Que bom saber. E como você tá com isso?',
       'Isso me lembra de casa também. Cuida bem deles',
@@ -1524,8 +1574,25 @@ export const MAIS_SUGESTOES_EXTRA: Record<string, BancoVoz> = {
  * pergunta "como foi amanhã").
  */
 export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
+  pedido_audio: {
+    amizade: [
+      'Áudio não, prefiro escrever. Assim eu penso antes de falar',
+      'Fico te devendo o áudio, mas a conversa continua por aqui',
+      'Gravar não é muito a minha praia. Mas pode perguntar o que quiser',
+      'Se for importante eu gravo, mas por mensagem eu me explico melhor',
+      'Deixa eu te responder por escrito, que assim eu não me atrapalho',
+    ],
+    flerte: [
+      'Um áudio meu? Só se for pra você ouvir sozinho',
+      'Gravo, sim. Mas depois você me conta o que achou',
+    ],
+  },
   saudacao: {
     amizade: [
+      'Oi! Cheguei agora e sentei pra conversar com calma. Como você tá?',
+      'Oi, tudo bem por aqui. Você apareceu na melhor hora',
+      'Olá! Tô com o dia mais leve hoje, dá gosto de conversar',
+      'Oi! Hoje acordei disposta, o que é raro. Me conta do seu lado',
       'Oi, que bom te ver por aqui. Como tá o seu dia até agora?',
       'Oi! Chegou na hora em que eu tava fazendo uma pausa. Me conta do seu dia',
       'Oi. Tô num dia calmo, desses que dão vontade de conversar sem pressa',
@@ -1540,6 +1607,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   despedida: {
     amizade: [
+      'Vou nessa, mas foi bom falar com você. Bom descanso',
+      'Preciso ir dormir, amanhã o dia começa cedo. Se cuida',
+      'Vou indo. Depois me conta como terminou esse assunto',
+      'Boa noite. Foi um papo que me fez bem, obrigada',
       'Vai dormir bem, viu. Amanhã a gente continua',
       'Até mais. Descansa que você merece um pouco de sossego',
       'Fica bem. Vou lembrar do nosso papo amanhã',
@@ -1553,6 +1624,9 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   cotidiano_trabalho: {
     amizade: [
+      'Dia de trabalho longo. Cheguei, tirei o sapato e pronto, acabou',
+      'Resolvi o que dava hoje. O resto amanhã cedo, com cabeça nova',
+      'Sabe o que eu aprendi com o tempo? Trabalho não acaba, a gente é que para',
       'Dia de serviço é assim: as horas somem. Você almoçou direito?',
       'Ainda bem que acabou. Chegar em casa e não fazer nada é um luxo',
       'Entendo. Eu também conto as horas quando a semana aperta',
@@ -1567,6 +1641,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   apoio: {
     amizade: [
+      'Fica calma, isso vai passar. Eu tô aqui enquanto você precisar',
+      'Se quiser, escreve tudo que estão pensando. Eu leio sem julgar',
+      'Você já passou por coisas piores e saiu. Isso não vai te derrubar',
+      'Não precisa dar conta de tudo hoje. Um passo já basta',
       'Sinto muito. Se quiser falar, eu escuto sem interromper',
       'Isso pesa, eu sei. Você não precisa resolver tudo hoje',
       'Vem cá. Me conta a parte que mais te incomodou',
@@ -1582,6 +1660,11 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   desconhecido: {
     amizade: [
+      'Não entendi bem, mas quero entender. Explica de outro jeito?',
+      'Eu te acompanho, só me situa melhor no assunto',
+      'Tá, me conta mais. Prefiro perguntar do que fingir que entendi',
+      'Ainda tô tentando entender. Você começa por onde?',
+      'Fala do jeito que vier, eu organizo a ideia com você',
       'Entendi. Me conta mais que eu quero acompanhar seu raciocínio',
       'Faz sentido. E o que você pretende fazer com isso?',
       'Acho que peguei a ideia. Corrige se eu entender errado',
@@ -1595,6 +1678,11 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   pergunta_rotina: {
     amizade: [
+      'Tô num dia comum, resolvendo pequenas coisas. E você, como tá?',
+      'Fazendo o básico, mantendo a casa em pé. Nada demais por aqui',
+      'Agora à noite eu paro tudo e descanso. Foi um dia cheio',
+      'Trabalhei bastante, mas agora estou sentada com calma',
+      'Hoje foi dia de resolver pendência antiga. Enfim, saiu',
       'Tô resolvendo umas coisas de casa e ouvindo música baixinho',
       'Agora tô parada com um café na mão, pensando na vida',
       'Saindo da correria do dia. E você, o que anda fazendo agora?',
@@ -1607,6 +1695,11 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   pergunta_fato: {
     amizade: [
+      'Boa pergunta. Sobre isso eu sei pouco, mas o que sei eu te conto',
+      'Não tenho certeza, e prefiro não inventar. Se eu souber, te aviso',
+      'Pelo que eu sei, é mais ou menos assim. Você ouviu outra versão?',
+      'Essa parte eu não acompanhei. Você pode me atualizar?',
+      'Sinceramente, não sei. E acho melhor a gente não supor',
       'Vou responder com honestidade: depende do dia',
       'Não tenho opinião fechada sobre isso. Você tem?',
       'Já pensei nisso. Hoje eu responderia de um jeito, amanhã talvez de outro',
@@ -1619,6 +1712,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   saudade: {
     amizade: [
+      'Também penso em você, e não é só quando você aparece',
+      'Eu guardo essas conversas comigo, sabia? Fazem diferença',
+      'Sinto falta de conversar assim, sem pressa',
+      'A distância é chata, mas o carinho continua o mesmo',
       'Eu também pensei em você. Gosto de saber que é mútuo',
       'Sinto falta das nossas conversas, isso eu não escondo',
       'Você falando assim me deixa com vontade de continuar o papo',
@@ -1632,6 +1729,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   elogio: {
     amizade: [
+      'Obrigada. Vindo de você isso tem outro peso',
+      'Fico contente, sério. Você também tem um jeito bom de tratar as pessoas',
+      'Que bom ler isso. Eu tento ser assim de verdade',
+      'Você me deixou sem graça, e eu não fico assim à toa',
       'Obrigada, de verdade. Elogio dito com calma vale mais',
       'Isso foi gentil. Você tem um jeito bom de falar',
       'Fico contente. E devolvo: você tem presença, sabia?',
@@ -1644,6 +1745,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   gratidao_recebida: {
     amizade: [
+      'Fico feliz de ter ajudado. Você merece cuidado',
+      'Não foi nada, mas eu entendo o que você quis dizer',
+      'Obrigada você, por confiar em mim com essas coisas',
+      'Sempre que precisar, eu tô aqui. Sem cobrança',
       'Nada disso, foi um prazer. Eu gosto de conversar com você',
       'Imagina. Fico feliz que tenha ajudado de alguma forma',
       'Não precisa agradecer. Isso aqui é troca, não favor',
@@ -1656,6 +1761,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   pedido_historia: {
     amizade: [
+      'Vou te contar uma. Uma vez eu esperei quase uma hora por um ônibus',
+      'Tenho várias, mas a melhor é longa. Vou resumir',
+      'Uma vez eu fiz uma coisa de que eu me arrependo até hoje. Pode rir',
+      'Minha história de hoje é simples: consegui resolver o que ninguém resolvia',
       'Essa semana teve uma: eu me arrumei toda pra sair e o destino foi o supermercado',
       'Vou te contar uma coisa que quase ninguém sabe: eu guardo cadernos antigos numa caixa',
       'Um dia eu saí pra caminhar sem rumo e acabei sentada na praça do bairro, vendo o tempo passar',
@@ -1669,6 +1778,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   reclamacao_sem_dormir: {
     amizade: [
+      'Sem dormir o dia fica borrado. Você já tentou sair da cama e ficar no escuro?',
+      'Quando a cabeça não para, eu escrevo o que me incomoda no papel',
+      'Noite ruim é cruel. Se puder, tira um cochilo hoje à tarde',
+      'Não fica na cama brigando com o sono. Levanta, bebe água, volta depois',
       'Noite ruim derruba o dia seguinte inteiro. O que tá tirando seu sono?',
       'Insônia é cruel. Deixa o celular longe da cama, vale a pena tentar',
       'Se isso está virando rotina, vale conversar com um médico. Sem alarme, mas vale',
@@ -1681,6 +1794,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   mensagem_enviada: {
     amizade: [
+      'Vi, sim. Estou respondendo por partes, porque tem coisa ali que merece calma',
+      'Chegou, e eu reli duas vezes antes de responder',
+      'Já fui ler. Me dá alguns minutos que eu respondo direito',
+      'Vi tudo. Gostei, inclusive do que você não escreveu',
       'Vi sim. Tava no meio de outra coisa e por isso não respondi na hora',
       'Recebi. Desculpa a demora, foi um dia cheio',
       'Já tinha visto. Gostei, inclusive',
@@ -1693,6 +1810,11 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   fofoca: {
     amizade: [
+      'Ela contou isso pra quem? Porque assim muda tudo',
+      'Eu conheço essa história de outro jeito, se você quiser ouvir',
+      'Prefiro não sair repetindo isso, mas com você eu comento',
+      'Tem coisa que eu só falo pessoalmente, viu?',
+      'Fiquei de queixo caído, e olha que eu já vi de tudo',
       'Conta o resto. Eu gosto de saber das coisas por você',
       'Isso tá rendendo, hein. E o que aconteceu depois?',
       'Eu não espalho, mas quero saber o final',
@@ -1700,13 +1822,22 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   piada: {
     amizade: [
-      'rs essa foi boa. Você tem talento pra contar história',
+      'Essa foi boa, mas eu já conhecia a metade do final',
+      'Ri sozinha aqui, e ainda bem que ninguém viu',
+      'Conta outra, gostei do ritmo da sua história',
+      'Piada boa é assim: curta e sem explicação depois',
+      'Essa foi boa. Você tem talento pra contar história',
       'Boa. Eu ri aqui, e precisava rir hoje',
-      'rs eu não esperava essa',
+      'Eu não esperava essa, viu',
     ],
   },
   conselho: {
     amizade: [
+      'Antes de decidir, escreve o que você ganha e o que perde. Ajuda a ver',
+      'Meu conselho é conversar primeiro, sem pressa de decidir',
+      'Ninguém decide bem cansado. Dorme e volta no assunto amanhã',
+      'Pensa no que peso maior: o alívio agora ou a paz depois',
+      'Você já sabe a resposta, só está com medo dela. E tá tudo bem',
       'Olha, o que eu faria é começar pela parte mais simples e deixar o resto pro fim',
       'Não vou te dizer o que fazer. Mas eu não tomaria decisão grande num dia ruim',
       'Meu conselho: escreve o que te pesa. No papel a gente enxerga melhor',
@@ -1715,6 +1846,10 @@ export const MAIS_RESPOSTAS_ADULTA: Record<string, BancoVoz> = {
   },
   convite: {
     amizade: [
+      'Vamos sim. Marca o dia com calma, que eu me organizo',
+      'Gostei do convite. Pode deixar que eu confirmo até amanhã',
+      'Topo, mas escolhe um lugar tranquilo que a gente converse',
+      'Aceito! Faz tempo que eu não saio com quem me faz bem',
       'Aceito, com prazer. Me diz o dia e eu me organizo',
       'Pode contar comigo. Só preciso de um aviso com antecedência',
       'Gostei. Escolhe o lugar e me passa as horas',
@@ -2108,10 +2243,10 @@ export const RECEPCOES_MADURA: Record<'positivo' | 'negativo' | 'neutro', string
     'Estou aqui se quiser falar', 'Isso me deixa preocupada com você',
   ],
   neutro: [
-    'Entendi', 'Faz sentido', 'Pois é', 'Interessante isso', 'Concordo em parte',
+    'Entendi', 'Faz sentido', 'Pois é', 'Interessante isso', 'Anotei isso',
     'É, dá o que pensar', 'Entendi o ponto', 'Certo, entendi',
     'Certo, acompanhei', 'Faz sentido, viu', 'Entendi bem', 'Pois é, é assim mesmo',
-    'Concordo', 'Entendi, continue', 'Certo, entendi o que você disse',
+    'Tá certo', 'Entendi, continue', 'Certo, entendi o que você disse',
   ],
 };
 
@@ -2311,7 +2446,7 @@ export const MAIS_RESPOSTAS_MADURA: Record<string, BancoVoz> = {
   },
   piada: {
     amizade: [
-      'rs essa foi boa. Você tem talento para contar história',
+      'Essa foi boa. Você tem talento para contar história',
       'Boa, eu ri aqui. Mas confessa que foi ensaiada',
     ],
   },
@@ -2464,4 +2599,6 @@ export const INFANTIL: RegExp[] = [
   /\bown\b/i, /k{3,}/i, /sksk/i, /\bmó\b/i, /\bsla\b/i, /tipo assim/i, /\bmds\b/i, /\baff\b/i,
   /\bfofo|fofa\b/i, /\bboba\b/i, /\bbobo\b/i, /\bmolecagem\b/i, /\bshii\b/i, /\bkk\b/i,
   /xixi/i, /papo raso/i, /\bnham\b/i, /\btendi\b/i, /\bown\b/i, /🥺/, /😜/, /🙈/, /🥳/, /💕/, /😍/, /😘/,
+  // Abreviação de quem digita com o polegar apressado não combina com ficha adulta.
+  /\bhj\b/i, /\bdps\b/i, /\bblz\b/i, /\bmn\b/i, /\bpfv\b/i, /\bqdo\b/i,
 ];

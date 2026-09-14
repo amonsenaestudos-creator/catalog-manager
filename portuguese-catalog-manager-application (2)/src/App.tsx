@@ -104,6 +104,24 @@ function Application() {
   const { data, page, authenticated, ready } = ctx;
   const escTimes = useRef<number[]>([]);
   const konamiKeys = useRef<string[]>([]);
+  // No celular não existe Esc: segurar o título da tela aciona o modo pânico.
+  const panicoTimer = useRef<number | null>(null);
+  const panicoOrigem = useRef<{ x: number; y: number } | null>(null);
+  const soltarPanico = () => {
+    if (panicoTimer.current !== null) { window.clearTimeout(panicoTimer.current); panicoTimer.current = null; }
+    panicoOrigem.current = null;
+  };
+  const segurarPanico = (evento: React.PointerEvent) => {
+    if (data.settings.panicEnabled === false) return;
+    soltarPanico();
+    panicoOrigem.current = { x: evento.clientX, y: evento.clientY };
+    panicoTimer.current = window.setTimeout(() => { panicoTimer.current = null; ctx.setPanic(true); }, 700);
+  };
+  const moverPanico = (evento: React.PointerEvent) => {
+    const origem = panicoOrigem.current;
+    if (!origem) return;
+    if (Math.abs(evento.clientX - origem.x) + Math.abs(evento.clientY - origem.y) > 12) soltarPanico();
+  };
   const [confetti, setConfetti] = useState(0);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [quickTools, setQuickTools] = useState(false);
@@ -220,7 +238,10 @@ function Application() {
         <header className="topbar">
           <div className="topbar-start">
             <IconButton label="Abrir menu" className="mobile-menu-trigger" aria-expanded={mobileMenu} aria-controls="mobile-navigation" onClick={() => setMobileMenu(true)}><Menu size={21} /></IconButton>
-            <span className="topbar-mobile-title">{PAGE_NAMES[page] || 'Organizar'}</span>
+            <span className="topbar-mobile-title" role="presentation"
+              onPointerDown={segurarPanico} onPointerUp={soltarPanico} onPointerCancel={soltarPanico}
+              onPointerLeave={soltarPanico} onPointerMove={moverPanico}
+              title={data.settings.panicEnabled === false ? undefined : 'Segure para o modo pânico'}>{PAGE_NAMES[page] || 'Organizar'}</span>
             <span className="topbar-breadcrumb">Meu espaço<ChevronRight size={12} /><b>{PAGE_NAMES[page] || 'Organizar'}</b></span>
             <button className="global-search" onClick={() => ctx.setCommandOpen(true)}><Search size={16} /><span>Buscar pessoas, tags e muito mais...</span><kbd>Ctrl K</kbd></button>
           </div>

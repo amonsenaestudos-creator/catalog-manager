@@ -252,3 +252,56 @@ describe("mensagem sem repetição de convite", () => {
     }
   });
 });
+
+/**
+ * Pedido de áudio era o buraco mais visível: "me manda um áudio" caía no
+ * genérico e voltava com "concordo em parte".
+ */
+describe("pedido de áudio", () => {
+  it("reconhece o pedido e responde sobre isso", () => {
+    const { plano, texto } = responder("me manda um áudio");
+    expect(plano.intencao).toBe("pedido_audio");
+    expect(texto).toMatch(/áudio|audio|voz|escrev|gravar|escrevo|escrever/i);
+    expect(texto).not.toMatch(/concordo/i);
+  });
+
+  it("não confunde conselho com pergunta sobre ela", () => {
+    expect(responder("o que você acha de mim?", { semente: 4 }).plano.intencao).toBe("pergunta_sobre_mim");
+    expect(responder("preciso de um conselho: devo mudar de emprego?", { semente: 4 }).plano.intencao).toBe("conselho");
+    expect(responder("devo aceitar esse convite?", { semente: 4 }).plano.intencao).toBe("conselho");
+  });
+});
+
+/** Dois enfeites na mesma leva entregam resposta montada em pedaços. */
+describe("enfeite repetido", () => {
+  const fichas = [ficha(), ficha({ id: "marina", nome: "Marina", idade: 34, comportamento: "Alegre, falante, cheia de emojis", tags: ["amiga"] })];
+  const interjeicao = /^(eita|credo|juro|nossa|oxe|oxi|ué|ue|gente|meu deus|pronto|poxa|vixe|sério|escuta|olha|sabe|ai|ah)\b/i;
+
+  it("uma interjeição e um \"viu\" por mensagem", () => {
+    for (const person of fichas) {
+      for (let i = 0; i < 16; i++) {
+        const bolhas = responder("e o João, tem novidade?", { semente: i + 1, person }).plano.bolhas.map(b => b.texto);
+        const junto = bolhas.join(" // ");
+        expect(bolhas.filter(texto => interjeicao.test(texto.trim())).length, junto).toBeLessThanOrEqual(1);
+        expect(bolhas.filter(texto => /,?\s*\bviu[.!?]?$/i.test(texto.trim())).length, junto).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it("a mesma frase-chave não aparece em duas bolhas", () => {
+    for (let i = 0; i < 25; i++) {
+      const bolhas = responder("perdi meu emprego hoje e tô muito mal com isso", { semente: i + 1 }).plano.bolhas.map(b => b.texto.toLowerCase());
+      for (const frase of ["sinto muito", "conta comigo", "que situação", "tô aqui"]) {
+        expect(bolhas.filter(texto => texto.includes(frase)).length, `${frase} em ${bolhas.join(" // ")}`).toBeLessThanOrEqual(1);
+      }
+      // e nenhuma bolha fica com sobra de pontuação depois de perder a frase
+      bolhas.forEach(texto => expect(texto, texto).not.toMatch(/[,;]\s*[.!?]/));
+    }
+  });
+
+  it("ficha adulta não escreve abreviação de moleque", () => {
+    const pessoa = ficha({ id: "rita", nome: "Rita", idade: 45, comportamento: "Trabalhadora, direta, mãe de dois", tags: ["amiga"] });
+    const tudo = Array.from({ length: 40 }, (_, i) => responder("trabalhei o dia inteiro e ainda tem casa pra arrumar", { semente: i + 1, person: pessoa }).texto).join(" ");
+    expect(tudo).not.toMatch(/\b(hj|dps|blz|mn|pfv|qdo)\b/i);
+  });
+});

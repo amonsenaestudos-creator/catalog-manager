@@ -220,3 +220,22 @@ describe("gaveta como tela", () => {
     expect(document.documentElement.classList.contains("menu-aberto")).toBe(false);
   }, 20000);
 });
+
+/** A tela de entrada era um grid de duas colunas com 440px fixos. */
+describe("entrada e pânico no celular", () => {
+  it("a tela de entrada cabe em uma coluna", () => {
+    expect(css).toMatch(/\.login-composition\s*\{\s*grid-template-columns:\s*1fr/);
+    expect(css).toMatch(/\.login-story h1\s*\{\s*font-size:\s*(3[0-9]|4[0-6])px/);
+    expect(css).toMatch(/\.login-background\s*\{\s*object-position/);
+    expect(css).toMatch(/@media \(max-width: 900px\)[\s\S]{0,600}\.login-form-wrap/);
+  });
+
+  it("segurar o título aciona o modo pânico", () => {
+    expect(app).toMatch(/segurarPanico/);
+    expect(app).toMatch(/onPointerDown=\{segurarPanico\}/);
+    expect(app).toMatch(/setTimeout\(\(\)\s*=>\s*\{\s*panicoTimer\.current = null;\s*ctx\.setPanic\(true\);\s*\},\s*700\)/);
+    expect(app).toMatch(/panicEnabled === false/);
+    const novidades = readFileSync(resolve(__dirname, "../src/features.ts"), "utf8");
+    expect(novidades).toMatch(/\['Modo pânico no celular'/);
+  });
+});

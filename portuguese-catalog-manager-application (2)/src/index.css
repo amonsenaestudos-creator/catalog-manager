@@ -1599,3 +1599,32 @@ img, video, canvas { max-width: 100%; }
   .topbar { padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right)); }
   .conversations-page.open { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 }
+
+/* ---------- 7. Tela de entrada e leitura em tela pequena ---------- */
+
+@media (max-width: 900px) {
+  /* A tela de entrada era um grid de duas colunas com 440px fixos do lado
+     direito: no celular ela estourava a largura e saía do enquadramento. */
+  .login-composition { grid-template-columns: 1fr; gap: 24px; max-width: 520px; padding: 22px 20px 38px; }
+  .login-story h1 { font-size: 44px; letter-spacing: -2px; margin-bottom: 16px; }
+  .login-story h2 { font-size: 21px; letter-spacing: -.4px; }
+  .login-story > p:not(.eyebrow) { font-size: 12.5px; margin-top: 14px; line-height: 1.75; }
+  .login-local { margin-top: 20px; }
+  .login-form-wrap { padding: 20px 18px 18px; border-radius: 15px; }
+  .login-form-heading h2 { font-size: 20px; }
+  .login-form-heading p { margin: 7px 0 20px; }
+  .login-top { padding: 16px 20px; }
+  .login-top .brand > span:last-child { font-size: 21px; }
+  .login-top > span { display: none; }
+  .login-shade { background: linear-gradient(180deg, #120f16f5 0%, #120f16d6 46%, #150e1cea 100%); }
+  .login-background { object-position: 64% center; }
+  .loading-screen { padding: 26px 20px; gap: 14px; }
+  .loading-screen h1 { font-size: 23px; }
+  .tool-clock-face span { font-size: 26px; }
+}
+
+@media (max-width: 380px) {
+  .login-story h1 { font-size: 37px; letter-spacing: -1.4px; }
+  .login-story h2 { font-size: 18px; }
+  .login-form-wrap { padding: 18px 14px 16px; }
+}

@@ -149,7 +149,7 @@ export type IntentId =
   | 'cotidiano_comida' | 'foto' | 'desconhecido'
   // Novos: família, idade, igreja, vida adulta e as mensagens que chegam do nada.
   | 'pergunta_familiar' | 'pergunta_idade' | 'igreja' | 'vida_adulta' | 'confusao' | 'conselho'
-  | 'pergunta_rotina' | 'mensagem_enviada' | 'pedido_historia' | 'reclamacao_sem_dormir' | 'gratidao_recebida';
+  | 'pergunta_rotina' | 'mensagem_enviada' | 'pedido_historia' | 'reclamacao_sem_dormir' | 'gratidao_recebida' | 'pedido_audio';
 
 interface RegraIntencao { id: IntentId; padrao: RegExp; peso: number; sentimento?: Sentimento }
 
@@ -161,9 +161,10 @@ const REGRAS_INTENCAO: RegraIntencao[] = [
   { id: 'pergunta_idade', padrao: rx("\\b(quantos anos|que idade|sua idade|idade você tem|idade voce tem|mais velha que eu|mais nova que eu|mais novo que você|mais velho que você|diferença de idade|diferenca de idade|já é adulta|ja e adulta)\\b", "i"), peso: 2.5, sentimento: 'neutro' },
   { id: 'igreja', padrao: rx("\\b(igreja|capela|culto|reunião de domingo|reuniao de domingo|ala|bispo|bispa|presidente de estaca|chamado|missão|missao|templo|sacramento|soc soc|sociedade de socorro|moças|mocas|rapazes|semana do jovem|mutirão|mutirao|limpeza da capela|escalei|escala do mês|escala do mes|reunião geral|reuniao geral|primaria|primária|escola dominical|obra missionária|obra missionaria|domingo na igreja|fui no templo)\\b", "i"), peso: 1.7, sentimento: 'neutro' },
   { id: 'vida_adulta', padrao: rx("\\b(vinho|jantar|cama|massagem|hotel|banho|final de semana fora|fim de semana fora|noite sozinha|noite sozinho|depois do trabalho|chegando em casa cansada|checklist|mercado|boleto|aluguel|terapia|remédio|remedio|escola das crianças|escola das criancas|filhos|marido|ex-marido|namorado)\b", "i"), peso: 1.6, sentimento: 'neutro' },
-  { id: 'conselho', padrao: rx("\\b(o que você acha|que que você acha|você me aconselha|voce me aconselha|devo fazer|você acha que eu devo|voce acha que eu devo|me dá um conselho|me da um conselho|tô na dúvida|to na duvida|preciso de opinião|preciso de opiniao|o que eu faço|o que eu faco|me dá uma ideia|me da uma ideia|não sei o que fazer|nao sei o que fazer|me ajuda a decidir)\\b", "i"), peso: 2.0, sentimento: 'neutro' },
+  { id: 'conselho', padrao: rx("\\b(o que você acha disso|que que você acha disso|você me aconselha|voce me aconselha|devo fazer|devo mudar|devo aceitar|devo continuar|devo terminar|devo sair|vale a pena|você acha que eu devo|voce acha que eu devo|me dá um conselho|me da um conselho|tô na dúvida|to na duvida|preciso de opinião|preciso de opiniao|o que eu faço|o que eu faco|me dá uma ideia|me da uma ideia|não sei o que fazer|nao sei o que fazer|me ajuda a decidir)\\b", "i"), peso: 2.0, sentimento: 'neutro' },
   { id: 'foto', padrao: rx("^(\\[foto\\]|mandei uma foto|foto enviada|segue a foto|olha a foto)\\b", "i"), peso: 2.6, sentimento: 'positivo' },
   { id: 'pedido_foto', padrao: rx("\\b(manda|envia|me manda|quero)\\s+(uma\\s+)?(foto|selfie|nudes?|pic|imagem)|foto\\s+(sem roupa|pelada|nua)|nudes?\\b", "i"), peso: 3, sentimento: 'neutro' },
+  { id: 'pedido_audio', padrao: rx("\\b(me manda um áudio|me manda um audio|manda um áudio|manda um audio|manda áudio|manda audio|quero um áudio|quero um audio|quero ouvir sua voz|manda sua voz|manda a sua voz|grava um áudio|grava um audio|me manda audio|manda um voic|vozinha sua)\\b", "i"), peso: 2.2, sentimento: 'neutro' },
   { id: 'flerte_forte', padrao: rx("\\b(transar|sexo|trepar|nua|pelada|tesao|tesão|safadeza|na cama|cama|beijo de lingua|pegação|pegar você|te pegar|gozar|sentar|gemer|morder)\\b", "i"), peso: 3 },
   { id: 'elogio_corpo', padrao: rx("\\b(gostosa|gostoso|bundinha|bunda|peitos?|seios|coxas|sorriso safado|corpo lindo|sarada|gostei do seu corpo|essa boca)\\b", "i"), peso: 2.4, sentimento: 'positivo' },
   { id: 'cantada', padrao: rx("\\b(tá solteira|ta solteira|solteira\\?|me dá uma chance|sai comigo|você é um perigo|queria te beijar|posso te beijar|sonhei com você|sonhei contigo|apaixonad)", "i"), peso: 2.2, sentimento: 'positivo' },
@@ -502,6 +503,21 @@ const RESPOSTAS: Record<IntentId, Banco> = {
     ],
   },
 
+  pedido_audio: {
+    [A]: [
+      'Áudio não, meu bem. Eu escrevo melhor do que falo',
+      'Prefiro escrever. Na voz eu me embolo toda',
+      'Não gosto de gravar a minha voz, mas por aqui eu falo o quanto você quiser',
+    ],
+    [F]: [
+      'Só se você prometer guardar só pra você',
+      'Mando sim, mas depois você me conta o que achou da minha voz',
+    ],
+    [P]: [
+      'Mando sim, com a voz daquele jeito que você gosta',
+      'Vou gravar um só pra você, e você não mostra pra ninguém',
+    ],
+  },
   mensagem_enviada: {
     [A]: [
       'Vi sim! Abri correndo quando chegou, pode mandar sempre 😄',
@@ -791,7 +807,7 @@ const DESVIOS: string[] = [
   'Calma lá 😅 a gente ainda tá no começo, vamos com calma',
   'Uau 🫣 você é rápido. Eu gosto de conversa antes de tudo',
   'Sei não, hein... vamos devagar, eu preciso conhecer você melhor 😊',
-  'Você tá pulando etapa comigo 😏 deixa a coisa acontecer natural',
+  'Você tá pulando etapa comigo, deixa a coisa acontecer natural',
   'Não é assim, meu bem. Eu tenho meu tempo e ele é curto pra quem tem pressa 😌',
 ];
 const DESVIOS_AMIZADE: string[] = [
@@ -1360,6 +1376,8 @@ function abrirNatural(texto: string, rand: () => number, persona?: Persona) {
     return chave.length > 1 && inicio.startsWith(chave);
   });
   if (jaAbriu(MANEIRISMOS) || jaAbriu(minhas)) return texto;
+  // "Confesso que vamos!" não existe: convite e resposta pronta já abrem sozinhos.
+  if (jaAbriu(['vamos', 'bora', 'topo', 'aceito', 'combinado', 'fechado', 'tá bom', 'ta bom', 'pode deixar', 'claro'])) return texto;
   // "Escuta, oi!" nao existe: saudacao e interjeicao ja abrem a frase.
   if (/^(oi|ola|olá|bom dia|boa tarde|boa noite|tudo bem|e a[ií]|ué|ue|nossa|ah|ahá|eita|minha nossa|oxe|oxi|credo|pronto|gente|meu deus|ainda bem|rapaz|virgem)\b/i.test(texto.trim())) return texto;
   // Metade das vezes ela abre do jeito dela, metade do jeito geral do zap.
@@ -1806,6 +1824,13 @@ export function planReply(input: ChatInput): ChatPlan {
   // idade), até o "😳" sai de cena.
   const criancaLimitada = romanceBloqueado && (relacao.veCrianca || relacao.euMenor);
   const chanceReacao = 0.34 + persona.traits.verbosidade * 0.3 + (sentimento !== 'neutro' ? 0.1 : 0);
+/** Reação de elogio: agradecer sem parecer que o elogio foi para outra pessoa. */
+const RECEPCOES_ELOGIO: string[] = [
+  'Obrigada, viu', 'Que bom ouvir isso', 'Você me deixou sem graça', 'Isso é bom de ouvir, sério',
+  'Fico contente que você pense assim', 'Valeu, de verdade', 'Olha, obrigada. Eu não esperava',
+  'Que carinho, obrigada',
+];
+
 /** Reação de pergunta: ela mostra que entendeu o pedido antes de responder. */
 const RECEPCOES_QUESTAO: string[] = [
   'Boa pergunta', 'Deixa eu pensar', 'Hmm, deixa eu ver', 'Olha, vou te responder direito',
@@ -1832,14 +1857,18 @@ const RECEPCOES_QUESTAO: string[] = [
       const base = ehMadura(persona) ? RECEPCOES_MADURA[sentimento] : RECEPCOES[sentimento];
       const brutas = intencao === 'pedido_historia'
         ? RECEPCOES_HISTORIA
-        : soPergunta
-          ? [...RECEPCOES_QUESTAO, ...(sentimento === 'neutro' ? base : [])]
-          : [...base, ...filtrarInfantil(MAIS_RECEPCOES[sentimento], persona)];
+        : (intencao === 'elogio' || intencao === 'elogio_corpo' || intencao === 'cantada')
+          ? [...RECEPCOES_ELOGIO, ...(sentimento === 'positivo' ? ['Que bom que você acha isso'] : [])]
+          : soPergunta
+            ? [...RECEPCOES_QUESTAO, ...(sentimento === 'neutro' ? base : [])]
+            : [...base, ...filtrarInfantil(MAIS_RECEPCOES[sentimento], persona)];
       // Recepção fora de contexto ("Combinado" depois de um desabafo) entrega resposta automática.
       const cabem = brutas.filter(reacao => recepcaoVale(reacao, intencao, pessoa));
       const reacoes = cabem.length ? cabem : brutas;
       // Bordão é brincadeira: assunto pesado não recebe bordão na frente da resposta.
-      const cabeBordao = sentimento !== 'negativo' && !soPergunta && bordoes.length > 0 && rand() < 0.3;
+      // Bordão de molecagem só entra em quem ainda fala assim: adulto não
+      // responde um elogio com "ai, que preguiça boa".
+      const cabeBordao = !ehMadura(persona) && sentimento !== 'negativo' && !soPergunta && bordoes.length > 0 && rand() < 0.3;
       bolhas.push(preencherEscolhido(cabeBordao ? bordoes : reacoes, rand));
     }
   }
@@ -1975,6 +2004,41 @@ const RECEPCOES_QUESTAO: string[] = [
   if (persona.traits.verbosidade > 0.68 && rand() < 0.22) {
     bolhas.push(preencherEscolhido(SOMBRAS[familia], rand));
   }
+
+  // 4c. Enfeite repetido entrega resposta montada em pedaços: uma interjeição por
+  // mensagem, um "viu" no fim e nenhuma frase-chave duas vezes na mesma leva.
+  const INTERJEICAO = /^(eita|credo|juro|nossa|nossa senhora|oxe|oxi|ué|ue|gente|meu deus|pronto|poxa|vixe|sério|serio|escuta|olha|sabe|ai|ah)\b[,!.\s]*/i;
+  const FRASES_CHAVE = /(sinto muito|fico triste|que situa[çc][ãa]o|conta comigo|t[ôo] aqui|estou aqui|vem c[áa]|isso pesa|n[ãa]o [ée] f[áa]cil|eu entendo|t[áa] certo|combinado)/i;
+  const enxutas: string[] = [];
+  let jaTemInterjeicao = false;
+  let jaTemViu = false;
+  bolhas.forEach((texto, indice) => {
+    let saida = texto;
+    if (INTERJEICAO.test(saida.trim())) {
+      if (jaTemInterjeicao) {
+        const limpo = saida.trim().replace(INTERJEICAO, '');
+        saida = limpo ? limpo.charAt(0).toUpperCase() + limpo.slice(1) : saida;
+      } else jaTemInterjeicao = true;
+    }
+    if (/,?\s*\bviu[.!?]?$/i.test(saida.trim())) {
+      if (jaTemViu) saida = saida.trim().replace(/,?\s*\bviu[.!?]?$/i, '').replace(/\s+([.!?])/g, '$1');
+      else jaTemViu = true;
+    }
+    const anteriores = bolhas.slice(0, indice).map(bolha => normalizeText(bolha)).join(' | ');
+    const encontro = normalizeText(saida).match(new RegExp(FRASES_CHAVE.source, 'i'));
+    if (encontro && anteriores.includes(normalizeText(encontro[0]))) {
+      const semRepetida = saida
+        .replace(new RegExp(FRASES_CHAVE.source, 'i'), '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\s+([,.!?])/g, '$1')
+        .replace(/([,;:])\s*([.!?])/g, '$2')
+        .replace(/^[\s,;:.]+/, '')
+        .trim();
+      if (semRepetida) saida = semRepetida.charAt(0).toUpperCase() + semRepetida.slice(1);
+    }
+    enxutas.push(saida);
+  });
+  bolhas.splice(0, bolhas.length, ...enxutas);
   const finais = bolhas.filter(Boolean).slice(0, persona.fala.bolhas[1] + (desviado ? 1 : 0));
   // Fecho natural: só quando o papo flui e ela não está marcando limite.
   if (!desviado && finais.length > 1 && rand() < 0.1) {
@@ -2143,10 +2207,15 @@ export function sugerirRespostas(input: { person: Person; persona?: Persona; sta
   // Ficha adulta não recebe sugestão de molecagem, e a ordem muda a cada troca.
   const liberados = repertorioAdulto(persona) ? candidatos.filter(item => !INFANTIL.some(padrao => padrao.test(item.texto))) : candidatos;
   const pool = [...(liberados.length ? liberados : candidatos)].sort(() => rand() - 0.5);
+  // O giro sai do tamanho do histórico: trocar de mensagem não devolve as mesmas
+  // sugestões de novo.
+  const giro = (input.state.recentes.length + input.state.perguntas.length + (input.state.pessoas?.length || 0)) % (pool.length || 1);
+  const poolGiratorio = giro ? [...pool.slice(giro), ...pool.slice(0, giro)] : pool;
+
   // Uma sugestão de cada tom liberado, depois completa com as outras opções.
   for (const tom of ['amizade', 'flerte', 'provocante'] as Tone[]) {
     if (saida.length >= quantas) break;
-    const lista = pool.filter(item => item.tom === tom);
+    const lista = poolGiratorio.filter(item => item.tom === tom);
     if (!lista.length) continue;
     const escolhida = lista[Math.floor(rand() * lista.length)];
     vistos.add(escolhida.texto);
@@ -2154,7 +2223,7 @@ export function sugerirRespostas(input: { person: Person; persona?: Persona; sta
   }
   while (saida.length < quantas) {
     const aberturas = new Set(saida.map(item => normalizeText(item.texto).split(' ').slice(0, 3).join(' ')));
-    const restantes = pool.filter(item => !vistos.has(item.texto)
+    const restantes = poolGiratorio.filter(item => !vistos.has(item.texto)
       && !aberturas.has(normalizeText(item.texto).split(' ').slice(0, 3).join(' ')));
     if (!restantes.length) break;
     const escolhida = restantes[Math.floor(rand() * restantes.length)];
