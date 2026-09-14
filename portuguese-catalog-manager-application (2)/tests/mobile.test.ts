@@ -239,3 +239,12 @@ describe("entrada e pânico no celular", () => {
     expect(novidades).toMatch(/\['Modo pânico no celular'/);
   });
 });
+
+describe("nenhum controle só no hover", () => {
+  it("as últimas ações escondidas ficam à vista no dedo", () => {
+    const toque = blocoMobile("@media (hover: none)");
+    expect(toque).toMatch(/\.photo-favorite,\s*\.photo-hover-icon,\s*\.tier-label\s+\.icon-btn\s*\{\s*opacity:\s*1/);
+    expect(toque).toMatch(/\.photo-favorite\s*\{\s*width:\s*38px/);
+    expect(toque).toMatch(/\.tier-label\s+\.icon-btn\s*\{\s*width:\s*36px/);
+  });
+});

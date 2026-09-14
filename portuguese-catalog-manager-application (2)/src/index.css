@@ -1556,6 +1556,11 @@ img, video, canvas { max-width: 100%; }
   /* o pino de arrastar não faz nada com o dedo: em vez de enganar,
      ele sai de cena e o botão ↔ assume o trabalho */
   .tier-person .grip { display: none; }
+
+  /* os últimos controles que ainda dependiam do hover */
+  .photo-favorite, .photo-hover-icon, .tier-label .icon-btn { opacity: 1; }
+  .photo-favorite { width: 38px; height: 38px; }
+  .tier-label .icon-btn { width: 36px; height: 34px; }
   .drop-placeholder { gap: 7px; }
 
   /* resposta imediata ao toque e sem zoom involuntário ao focar campos */
