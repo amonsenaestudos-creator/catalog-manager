@@ -4,6 +4,8 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Botões que apareciam só com o mouse', 'No celular, ações como editar uma anotação, ajustar um cartão do quadro ou trocar alguém de faixa agora ficam sempre à vista, com tamanho de dedo. Nada de adivinhar onde tocar.', 'notes'],
+  ['Instruções que falam a língua do toque', 'Em tela de dedo, as dicas trocam “arraste” pelo caminho que funciona: o botão ↔ para mudar de faixa, a pasta mãe para aninhar e a etapa do cartão para mudar de coluna.', 'tierlists'],
   ['Conversa em tela cheia', 'No celular, abrir um papo esconde a barra de baixo e o cabeçalho: sobra a conversa inteira, com o campo de escrita colado na parte inferior.', 'conversas'],
   ['Teclado não cobre mais o campo', 'Quando o teclado do aparelho aparece, a conversa sobe junto e o campo de escrita continua visível enquanto você digita.', 'conversas'],
   ['Navegação feita para celular', 'Uma barra inferior mantém Início, Catálogo, Adicionar, Buscar e Menu ao alcance do polegar.', 'home'],

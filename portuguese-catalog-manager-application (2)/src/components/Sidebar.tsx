@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Gauge, Heart, Home, Image, Layers, LogOut, MessageCircle, Minus, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
 import { useCatalog } from '../context';
 import { isActive } from '../store';
@@ -20,6 +20,26 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
   const conversasAbertas = new Set(data.chats.map(mensagem => mensagem.personId)).size;
   const [mais, setMais] = useState(() => { try { return localStorage.getItem(MAIS_CHAVE) === '1'; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem(MAIS_CHAVE, mais ? '1' : '0'); } catch { /* preferência é opcional */ } }, [mais]);
+
+  // No celular a gaveta precisa se comportar como uma tela: o fundo não rola
+  // e o botão de voltar do aparelho fecha o menu em vez de sair do aplicativo.
+  const fechar = useRef(onClose);
+  fechar.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    document.documentElement.classList.add('menu-aberto');
+    let empilhou = false;
+    try { window.history.pushState({ menuAberto: true }, ''); empilhou = true; } catch { /* histórico é opcional */ }
+    const aoVoltar = () => fechar.current();
+    if (empilhou) window.addEventListener('popstate', aoVoltar);
+    return () => {
+      window.removeEventListener('popstate', aoVoltar);
+      document.documentElement.classList.remove('menu-aberto');
+      if (empilhou && window.history.state && (window.history.state as { menuAberto?: boolean }).menuAberto) {
+        try { window.history.back(); } catch { /* sem histórico para voltar */ }
+      }
+    };
+  }, [open]);
 
   // O essencial fica à vista; o resto entra no "+". Assim a barra não cresce a cada tela nova.
   const nav: ItemMenu[] = [
