@@ -4,6 +4,9 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Barra de baixo flutuante no celular', 'A navegação virou uma doca solta com cantos arredondados, vidro por cima do conteúdo e o “+” elevado de verdade — sem sobras de gradiente atrás do botão.', 'home'],
+  ['Sugestões que deslizam no dedo', 'Na conversa de celular as respostas sugeridas viraram cartões que correm de lado, um por vez, em vez de uma pilha que empurra o campo de escrita.', 'conversas'],
+  ['Abas em chip nas telas pequenas', 'Catálogo, editor e ferramentas trocam o sublinhado fino por chips redondos, do tamanho do dedo, que rolam de lado sem quebrar linha.', 'catalog'],
   ['Voltar para o fim do papo', 'Rolou o histórico para reler? Um atalho flutua na base da conversa e leva você de volta à última mensagem — nas duas telas.', 'conversas'],
   ['Caixa de texto sempre no lugar', 'No computador a conversa ocupa a altura da janela: só o histórico rola e o campo de escrita fica preso no rodapé, do jeito que você deixou.', 'conversas'],
   ['Conversa em coluna de leitura', 'No computador as mensagens ficam centradas numa coluna confortável, com cabeçalho, medidor e sugestões alinhados no mesmo eixo.', 'conversas'],
