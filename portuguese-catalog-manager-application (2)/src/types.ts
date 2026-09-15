@@ -96,6 +96,8 @@ export interface Person {
   vinculos?: Vinculo[];
   /** O que ela é sua: tia, prima, líder, colega... Muda a dinâmica da conversa. */
   vinculoComigo?: string;
+  /** Ajuste manual do jeito de falar: a idade sugere, você decide. */
+  maturidadeAjuste?: 'auto' | 'seria' | 'solta';
 }
 
 export interface CustomField { id: string; label: string; value: string }
@@ -321,7 +323,7 @@ export interface ChatState {
   tom: ChatTone;
   /** Assunto → último trecho contado por você. */
   topicos: Record<string, string>;
-  lembrancas: { tipo: string; valor: string }[];
+  lembrancas: { tipo: string; valor: string; peso?: number; quando?: string }[];
   perguntas: string[];
   recentes: string[];
   /** Modelos de resposta já usados (ela não repete a mesma frase duas vezes seguidas). */
@@ -331,6 +333,10 @@ export interface ChatState {
   ultimaMensagem: string;
   visitas: number;
   ofensas: number;
+  /** 0 a 10 — paciência dela com o rumo da conversa. Cai com grosseria, volta com carinho. */
+  paciencia?: number;
+  /** O que mexeu no humor na última mensagem dela. */
+  gatilhos?: string[];
 }
 
 export interface Memory {

@@ -248,3 +248,61 @@ describe("nenhum controle só no hover", () => {
     expect(toque).toMatch(/\.tier-label\s+\.icon-btn\s*\{\s*width:\s*36px/);
   });
 });
+
+/**
+ * Reformulação do modo celular: navegação com voltar, botão central elevado,
+ * abas que rolam de lado, texto maior e o retrato do momento na conversa.
+ */
+describe("modo celular reformulado", () => {
+  /** Regra do CSS, venha ela de qual bloco de media query vier. */
+  const regras = (seletor: RegExp) => [...css.matchAll(seletor)].map(m => m[1]).join(" | ");
+
+  it("o topo ganha voltar para a tela anterior", () => {
+    expect(css).toMatch(/\.mobile-back\s*\{\s*display:\s*none/);
+    expect(css).toMatch(/\.mobile-back\s*\{\s*display:\s*inline-flex/);
+    expect(app).toMatch(/const voltarPagina = \(\) => setHistorico/);
+    expect(app).toMatch(/className="mobile-back" onClick=\{voltarPagina\}/);
+    expect(app).toMatch(/setHistorico\(lista => \(anterior === 'home'/);
+  });
+
+  it("o botão de adicionar vira um círculo elevado", () => {
+    const circulo = regras(/\.mobile-bottom-nav \.mobile-add span\s*\{([^}]*)\}/g);
+    expect(circulo).toMatch(/border-radius:\s*999px/);
+    expect(circulo).toMatch(/width:\s*48px/);
+    expect(circulo).toMatch(/margin-top:\s*-20px/);
+    expect(app).toMatch(/className="mobile-add"[\s\S]{0,120}?<span><Plus size=\{24\} \/><\/span>/);
+  });
+
+  it("as abas rolam de lado em vez de quebrar linha", () => {
+    const abas = regras(/\.scope-tabs\s*\{([^}]*)\}/g);
+    expect(abas).toMatch(/overflow-x:\s*auto/);
+    expect(abas).toMatch(/scroll-snap-type:\s*x proximity/);
+    expect(css).toMatch(/\.scope-tabs\s*>\s*button\s*\{\s*flex:\s*0 0 auto/);
+  });
+
+  it("o texto de leitura cresce no celular", () => {
+    expect(css).toMatch(/body\s*\{\s*font-size:\s*15px/);
+    expect(css).toMatch(/\.page-title h1\s*\{\s*font-size:\s*23px/);
+    expect(css).toMatch(/\*\s*\{\s*-webkit-tap-highlight-color:\s*transparent/);
+  });
+
+  it("a conversa ganhou o retrato do momento", () => {
+    const chat = readFileSync(resolve(__dirname, "../src/components/ChatSimulator.tsx"), "utf8");
+    expect(css).toMatch(/\.chat-estado\s*\{/);
+    expect(css).toMatch(/\.chat-estado-trilha\.baixa i\s*\{\s*background:/);
+    expect(css).toMatch(/\.chat-prompt\s*\{/);
+    expect(chat).toMatch(/Retrato do momento/);
+    expect(chat).toMatch(/promptDoSistema\(\{ person, persona, estado: estadoCompleto \}\)/);
+    expect(chat).toMatch(/resumirMemorias\(estado\)/);
+    expect(chat).toMatch(/JSON\.stringify\(ultimoEstado\.json, null, 2\)/);
+    expect(chat).toMatch(/PACIENCIA_BAIXA/);
+  });
+
+  it("a ficha permite ajustar a maturidade sem mexer na idade", () => {
+    const editor = readFileSync(resolve(__dirname, "../src/components/PersonEditor.tsx"), "utf8");
+    expect(editor).toMatch(/label="Jeito de falar"/);
+    expect(editor).toMatch(/value="seria">Mais séria e contida/);
+    expect(editor).toMatch(/value="solta">Mais solta e brincalhona/);
+    expect(editor).toMatch(/field\('maturidadeAjuste'/);
+  });
+});

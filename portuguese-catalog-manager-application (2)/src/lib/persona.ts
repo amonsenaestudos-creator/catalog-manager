@@ -399,6 +399,20 @@ export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Pe
       ? (relacao.ambosAdultos ? ['meu bem', 'querida', 'você', 'gente'] : ['meu bem', 'meu filho', 'querido', 'você'])
       : ['você', 'vamos', traits.calor > 0.6 ? 'meu bem' : 'amiga', traits.romantica > 0.6 ? 'amor' : 'querida'];
   const madura = traits.maturidade >= 0.72;
+  // Ajuste manual da ficha: a idade sugere a maturidade, mas você pode puxar
+  // para um papo mais sério ou mais solto sem mexer na idade cadastrada.
+  if (person.maturidadeAjuste === 'seria') {
+    traits.maturidade = clamp01(traits.maturidade + 0.14);
+    traits.girias = clamp01(traits.girias - 0.14);
+    traits.emojis = clamp01(traits.emojis - 0.12);
+    traits.agilidade = clamp01(traits.agilidade - 0.06);
+  } else if (person.maturidadeAjuste === 'solta') {
+    traits.maturidade = clamp01(traits.maturidade - 0.14);
+    traits.girias = clamp01(traits.girias + 0.14);
+    traits.emojis = clamp01(traits.emojis + 0.12);
+    traits.brincadeira = clamp01(traits.brincadeira + 0.08);
+  }
+
   const fala: SpeechProfile = {
     emojis, risadas, girias, abreviacoes,
     // Quem amadureceu escreve um pouco mais e em menos bolhas: assunto, não fragmento.

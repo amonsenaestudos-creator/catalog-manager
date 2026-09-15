@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, Plus, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
+import { ArrowLeft, ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, Plus, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
 import { CatalogProvider, useCatalog } from './context';
 import { formatDate } from './store';
 import { Avatar, Button, IconButton, Toast } from './components/ui';
@@ -105,6 +105,23 @@ function Application() {
   const escTimes = useRef<number[]>([]);
   const konamiKeys = useRef<string[]>([]);
   // No celular não existe Esc: segurar o título da tela aciona o modo pânico.
+  // Histórico de telas: no celular o topo ganha um botão de voltar que anda
+  // para trás dentro do aplicativo, como num app de verdade.
+  const [historico, setHistorico] = useState<string[]>([]);
+  const ultimaPagina = useRef(page);
+  useEffect(() => {
+    if (ultimaPagina.current === page) return;
+    const anterior = ultimaPagina.current;
+    ultimaPagina.current = page;
+    setHistorico(lista => (anterior === 'home' || anterior === page ? lista : [...lista, anterior]).slice(-12));
+  }, [page]);
+  const voltarPagina = () => setHistorico(lista => {
+    const copia = [...lista];
+    const destino = copia.pop();
+    if (destino) ctx.navigate(destino);
+    return copia;
+  });
+
   const panicoTimer = useRef<number | null>(null);
   const panicoOrigem = useRef<{ x: number; y: number } | null>(null);
   const soltarPanico = () => {
@@ -237,7 +254,9 @@ function Application() {
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-start">
-            <IconButton label="Abrir menu" className="mobile-menu-trigger" aria-expanded={mobileMenu} aria-controls="mobile-navigation" onClick={() => setMobileMenu(true)}><Menu size={21} /></IconButton>
+            {historico.length > 0
+              ? <IconButton label="Voltar para a tela anterior" className="mobile-back" onClick={voltarPagina}><ArrowLeft size={20} /></IconButton>
+              : <IconButton label="Abrir menu" className="mobile-menu-trigger" aria-expanded={mobileMenu} aria-controls="mobile-navigation" onClick={() => setMobileMenu(true)}><Menu size={21} /></IconButton>}
             <span className="topbar-mobile-title" role="presentation"
               onPointerDown={segurarPanico} onPointerUp={soltarPanico} onPointerCancel={soltarPanico}
               onPointerLeave={soltarPanico} onPointerMove={moverPanico}
@@ -269,7 +288,7 @@ function Application() {
       <nav className="mobile-bottom-nav" aria-label="Navegação rápida">
         <button className={page === 'home' ? 'active' : ''} onClick={() => ctx.navigate('home')}><HomeIcon size={20} /><span>Início</span></button>
         <button className={page === 'catalog' ? 'active' : ''} onClick={() => ctx.navigate('catalog')}><Users size={20} /><span>Catálogo</span></button>
-        <button className="mobile-add" onClick={() => ctx.setQuickOpen(true)} aria-label="Adicionar pessoa"><Plus size={25} /></button>
+        <button className="mobile-add" onClick={() => ctx.setQuickOpen(true)} aria-label="Adicionar pessoa"><span><Plus size={24} /></span></button>
         <button onClick={() => ctx.setCommandOpen(true)}><Search size={20} /><span>Buscar</span></button>
         <button onClick={() => setMobileMenu(true)} aria-expanded={mobileMenu}><Menu size={20} /><span>Menu</span></button>
       </nav>

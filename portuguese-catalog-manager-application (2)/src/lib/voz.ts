@@ -2602,3 +2602,31 @@ export const INFANTIL: RegExp[] = [
   // Abreviação de quem digita com o polegar apressado não combina com ficha adulta.
   /\bhj\b/i, /\bdps\b/i, /\bblz\b/i, /\bmn\b/i, /\bpfv\b/i, /\bqdo\b/i,
 ];
+
+/**
+ * Quando você fala grosso com ela. A resposta é o limite, não a briga: adulto
+ * corta o assunto e diz o que não aceita, sem devolver ofensa.
+ */
+export const LIMITES_GROSSERIA: string[] = [
+  'Não vou responder isso. Baixa o tom comigo',
+  'Olha, esse tom não cabe aqui. Quando você quiser conversar, eu tô',
+  'Eu não aceito ser tratada assim, nem de brincadeira',
+  'Vou parar por aqui. Você me procura quando estiver mais calmo',
+  'Isso me magoou. Prefiro não continuar agora',
+  'Não é assim que a gente fala. Eu me retiro',
+];
+
+/**
+ * Paciência no fim: ela responde, mas curto e sem carinho. Existe para a
+ * conversa ter memória — quem insistiu ontem encontra alguém mais seca hoje.
+ */
+export const FRIAS: string[] = [
+  'Tá.',
+  'Certo.',
+  'Entendi.',
+  'Se você diz.',
+  'Não tenho muito a acrescentar.',
+  'Prefiro ficar por aqui hoje.',
+  'Vamos ver como você fala comigo amanhã.',
+  'Eu respondo, mas não tô com paciência pra esse papo.',
+];

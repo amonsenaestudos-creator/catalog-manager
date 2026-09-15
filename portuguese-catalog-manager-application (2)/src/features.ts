@@ -4,6 +4,11 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Retrato do momento', 'A conversa mostra humor, paciência, química e estágio a cada mensagem — com os gatilhos: o que você escreveu que mudou o clima.', 'conversas'],
+  ['Paciência que existe de verdade', 'Falar grosso derruba a paciência e esfria o humor: ela corta o assunto e responde curto até o clima melhorar. Pedir desculpa reconstrói.', 'conversas'],
+  ['Ela lembra de você', 'As coisas que você conta viram memória: a lembrança mais parecida com o assunto do momento volta na conversa na hora certa.', 'conversas'],
+  ['Prompt do sistema à vista', 'Dá para ver e copiar como a ficha está sendo instruída: personalidade, maturidade, proximidade e o estado emocional daquele momento.', 'conversas'],
+  ['Maturidade ajustável na ficha', 'A idade sugere o vocabulário, mas você decide: na ficha dá para deixar a conversa mais séria e contida ou mais solta e brincalhona.', 'catalog'],
   ['Modo pânico no celular', 'Sem tecla Esc no aparelho, o pânico ganhou um gesto: segure o título da tela por um segundo e tudo sai da frente na hora.', 'settings'],
   ['Conversa que entende desabafo', 'Dia ruim é reconhecido como dia ruim: a resposta acolhe, sem carinha alegre e sem pergunta de rotina no meio. A pergunta de volta é de cuidado.', 'conversas'],
   ['Botões que apareciam só com o mouse', 'No celular, ações como editar uma anotação, ajustar um cartão do quadro ou trocar alguém de faixa agora ficam sempre à vista, com tamanho de dedo. Nada de adivinhar onde tocar.', 'notes'],

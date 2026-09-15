@@ -1633,3 +1633,110 @@ img, video, canvas { max-width: 100%; }
   .login-story h2 { font-size: 18px; }
   .login-form-wrap { padding: 18px 14px 16px; }
 }
+
+/* ---------- 8. Retrato do momento (estado emocional na tela) ---------- */
+
+.chat-estado {
+  border: 1px solid var(--line); border-radius: 14px; padding: 12px 13px; margin: 10px 14px 0;
+  background: var(--surface-2); display: grid; gap: 10px;
+}
+.chat-estado-topo { display: flex; align-items: center; gap: 9px; }
+.chat-estado-humor {
+  font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+  background: var(--surface-3); color: var(--txt); display: inline-flex; gap: 5px; align-items: center; white-space: nowrap;
+}
+.chat-estado-humor.h-fechada { color: #e8a5a5; background: #e8a5a51f; }
+.chat-estado-humor.h-carinhosa, .chat-estado-humor.h-flirty { color: #f0a8d0; background: #f0a8d01f; }
+.chat-estado-humor.h-playful, .chat-estado-humor.h-happy { color: #f3d27a; background: #f3d27a1f; }
+.chat-estado-leitura { font-size: 10.5px; color: var(--muted); flex: 1; line-height: 1.5; }
+.chat-estado-barras { display: grid; gap: 9px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.chat-estado-item { display: grid; gap: 5px; font-size: 10.5px; color: var(--muted); }
+.chat-estado-item b { color: var(--txt); font-weight: 600; }
+.chat-estado-trilha { height: 7px; border-radius: 999px; background: var(--surface-3); overflow: hidden; display: block; }
+.chat-estado-trilha i { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width .35s ease; }
+.chat-estado-trilha.baixa i { background: #e0868c; }
+.chat-estado-trilha.alta i { background: #86d0a5; }
+.chat-estado-trilha.quimica i { background: linear-gradient(90deg, var(--accent), #f0a8d0); }
+.chat-estado-rodape { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-estado-chip { font-size: 10px; padding: 3px 9px; border-radius: 999px; background: var(--surface-3); color: var(--muted); }
+.chat-estado-chip.gatilho { background: var(--accent-soft); color: var(--accent); }
+.chat-detalhe { border-top: 1px solid var(--line); padding-top: 9px; font-size: 11px; color: var(--muted); }
+.chat-detalhe summary { cursor: pointer; font-size: 11px; display: flex; gap: 8px; align-items: center; }
+.chat-detalhe summary span { color: var(--faint); font-size: 10px; }
+.chat-memorias { margin: 9px 0 2px; padding-left: 16px; display: grid; gap: 5px; font-size: 11px; line-height: 1.6; }
+.chat-prompt {
+  margin: 9px 0 0; background: #0f0b14; border: 1px solid var(--line); border-radius: 10px; padding: 10px;
+  font-size: 10.5px; line-height: 1.65; color: #cfc3d8; white-space: pre-wrap; word-break: break-word;
+  max-height: 220px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.chat-prompt.json { color: #a8d8b9; }
+.chat-aberto .chat-estado { margin-top: 6px; }
+
+/* ---------- 9. Reformulação do modo celular ---------- */
+
+/* Sem realce azul do toque e sem atraso de duplo toque. */
+* { -webkit-tap-highlight-color: transparent; }
+
+.mobile-back { display: none; }
+
+@media (max-width: 1100px) {
+  .mobile-back { display: inline-flex; }
+  /* Texto de leitura com mais respiro: quem lê no celular, lê de longe. */
+  body { font-size: 15px; line-height: 1.6; }
+  .page-title h1 { font-size: 23px; letter-spacing: -.5px; }
+  .page-title p, .page-description { font-size: 13px; line-height: 1.7; }
+  .muted.small, .form-help, .field-label { font-size: 12px; }
+  .section-heading h2 { font-size: 16px; }
+  /* Cabeçalhos de tela grudam no topo, como em app de verdade. */
+  .page-title { position: sticky; top: 56px; z-index: 12; background: var(--bg); padding-top: 4px; padding-bottom: 2px; }
+  .scope-tabs {
+    position: sticky; top: 0; z-index: 11; background: var(--bg);
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity; padding: 0 2px; gap: 18px;
+  }
+  .scope-tabs::-webkit-scrollbar { display: none; }
+  .scope-tabs > button { flex: 0 0 auto; scroll-snap-align: start; }
+  /* Listas grandes viram linhas confortáveis de dedo. */
+  .simple-person-row, .general-note-open, .folder-card, .person-card { border-radius: 12px; }
+  .simple-person-row { padding: 14px 12px; }
+  /* Filtros e abas com rolagem lateral em vez de quebrar linha. */
+  .segmented, .chip-row, .chat-abi-row { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .segmented::-webkit-scrollbar, .chip-row::-webkit-scrollbar { display: none; }
+  .btn, button, .icon-btn { min-height: 40px; }
+  .icon-btn { min-width: 40px; }
+  .chat-estado { margin: 8px 10px 0; padding: 12px 12px 10px; }
+  .chat-estado-barras { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  /* Botão central elevado, o convite para cadastrar. */
+  .mobile-bottom-nav { padding-top: 4px; overflow: visible; }
+  .mobile-bottom-nav .mobile-add { flex: 0 0 auto; padding: 0 10px; }
+  .mobile-bottom-nav .mobile-add span {
+    width: 48px; height: 48px; margin-top: -20px; border-radius: 999px; display: grid; place-items: center;
+    background: var(--accent); color: #1a1120; box-shadow: 0 10px 24px #00000073, 0 0 0 4px var(--bg);
+  }
+  .mobile-bottom-nav button { gap: 3px; }
+  .mobile-bottom-nav button.active { position: relative; }
+  .mobile-bottom-nav button.active::before {
+    content: ''; position: absolute; top: 0; width: 22px; height: 3px; border-radius: 0 0 4px 4px; background: var(--accent);
+  }
+  /* Bolhas com o canto do lado de quem fala, como nos apps de mensagem. */
+  .chat-bubble { border-radius: 15px 15px 15px 5px; }
+  .chat-bubble-wrap.mine .chat-bubble { border-radius: 15px 15px 5px 15px; }
+  .chat-input-bar input { border-radius: 999px; padding-left: 16px; }
+  .chat-input-bar .icon-btn { border-radius: 999px; }
+  .chat-header { padding: 8px 10px; }
+  .chat-header-info strong { font-size: 14.5px; }
+  /* Respostas sugeridas: cartões grandes, fáceis de acertar com o polegar. */
+  .chat-icebreakers button { border-radius: 14px; padding: 11px 12px; font-size: 12.5px; }
+  .chat-input-bar { padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  /* Nada de hover preso depois do toque. */
+  .nav-item:focus-visible, .icon-btn:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
+@media (max-width: 380px) {
+  body { font-size: 14.5px; }
+  .page-title h1 { font-size: 21px; }
+  .chat-estado-humor { font-size: 10.5px; }
+}

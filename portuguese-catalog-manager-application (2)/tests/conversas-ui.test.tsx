@@ -106,6 +106,62 @@ describe("aba Conversas", () => {
     });
   });
 
+  it("mostra o retrato do momento com paciência, memória e prompt", async () => {
+    const user = userEvent.setup();
+    await bootApp(user);
+    await goto(/Conversas/i);
+    const card = await waitFor(() => {
+      const encontrado = document.querySelector(".conversation-card") as HTMLElement;
+      expect(encontrado).toBeTruthy();
+      return encontrado;
+    });
+    await clicar(card.querySelector(".conversation-card-main") as HTMLElement);
+    await waitFor(() => expect(document.querySelector(".chat-simulator")).toBeTruthy(), { timeout: 12000 });
+
+    // Ela abre a conversa: o retrato já existe a partir da primeira mensagem dela.
+    await waitFor(() => expect(document.querySelector(".chat-meter")).toBeTruthy(), { timeout: 12000 });
+    await clicar(screen.getByLabelText("Mais opções"));
+    await clicar(await screen.findByRole("button", { name: /Retrato do momento/i }));
+
+    await waitFor(() => expect(document.querySelector(".chat-estado")).toBeTruthy());
+    expect(document.querySelector(".chat-estado-humor")?.textContent).toBeTruthy();
+    expect(document.querySelectorAll(".chat-estado-trilha").length).toBeGreaterThanOrEqual(2);
+    expect(document.querySelector(".chat-estado-rodape")?.textContent?.length || 0).toBeGreaterThan(3);
+
+    // A memória e o prompt de sistema ficam em blocos que abrem.
+    const detalhes = [...document.querySelectorAll<HTMLDetailsElement>(".chat-detalhe")];
+    expect(detalhes.length).toBeGreaterThanOrEqual(2);
+    await act(async () => { detalhes[1].open = true; detalhes[1].dispatchEvent(new Event("toggle")); });
+    await waitFor(() => expect(document.querySelector(".chat-prompt")?.textContent).toMatch(/Maturidade:|Estado emocional/));
+    expect(document.querySelector(".chat-prompt.json")?.textContent).toMatch(/estado_emocional/);
+  }, 30000);
+
+  it("o humor esfria quando você fala grosso com ela", async () => {
+    const user = userEvent.setup();
+    await bootApp(user);
+    await goto(/Conversas/i);
+    const card = await waitFor(() => {
+      const encontrado = document.querySelector(".conversation-card") as HTMLElement;
+      expect(encontrado).toBeTruthy();
+      return encontrado;
+    });
+    await clicar(card.querySelector(".conversation-card-main") as HTMLElement);
+    await waitFor(() => expect(document.querySelector(".chat-simulator")).toBeTruthy(), { timeout: 12000 });
+
+    const campo = screen.getByLabelText("Mensagem") as HTMLInputElement;
+    for (const ofensa of ["cala a boca", "sua burra"]) {
+      await user.click(campo);
+      await user.clear(campo);
+      await user.keyboard(`${ofensa}{enter}`);
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 700)); });
+    }
+    await clicar(screen.getByLabelText("Mais opções"));
+    await clicar(await screen.findByRole("button", { name: /Retrato do momento/i }));
+    await waitFor(() => expect(document.querySelector(".chat-estado")).toBeTruthy());
+    expect(document.querySelector(".chat-estado-humor")?.textContent).toMatch(/fechada/i);
+    expect(document.querySelector(".chat-estado-rodape")?.textContent).toMatch(/tom agressivo|paciência baixa/);
+  }, 30000);
+
   it("mostra o selo da relação e a química de cada conversa", async () => {
     const user = userEvent.setup();
     await bootApp(user);

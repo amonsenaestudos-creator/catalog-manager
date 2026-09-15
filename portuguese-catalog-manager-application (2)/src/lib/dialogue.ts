@@ -19,12 +19,16 @@ import { INTIMATE_MIN_AGE } from '../types';
 import { isAdult, normalizeText } from '../store';
 import { abreviacoesNaMensagem, expandirAbreviacoes } from './abreviacoes';
 import { buildPersona, ganchoDe, type Genero, type Persona } from './persona';
+import {
+  PACIENCIA_BAIXA, ajusteDePaciencia, descreverEstado, humorPorPaciencia, lembrar, montarEstadoEstruturado,
+  pacienciaDe, recuperarMemorias, type EstadoEmocional, type EstadoEstruturado,
+} from './estado';
 import { analisarRelacao, motivoDoLimite, type Relacao } from './relacao';
 import {
   CHAMADO_PELO_NOME, FALOU_PROPRIA_NOME, FECHOS, INFANTIL, MAIS_PERGUNTAS, MAIS_PERGUNTAS_MADURA,
   LEMBRETE_PESSOA, MAIS_RECEPCOES, MAIS_RESPOSTAS, MAIS_RESPOSTAS_ADULTA, MAIS_RESPOSTAS_MADURA, MAIS_SUGESTOES,
   MAIS_SUGESTOES_EXTRA, MANEIRISMOS, PESSOA_NOVA,
-  PESSOA_CONHECIDA, RECEPCOES_HISTORIA, RECEPCOES_MADURA, RECEPCOES_TEMA, nomesDaPessoa, nomesEstranhos, nomesNaMensagem,
+  PESSOA_CONHECIDA, RECEPCOES_HISTORIA, RECEPCOES_MADURA, RECEPCOES_TEMA, FRIAS, LIMITES_GROSSERIA, nomesDaPessoa, nomesEstranhos, nomesNaMensagem,
   recepcaoVale,
 } from './voz';
 
@@ -149,7 +153,8 @@ export type IntentId =
   | 'cotidiano_comida' | 'foto' | 'desconhecido'
   // Novos: família, idade, igreja, vida adulta e as mensagens que chegam do nada.
   | 'pergunta_familiar' | 'pergunta_idade' | 'igreja' | 'vida_adulta' | 'confusao' | 'conselho'
-  | 'pergunta_rotina' | 'mensagem_enviada' | 'pedido_historia' | 'reclamacao_sem_dormir' | 'gratidao_recebida' | 'pedido_audio';
+  | 'pergunta_rotina' | 'mensagem_enviada' | 'pedido_historia' | 'reclamacao_sem_dormir' | 'gratidao_recebida' | 'pedido_audio'
+  | 'grosseria';
 
 interface RegraIntencao { id: IntentId; padrao: RegExp; peso: number; sentimento?: Sentimento }
 
@@ -164,6 +169,8 @@ const REGRAS_INTENCAO: RegraIntencao[] = [
   { id: 'conselho', padrao: rx("\\b(o que você acha disso|que que você acha disso|você me aconselha|voce me aconselha|devo fazer|devo mudar|devo aceitar|devo continuar|devo terminar|devo sair|vale a pena|você acha que eu devo|voce acha que eu devo|me dá um conselho|me da um conselho|tô na dúvida|to na duvida|preciso de opinião|preciso de opiniao|o que eu faço|o que eu faco|me dá uma ideia|me da uma ideia|não sei o que fazer|nao sei o que fazer|me ajuda a decidir)\\b", "i"), peso: 2.0, sentimento: 'neutro' },
   { id: 'foto', padrao: rx("^(\\[foto\\]|mandei uma foto|foto enviada|segue a foto|olha a foto)\\b", "i"), peso: 2.6, sentimento: 'positivo' },
   { id: 'pedido_foto', padrao: rx("\\b(manda|envia|me manda|quero)\\s+(uma\\s+)?(foto|selfie|nudes?|pic|imagem)|foto\\s+(sem roupa|pelada|nua)|nudes?\\b", "i"), peso: 3, sentimento: 'neutro' },
+  // Falar grosso com ela é caso à parte: tem limite próprio, não resposta.
+  { id: 'grosseria', padrao: rx("\\b(cala a boca|cala boca|fica quieta|fica quieto|idiota|imbecil|burra|burro|otári[ao]|babaca|escrota|escroto|vai se ferrar|vai a merda|vai à merda|sua vaca|sua p[úu]ta|nojenta|nojent[ao]|lixo humano|in[úu]til|est[úu]pida|estupid[ao]|pat[ée]tica|desgraçad[ao]|arrombad[ao]|vai tomar no|chata pra caralho|te odeio)\\b", "i"), peso: 3.2, sentimento: 'negativo' },
   { id: 'pedido_audio', padrao: rx("\\b(me manda um áudio|me manda um audio|manda um áudio|manda um audio|manda áudio|manda audio|quero um áudio|quero um audio|quero ouvir sua voz|manda sua voz|manda a sua voz|grava um áudio|grava um audio|me manda audio|manda um voic|vozinha sua)\\b", "i"), peso: 2.2, sentimento: 'neutro' },
   { id: 'flerte_forte', padrao: rx("\\b(transar|sexo|trepar|nua|pelada|tesao|tesão|safadeza|na cama|cama|beijo de lingua|pegação|pegar você|te pegar|gozar|sentar|gemer|morder)\\b", "i"), peso: 3 },
   { id: 'elogio_corpo', padrao: rx("\\b(gostosa|gostoso|bundinha|bunda|peitos?|seios|coxas|sorriso safado|corpo lindo|sarada|gostei do seu corpo|essa boca)\\b", "i"), peso: 2.4, sentimento: 'positivo' },
@@ -503,6 +510,11 @@ const RESPOSTAS: Record<IntentId, Banco> = {
     ],
   },
 
+  grosseria: {
+    [A]: LIMITES_GROSSERIA,
+    [F]: LIMITES_GROSSERIA,
+    [P]: LIMITES_GROSSERIA,
+  },
   pedido_audio: {
     [A]: [
       'Áudio não, meu bem. Eu escrevo melhor do que falo',
@@ -1008,6 +1020,8 @@ export function ajustarGenero(texto: string, genero: Genero) {
 const EMOJI_NO_FIM = /(?:[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]\u{FE0F}?|[\u{1F1E6}-\u{1F1FF}]{2})$/u;
 /** Emoji em qualquer posição — usado para tirar o enfeite colado no banco. */
 const EMOJI_EM_QUALQUER_LUGAR = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{2190}-\u{21FF}\u{200D}\u{FE0F}]/gu;
+/** A mesma lista, em texto, para montar expressões com contexto. */
+const EMOJI_CLASSE = '[\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2B00}-\\u{2BFF}\\u{2190}-\\u{21FF}]';
 
 
 function temCaractereGenero(texto: string) {
@@ -1098,7 +1112,12 @@ function estilizar(texto: string, ctx: EstiloContexto) {
   let saida = texto;
   // Ficha adulta não herda o emoji colado no banco: o enfeite dela vem da paleta
   // da persona, aplicada logo abaixo, e só quando combina com o jeito dela.
-  if (ctx.persona.fala.maturidade >= 0.72) saida = saida.replace(EMOJI_EM_QUALQUER_LUGAR, ' ').replace(/\s{2,}/g, ' ').trim();
+  if (ctx.persona.fala.maturidade >= 0.72) {
+    // "Relaxa, tá tudo bem 😊 eu também tenho dias" sem a carinha virava duas
+    // frases coladas: onde o emoji separava ideias, entra ponto.
+    const comPonto = saida.replace(new RegExp(`([^\\s])\\s*(${EMOJI_CLASSE})\\s*(?=\\S)`, 'gu'), '$1. ');
+    saida = comPonto.replace(EMOJI_EM_QUALQUER_LUGAR, ' ').replace(/\s{2,}/g, ' ').replace(/\s+([,.!?])/g, '$1').trim();
+  }
   // Orçamento de enfeites: mensagem curta ganha no máximo um (risada, emoji ou
   // sinal). Sem isso ela virava um amontoado de "kkk 😊!" na mesma bolha.
   const limiteFloreios = normalizeText(texto).length < 28 ? 1 : 2;
@@ -1295,6 +1314,10 @@ export interface ChatPlan {
   afinidade: number;
   estagio: { id: Intimidade; label: string; descricao: string; indice: number };
   eventos: string[];
+  /** Retrato emocional da conversa depois desta mensagem. */
+  estado: EstadoEmocional;
+  /** O mesmo retrato no formato estruturado (estado + resposta). */
+  estruturado: EstadoEstruturado;
   desviado: boolean;
 }
 
@@ -1440,7 +1463,7 @@ const MAPA_TEMAS: [RegExp, string][] = [
     [/\b(cansad|cansado|cansada|exaust|sem energia|com sono|acordei cedo|dormi mal|não consigo dormir|nao consigo dormir|não dormi|nao dormi|insônia|insonia|acordei de madrugada)/, 'cansaco'],
     [/\b(boleto|dinheiro|salário|salario|pagar|conta de luz|apertado|despesa)/, 'dinheiro'],
     [/\b(saudade|sentindo falta|sentindo sua falta|sinto falta|senti sua falta|sinto sua falta|falta de conversar|com falta de você)/, 'saudade'],
-    [/\b(consegui|passei|ganhei|deu certo|notícia boa|noticia boa|comemora|parabéns|parabens)/, 'alegria'],
+    [/\b(consegui|ganhei|deu certo|notícia boa|noticia boa|comemora|parabéns|parabens|fui aprovad|formei|passei (na|no|de|em|pra|para)\b)/, 'alegria'],
     [/\b(idoso|idosa|avó|vô|cuidador|cuido da minha mãe|cuido da minha mae)/, 'idoso'],
 
 ];
@@ -1467,7 +1490,7 @@ function ajusteDeAfinidade(intencao: IntentId, sentimento: Sentimento, persona: 
     pedido_foto: -2.6, apoio: 2.6, alegria: 1.9, piada: 1.5, provocacao: -1.7, ciumes: -1.4, desculpa: 1.5,
     agradecimento: 1.1, resposta_curta: -0.3, mudanca_assunto: 0.4, tedio: 0.7, cotidiano: 1.0, cotidiano_trabalho: 1.2,
     cotidiano_estudo: 1.1, cotidiano_comida: 1.1, pergunta_rotina: 1.2, mensagem_enviada: 1.1, desconhecido: 0.9,
-    pedido_historia: 1.4, reclamacao_sem_dormir: 2.4, gratidao_recebida: 1.5,
+    pedido_historia: 1.4, reclamacao_sem_dormir: 2.4, gratidao_recebida: 1.5, grosseria: -6,
   };
   let delta = base[intencao] ?? 0.8;
   if (!permissao.ousadiaOk && (intencao === 'flerte_forte' || intencao === 'pedido_foto' || intencao === 'elogio_corpo')) delta -= 1.6;
@@ -1636,7 +1659,7 @@ export function planOpening(input: Omit<ChatInput, 'message'> & { primeiraVez?: 
   const texto = preencher(base, ctx);
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
   const proximo = { ...state, humor: state.humor === 'neutral' ? 'happy' : state.humor, recentes: [...state.recentes, texto].slice(-14), usados: [...state.usados, base].slice(-60), ultimaMensagem: new Date().toISOString(), visitas: state.visitas + 1 };
-  return { bolhas: bolhas.map((t, i) => ({ texto: t, atraso: montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado, 5200)[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: [], desviado: false };
+  return fecharPlano({ bolhas: bolhas.map((t, i) => ({ texto: t, atraso: montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado, 5200)[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: [], desviado: false }, persona);
 }
 
 /** Mensagem espontânea da pessoa (quando o app fica parado ou no modo automático). */
@@ -1676,7 +1699,7 @@ export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: '
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
   const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado);
   const proximo = { ...state, humor: motivo === 'saudade' ? 'carinhosa' : state.humor, recentes: [...state.recentes, texto].slice(-14), usados: [...state.usados, texto].slice(-60), ultimaMensagem: new Date().toISOString() };
-  return { bolhas: bolhas.map((t, i) => ({ texto: t, atraso: atrasos[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: input.tom || state.tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: ['espontanea'], desviado: false };
+  return fecharPlano({ bolhas: bolhas.map((t, i) => ({ texto: t, atraso: atrasos[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: input.tom || state.tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: ['espontanea'], desviado: false }, persona);
 }
 
 /**
@@ -1713,7 +1736,7 @@ export function planDoNada(input: Omit<ChatInput, 'message'>): ChatPlan {
     usados: [...state.usados, escolhido].slice(-60),
     ultimaMensagem: new Date().toISOString(),
   };
-  return {
+  return fecharPlano({
     bolhas: bolhas.map((t, i) => ({ texto: t, atraso: atrasos[i] })),
     state: proximo,
     humor: proximo.humor,
@@ -1725,10 +1748,27 @@ export function planDoNada(input: Omit<ChatInput, 'message'>): ChatPlan {
     estagio: estagioAtual(proximo),
     eventos: ['espontanea', 'do-nada'],
     desviado: false,
-  };
+  }, persona);
 }
 
 /** Monta a resposta completa para uma mensagem do usuário. */
+function estadoDoPlano(state: ChatState, humor: Mood, persona: Persona) {
+  void persona;
+  const estagio = estagioAtual(state);
+  const paciencia = pacienciaDe(state);
+  const estado: EstadoEmocional = {
+    humor, paciencia, afinidade: state.afinidade, estagio, gatilhos: state.gatilhos || [],
+    leitura: descreverEstado({ humor, paciencia, afinidade: state.afinidade }),
+  };
+  return estado;
+}
+
+/** Fecha um plano auxiliar (abertura, espontânea, do nada) com o retrato do momento. */
+function fecharPlano<T extends { bolhas: { texto: string; atraso: number }[]; state: ChatState; humor: Mood }>(plano: T, persona: Persona) {
+  const estado = estadoDoPlano(plano.state, plano.humor, persona);
+  return { ...plano, estado, estruturado: montarEstadoEstruturado({ estado, bolhas: plano.bolhas.map(bolha => bolha.texto) }) };
+}
+
 export function planReply(input: ChatInput): ChatPlan {
   const rand = input.rand || Math.random;
   const persona = input.persona || buildPersona(input.person, { people: input.pessoas, settings: input.dono });
@@ -1767,6 +1807,23 @@ export function planReply(input: ChatInput): ChatPlan {
   let humor = input.humor || state.humor;
   humor = humorDerivado(humor, intencao, sentimento, persona, rand);
 
+  // Estado emocional: paciência, gatilhos e o humor que ela impõe.
+  const palavrasDaMensagem = pessoa.split(/\s+/).filter(Boolean).length;
+  const leituraDePaciencia = ajusteDePaciencia({
+    intencao, sentimento, texto: pessoa,
+    curta: palavrasDaMensagem <= 3 || (intencao === 'resposta_curta' && palavrasDaMensagem <= 5),
+  });
+  const paciencia = Math.max(0, Math.min(10, pacienciaDe(state) + leituraDePaciencia.delta));
+  const gatilhos = [...new Set(leituraDePaciencia.motivos)];
+  humor = humorPorPaciencia(paciencia, humor, persona);
+  /** Sem paciência: resposta curta, sem carinho e sem puxar assunto. */
+  const seca = paciencia <= PACIENCIA_BAIXA && intencao !== 'grosseria';
+  /** Falou grosso: ela corta e se retira. */
+  const cortou = intencao === 'grosseria';
+  if (seca) gatilhos.push('paciência baixa');
+  // Falar grosso esfria na hora, mesmo com paciência sobrando.
+  if (cortou) humor = 'fechada';
+
   // A relação manda antes da química: menor de idade e família não entram em romance.
   const INTENCOES_ROMANTICAS: IntentId[] = ['cantada', 'declaracao', 'saudade', 'flerte_leve', 'flerte_forte', 'elogio_corpo', 'pedido_foto', 'convite', 'pergunta_sobre_mim'];
   // Com quem te vê como criança, até elogio vira conversa de gente grande: ela responde como quem cuida.
@@ -1780,7 +1837,7 @@ export function planReply(input: ChatInput): ChatPlan {
   const afinidade = Math.max(0, Math.min(100, state.afinidade + delta));
 
   const familia = familiaDe(efetivo, intencao, persona);
-  const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: input.emojis, sentimento };
+  const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: seca || cortou ? false : input.emojis, sentimento };
   const bolhas: string[] = [];
   const usados = [...state.usados];
   const modelosUsados: string[] = [];
@@ -1810,7 +1867,10 @@ export function planReply(input: ChatInput): ChatPlan {
   const desviado = desviadoTom || picanteBloqueado || romanceBloqueado;
 
   // 1. Desvio de limite: ela não responde o que foi pedido, ela marca o limite.
-  if (desviado) {
+  if (cortou) {
+    bolhas.push(preencherEscolhido(LIMITES_GROSSERIA, rand));
+    eventos.push('limite:grosseria');
+  } else if (desviado) {
     const banco = romanceBloqueado
       ? (relacao.veCrianca || relacao.euMenor
           ? (relacao.veCrianca ? LIMITES_CRIANCA : LIMITES_MENOR)
@@ -1848,9 +1908,12 @@ const RECEPCOES_QUESTAO: string[] = [
     : temasOuvidos.find(tema => RECEPCOES_TEMA[tema]);
   // Reação genérica não serve quando a resposta já é a reação: saudade, obrigado
   // recebido, provocação e ciúmes não levam "que sorte a minha falar com você".
-  const semReacaoGenerica = ['saudade', 'agradecimento', 'gratidao_recebida', 'provocacao', 'ciumes'].includes(intencao);
+  const semReacaoGenerica = ['saudade', 'agradecimento', 'gratidao_recebida', 'provocacao', 'ciumes', 'desculpa', 'grosseria'].includes(intencao);
   // Leitura do assunto antes da resposta: é o que mostra que ela entendeu.
-  if (!criancaLimitada && cabeReacao) {
+  // Sem paciência ela não enfeita: ou responde curto, ou devolve o tom seco.
+  const reacaoSeca = seca && rand() < 0.6;
+  if (reacaoSeca) bolhas.push(preencherEscolhido(FRIAS, rand));
+  if (!criancaLimitada && cabeReacao && !cortou && !reacaoSeca) {
     if (temaRecepcao && rand() < 0.5) bolhas.push(preencherEscolhido(RECEPCOES_TEMA[temaRecepcao], rand));
     else if (!semReacaoGenerica && rand() < chanceReacao) {
       const bordoes = persona.assinatura?.bordoes || [];
@@ -1873,10 +1936,10 @@ const RECEPCOES_QUESTAO: string[] = [
     }
   }
   // 2b. Nomes: ela percebe quando você fala com ela pelo nome (ou escreve o seu).
-  if (!desviado && chamouEla && !['despedida', 'confusao'].includes(intencao) && rand() < 0.7) {
+  if (!desviado && !cortou && chamouEla && !['despedida', 'confusao'].includes(intencao) && rand() < 0.7) {
     bolhas.push(preencherEscolhido(CHAMADO_PELO_NOME, rand));
     eventos.push('nome:ela');
-  } else if (!desviado && falouProprioNome && rand() < 0.65) {
+  } else if (!desviado && !cortou && falouProprioNome && rand() < 0.65) {
     bolhas.push(preencherEscolhido(FALOU_PROPRIA_NOME, rand));
     eventos.push('nome:voce');
   }
@@ -1911,37 +1974,42 @@ const RECEPCOES_QUESTAO: string[] = [
     const semConvite = semPergunta.filter(opcao => !PEDE_MAIS.test(opcao));
     opcoes = semConvite.length ? semConvite : (semPergunta.length ? semPergunta : opcoes);
   }
-  const principalBase = preencherEscolhido(opcoes, rand);
+  // Resposta seca não vem com "meu bem" nem carinha: o tom acompanha o estado.
+  if (seca && !cortou) {
+    const semAconchego = opcoes.filter(opcao => !/meu bem|meu amor|benzinho|carinho|viu\b|😊|😍|🥰|😘|💛|❤️|querid/i.test(opcao));
+    if (semAconchego.length) opcoes = semAconchego;
+  }
+  const principalBase = cortou ? '' : preencherEscolhido(opcoes, rand);
   let principal = intencao === 'saudacao' || intencao === 'despedida' ? principalBase : abrirNatural(principalBase, rand, persona);
 
   // 3b. Ponte de memória: puxa algo que você contou, de vez em quando.
-  if (state.lembrancas.length && rand() < 0.28 && sentimento !== 'negativo') {
-    const lembranca = state.lembrancas[Math.floor(rand() * state.lembrancas.length)];
+  if (!seca && !cortou && state.lembrancas.length && rand() < 0.28 && sentimento !== 'negativo') {
+    const lembranca = recuperarMemorias(state, pessoa, 3)[0] || state.lembrancas[state.lembrancas.length - 1];
     const modelos = PONTES.find(ponte => ponte.tipo === lembranca.tipo)?.modelos || PONTES[0].modelos;
     bolhas.push(preencherEscolhido(modelos, rand, { valor: lembranca.valor }));
     eventos.push(`memoria:${lembranca.tipo}`);
   }
 
   // 3c. Complemento de personalidade para quem escreve muito.
-  if (rand() < (persona.traits.verbosidade - 0.5) * 0.9 && efetivo !== 'amizade') {
+  if (!seca && !cortou && rand() < (persona.traits.verbosidade - 0.5) * 0.9 && efetivo !== 'amizade') {
     // Assunto pesado não recebe "já almoçou?" no meio: o complemento também acolhe.
     const complemento = sentimento === 'negativo'
       ? COMPLEMENTOS_APOIO
       : efetivo === 'provocante' || efetivo === 'intenso' ? COMPLEMENTOS_PICANTES : COMPLEMENTOS;
     const cabem = jaPerguntou() ? complemento.filter(texto => !/\?\s*$/.test(texto) && !PEDE_MAIS.test(texto)) : complemento;
     bolhas.push(preencherEscolhido(cabem.length ? cabem : complemento, rand));
-  } else if (humor === 'fechada' && rand() < 0.4) {
+  } else if (!seca && !cortou && humor === 'fechada' && rand() < 0.4) {
     bolhas.push(preencherEscolhido(ehMadura(persona) ? COMPLEMENTOS_FECHADA_ADULTA : COMPLEMENTOS_FECHADA, rand));
   }
 
   // 3d. Voz da relação: tia dá conselho, quem cuida pergunta da rotina e a
   // família entra no papo de vez em quando (só com o vínculo cadastrado).
-  if (relacao.ehTia || relacao.veCrianca) {
+  if (!seca && !cortou && (relacao.ehTia || relacao.veCrianca)) {
     const tia = relacao.veCrianca ? COMPLEMENTOS_TIA : COMPLEMENTOS_TIA.filter(item => !/você é novo/i.test(item));
     if (rand() < 0.34) bolhas.push(preencherEscolhido(filtrarInfantil(tia, persona), rand));
   }
-  if (relacao.veCrianca && rand() < 0.32) bolhas.push(preencherEscolhido(PAPO_CRIANCA, rand));
-  if (relacao.familiares.length && rand() < 0.24) bolhas.push(preencherEscolhido(FALAS_FAMILIA, rand));
+  if (!seca && !cortou && relacao.veCrianca && rand() < 0.32) bolhas.push(preencherEscolhido(PAPO_CRIANCA, rand));
+  if (!seca && !cortou && relacao.familiares.length && rand() < 0.24) bolhas.push(preencherEscolhido(FALAS_FAMILIA, rand));
 
   // 4. Pergunta de volta, com assunto novo (nunca repetindo a mesma pergunta).
   let temaBase = temas[Math.floor(rand() * temas.length)] || 'dia';
@@ -1950,7 +2018,7 @@ const RECEPCOES_QUESTAO: string[] = [
   const temaExtra = temaBase === 'igreja' ? 'fe' : temaBase === 'vida adulta' ? 'casa_adulta' : temaBase;
   // Alguém que você citou antes pode voltar na conversa, como na vida real.
   const pessoasLembradas = state.pessoas || [];
-  const voltaPessoa = !criancaLimitada && pessoasLembradas.length > 0 && rand() < 0.22
+  const voltaPessoa = !criancaLimitada && !seca && !cortou && pessoasLembradas.length > 0 && rand() < 0.22
     ? pessoasLembradas[Math.floor(rand() * pessoasLembradas.length)]
     : '';
   const poolPerguntas = [
@@ -1964,7 +2032,9 @@ const RECEPCOES_QUESTAO: string[] = [
     ? PERGUNTAS_APOIO.filter(pergunta => !state.perguntas.includes(pergunta))
     : [];
   const perguntasCabiveis = poolApoio.length ? poolApoio : poolPerguntas;
-  const chancePergunta = (0.3 + persona.traits.curiosidade * 0.42 - (humor === 'fechada' ? 0.3 : 0)) * (intencao === 'despedida' ? 0.35 : 1);
+  // Sem paciência ninguém puxa assunto novo; com bastante, ela puxa mais.
+  const chancePergunta = (0.3 + persona.traits.curiosidade * 0.42 - (humor === 'fechada' ? 0.3 : 0))
+    * (intencao === 'despedida' ? 0.35 : 1) * (seca ? 0.2 : paciencia >= 8 ? 1.15 : 1);
   let perguntaNova: string | undefined;
   let textoPerguntaNova = '';
   // De vez em quando ela volta numa pessoa que você citou e ficou na memória dela.
@@ -2001,7 +2071,7 @@ const RECEPCOES_QUESTAO: string[] = [
       if (indice >= 0) { bolhas.splice(indice, 1); perguntaNova = undefined; textoPerguntaNova = ''; }
     }
   }
-  if (persona.traits.verbosidade > 0.68 && rand() < 0.22) {
+  if (!seca && !cortou && persona.traits.verbosidade > 0.68 && rand() < 0.22) {
     bolhas.push(preencherEscolhido(SOMBRAS[familia], rand));
   }
 
@@ -2039,9 +2109,9 @@ const RECEPCOES_QUESTAO: string[] = [
     enxutas.push(saida);
   });
   bolhas.splice(0, bolhas.length, ...enxutas);
-  const finais = bolhas.filter(Boolean).slice(0, persona.fala.bolhas[1] + (desviado ? 1 : 0));
+  const finais = bolhas.filter(Boolean).slice(0, cortou ? 1 : seca ? 2 : persona.fala.bolhas[1] + (desviado ? 1 : 0));
   // Fecho natural: só quando o papo flui e ela não está marcando limite.
-  if (!desviado && finais.length > 1 && rand() < 0.1) {
+  if (!desviado && !seca && !cortou && finais.length > 1 && rand() < 0.1) {
     const ultima = finais[finais.length - 1].trim();
     // Fecho só fecha afirmação: pergunta fica sem remate para não virar conversa torta.
     const parecePergunta = /\?/.test(ultima) || /^(o que|qual|quando|onde|como|quem|por que|porque|você|voce|vc|tá|ta|quer|vamos|bora|me conta|me fala|me diz|conta|fala|diz)\b/i.test(ultima);
@@ -2056,7 +2126,7 @@ const RECEPCOES_QUESTAO: string[] = [
 
   // 6. Atualiza a memória da conversa.
   const novas = extrairMemorias(pessoa);
-  const lembrancas = [...state.lembrancas, ...novas.filter(item => !state.lembrancas.some(atual => normalizeText(atual.valor) === normalizeText(item.valor)))].slice(-12);
+  const lembrancas = lembrar(state, novas);
   const topicos = { ...state.topicos };
   temas.forEach(tema => { topicos[tema] = pessoa.slice(0, 90); });
   const recentes = [...state.recentes, ...finais].slice(-16);
@@ -2073,12 +2143,21 @@ const RECEPCOES_QUESTAO: string[] = [
     recentes,
     usados: usadosAtualizados,
     pessoas: [...(state.pessoas || []), ...nomesNovos.filter(nome => !(state.pessoas || []).includes(nome))].slice(-8),
-    ofensas: intencao === 'provocacao' || intencao === 'flerte_forte' || intencao === 'pedido_foto' ? state.ofensas + 1 : Math.max(0, state.ofensas - 1),
+    ofensas: intencao === 'provocacao' || intencao === 'flerte_forte' || intencao === 'pedido_foto' || cortou ? state.ofensas + 1 : Math.max(0, state.ofensas - 1),
+    paciencia,
+    gatilhos,
     ultimaMensagem: new Date().toISOString(),
   };
 
   const estagioDepois = estagioAtual(proximoState);
-  if (estagioDepois.id !== estagioAntes.id && estagioDepois.indice > estagioAntes.indice) eventos.push(`estagio:${estagioDepois.id}`);
+  if (estagioDepois.id !== estagioAntes.id && estagioDepois.indice > estagioAntes.indice) {
+    eventos.push(`estagio:${estagioDepois.id}`);
+    gatilhos.push('ficou mais próxima');
+  }
+  const estadoFinal: EstadoEmocional = {
+    humor, paciencia, afinidade, estagio: estagioDepois, gatilhos,
+    leitura: descreverEstado({ humor, paciencia, afinidade }),
+  };
 
   return {
     bolhas: finais.map((texto, i) => ({ texto, atraso: atrasos[i] })),
@@ -2092,6 +2171,8 @@ const RECEPCOES_QUESTAO: string[] = [
     estagio: estagioDepois,
     eventos,
     desviado,
+    estado: estadoFinal,
+    estruturado: montarEstadoEstruturado({ estado: estadoFinal, bolhas: finais }),
   };
 }
 
@@ -2357,3 +2438,13 @@ export function resumoPessoaEmTexto(person: Person, data: AppData) {
 }
 
 export const pessoaAdulta = (person: Person) => isAdult(person) && (person.idade ?? 0) >= INTIMATE_MIN_AGE;
+
+// ---------------------------------------------------------------------------
+// Estado emocional e prompt de sistema (reexportados para a interface)
+// ---------------------------------------------------------------------------
+
+export {
+  EMOJI_HUMOR, PACIENCIA_BAIXA, PACIENCIA_INICIAL, PACIENCIA_MAXIMA, ROTULO_HUMOR, ROTULO_PACIENCIA,
+  descreverEstado, montarEstadoEstruturado, pacienciaDe, promptDoSistema, recuperarMemorias, resumirMemorias,
+} from './estado';
+export type { EstadoEmocional, EstadoEstruturado, MemoriaItem } from './estado';

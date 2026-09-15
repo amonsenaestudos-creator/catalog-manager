@@ -7,8 +7,9 @@ import { Avatar, Button, IconButton, Modal } from './ui';
 import { downloadBlob, formatDate, generateId } from '../store';
 import { buildPersona, seededRandom } from '../lib/persona';
 import {
-  HUMORES, analisarConversa, cartaoDaPersona, conversaParaMarkdown, estadoDe, estagioAtual, planDoNada, planOpening, planReply,
-  planSpontaneous, sugerirAberturas, sugerirRespostas, type Tone,
+  EMOJI_HUMOR, HUMORES, PACIENCIA_BAIXA, PACIENCIA_MAXIMA, ROTULO_HUMOR, analisarConversa, cartaoDaPersona, conversaParaMarkdown,
+  estadoDe, estagioAtual, pacienciaDe, planDoNada, planOpening, planReply, planSpontaneous, promptDoSistema, resumirMemorias,
+  sugerirAberturas, sugerirRespostas, type EstadoEmocional, type EstadoEstruturado, type Tone,
 } from '../lib/dialogue';
 import { seloDaRelacao } from '../lib/relacao';
 
@@ -31,6 +32,10 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const [cardOpen, setCardOpen] = useState(false);
   const [photoPicker, setPhotoPicker] = useState(false);
   const [auto, setAuto] = useState(!!s.chatAuto);
+  // Retrato do momento: o estado que a última mensagem produziu.
+  const [retrato, setRetrato] = useState(false);
+  const [ultimoEstado, setUltimoEstado] = useState<{ estado: EstadoEmocional; json: EstadoEstruturado } | null>(null);
+  const [promptAberto, setPromptAberto] = useState(false);
   const [aviso, setAviso] = useState('');
   // Tick das suas mensagens: enviado → entregue → lida.
   const [ticks, setTicks] = useState<Record<string, 'enviado' | 'entregue' | 'lido'>>({});
@@ -69,6 +74,15 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
     return () => clearTimeout(timer);
   }, [aviso]);
 
+  // Retrato do momento: usa o último estado gerado; se ainda não existe, monta um
+  // a partir do que está guardado na conversa.
+  const estadoCompleto: EstadoEmocional = ultimoEstado?.estado || {
+    humor, paciencia: pacienciaDe(estado), afinidade: estado.afinidade, estagio,
+    gatilhos: estado.gatilhos || [], leitura: `${ROTULO_HUMOR[humor]} · paciência ${Math.round(pacienciaDe(estado))}/${PACIENCIA_MAXIMA}`,
+  };
+  const memoriasDaConversa = resumirMemorias(estado);
+  const promptAtual = promptDoSistema({ person, persona, estado: estadoCompleto });
+
   const salvarEstado = (next: typeof estado) => ctx.commit(d => ({ ...d, chatStates: { ...d.chatStates, [person.id]: next } }), undefined, false);
   const adicionarMensagem = (mensagem: ChatMessage) => ctx.commit(d => ({ ...d, chats: [...d.chats, mensagem] }), undefined, false);
 
@@ -82,6 +96,8 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
 
   /** Distribui as bolhas dela na tela, com "digitando..." entre elas. */
   const tocarPlano = (plano: ReturnType<typeof planReply>) => {
+    // Sempre quer que esteja, o retrato fica guardado para a tela mostrar.
+    if (plano.estado && plano.estruturado) setUltimoEstado({ estado: plano.estado, json: plano.estruturado });
     limparTimers();
     setTyping(true);
     let acumulado = 0;
@@ -94,7 +110,10 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
     });
     // Ela continua "digitando" até acabar de mandar; o silêncio vem depois.
     timers.current.push(setTimeout(() => setTyping(false), acumulado + 320));
-    if (plano.desviado) setAviso('Ela desconversou: esse assunto ainda não é do jeito dela com você.');
+    if (plano.eventos.includes('limite:grosseria')) setAviso('Ela cortou o assunto. Falar grosso mexe com o humor da conversa — paciência e química caíram.');
+    else if (plano.estado && plano.estado.paciencia <= PACIENCIA_BAIXA) setAviso('A paciência dela está no fim: respostas curtas até o clima melhorar.');
+    else if (plano.eventos.includes('estagio:') && plano.estado?.gatilhos.includes('ficou mais próxima')) setAviso(`Ela se abriu: a conversa chegou em "${plano.estagio.label}".`);
+    else if (plano.desviado) setAviso('Ela desconversou: esse assunto ainda não é do jeito dela com você.');
     else if (plano.eventos.some(evento => evento.startsWith('estagio:'))) setAviso(`A conversa evoluiu: agora vocês estão em "${plano.estagio.label}".`);
     // De vez em quando ela manda uma foto junto (quando tem foto na ficha).
     if (person.fotos.length && plano.tom !== 'amizade' && Math.random() < 0.18) {
@@ -253,7 +272,42 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
           </button>
         </div>
 
+        {retrato && <div className="chat-estado">
+          <div className="chat-estado-topo">
+            <span className={`chat-estado-humor h-${humor}`}>{EMOJI_HUMOR[humor]} {ROTULO_HUMOR[humor]}</span>
+            <span className="chat-estado-leitura">{estadoCompleto.leitura}</span>
+            <IconButton label="Fechar retrato do momento" onClick={() => setRetrato(false)}><X size={14} /></IconButton>
+          </div>
+          <div className="chat-estado-barras">
+            <span className="chat-estado-item" title="Cai com grosseria e cobrança, volta com conversa boa">
+              <label>Paciência <b>{Math.round(estadoCompleto.paciencia)}/{PACIENCIA_MAXIMA}</b></label>
+              <span className={`chat-estado-trilha ${estadoCompleto.paciencia <= PACIENCIA_BAIXA ? 'baixa' : estadoCompleto.paciencia >= 8 ? 'alta' : ''}`}><i style={{ width: `${(estadoCompleto.paciencia / PACIENCIA_MAXIMA) * 100}%` }} /></span>
+            </span>
+            <span className="chat-estado-item" title="Sobe com interesse verdadeiro e cai com ousadia fora de hora">
+              <label>Química <b>{Math.round(estadoCompleto.afinidade)}%</b></label>
+              <span className="chat-estado-trilha quimica"><i style={{ width: `${estadoCompleto.afinidade}%` }} /></span>
+            </span>
+          </div>
+          <div className="chat-estado-rodape">
+            <span className="chat-estado-chip">{estagio.label}</span>
+            {estadoCompleto.gatilhos.map(gatilho => <span className="chat-estado-chip gatilho" key={gatilho}>{gatilho}</span>)}
+          </div>
+          <details className="chat-detalhe">
+            <summary>O que ela lembra de você<span>{memoriasDaConversa.length}</span></summary>
+            {memoriasDaConversa.length
+              ? <ul className="chat-memorias">{memoriasDaConversa.map(item => <li key={item}>{item}</li>)}</ul>
+              : <p className="form-help">Nada anotado ainda. Fale de você, da sua rotina, do que você gosta.</p>}
+          </details>
+          <details className="chat-detalhe" open={promptAberto} onToggle={evento => setPromptAberto((evento.target as HTMLDetailsElement).open)}>
+            <summary>Prompt do sistema<span>como ela é instruída</span></summary>
+            <pre className="chat-prompt">{promptAtual}</pre>
+            {ultimoEstado && <pre className="chat-prompt json">{JSON.stringify(ultimoEstado.json, null, 2)}</pre>}
+            <button className="text-action" onClick={() => { navigator.clipboard?.writeText(`${promptAtual}\n\n${ultimoEstado ? JSON.stringify(ultimoEstado.json, null, 2) : ''}`); ctx.notify('Prompt copiado.'); }}>Copiar prompt e estado</button>
+          </details>
+        </div>}
+
         {menuOpen && <div className="chat-menu">
+          <button onClick={() => { setRetrato(!retrato); setMenuOpen(false); }}><Heart size={15} />Retrato do momento</button>
           <button onClick={() => { setCardOpen(true); setMenuOpen(false); }}><Info size={15} />Como ela conversa</button>
           <button onClick={() => { setSugestoes(true); setMenuOpen(false); }}><Sparkles size={15} />Puxar assunto</button>
           <button onClick={() => { espontanea(); setMenuOpen(false); }}><MessageCircle size={15} />Ela mandar mensagem agora</button>
