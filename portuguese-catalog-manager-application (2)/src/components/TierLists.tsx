@@ -4,6 +4,7 @@ import type { Person, TierList } from '../types';
 import { useCatalog } from '../context';
 import { generateId, isActive, locationLabel, PALETTE, tierAllows } from '../store';
 import { exportTierListPng } from '../lib/export';
+import { ehToque, instrucaoMover } from '../lib/dispositivo';
 import { Avatar, Button, CheckBox, Confirm, EmptyState, Field, IconButton, Modal, PageTitle } from './ui';
 
 export default function TierLists() {
@@ -51,7 +52,7 @@ export default function TierLists() {
     </div>;
   }
 
-  return <div className="tierlists-page">{list ? <><button className="back-link" onClick={() => setActiveId(null)}><ArrowLeft size={16} />Todas as tierlists</button><PageTitle eyebrow="Uma organização que é só sua" title={list.nome} description={`${allowed.length} pessoas disponíveis. Arraste para organizar ou use a opção Mover.`}><Button onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={16} />Participantes</Button><div className="menu-anchor"><details className="details-menu"><summary className="btn btn-secondary"><MoreHorizontal size={19} />Mais</summary><div className="dropdown-menu"><button onClick={() => { setName(list.nome); setEditingName(true); }}><Settings2 size={16} />Renomear tierlist</button><button onClick={() => duplicateList(list)}><Copy size={16} />Duplicar tierlist</button><button onClick={() => exportPng(list)} disabled={exporting}><Download size={16} />{exporting ? 'Exportando...' : 'Exportar tierlist PNG'}</button><button className="danger-text" onClick={() => setDeleteList(list.id)}><Trash2 size={16} />Excluir tierlist</button></div></details></div></PageTitle>
+  return <div className="tierlists-page">{list ? <><button className="back-link" onClick={() => setActiveId(null)}><ArrowLeft size={16} />Todas as tierlists</button><PageTitle eyebrow="Uma organização que é só sua" title={list.nome} description={`${allowed.length} pessoas disponíveis. ${instrucaoMover('Arraste para organizar ou use a opção Mover.', 'Toque no botão ↔ de uma pessoa para trocá-la de faixa.')}`}><Button onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={16} />Participantes</Button><div className="menu-anchor"><details className="details-menu"><summary className="btn btn-secondary"><MoreHorizontal size={19} />Mais</summary><div className="dropdown-menu"><button onClick={() => { setName(list.nome); setEditingName(true); }}><Settings2 size={16} />Renomear tierlist</button><button onClick={() => duplicateList(list)}><Copy size={16} />Duplicar tierlist</button><button onClick={() => exportPng(list)} disabled={exporting}><Download size={16} />{exporting ? 'Exportando...' : 'Exportar tierlist PNG'}</button><button className="danger-text" onClick={() => setDeleteList(list.id)}><Trash2 size={16} />Excluir tierlist</button></div></details></div></PageTitle>
       {hiddenCount > 0 && <div className="inline-notice"><Layers size={17} /><span>{hiddenCount} posição(ões) fora dos filtros ou no arquivo. Elas permanecem preservadas e voltarão ao restaurar os participantes.</span></div>}
       <div className="tier-board">
         <div className="tier-board-main">{list.tiers.map((tier, index) => {
@@ -68,7 +69,7 @@ export default function TierLists() {
             </div>
             <div className={`tier-dropzone ${dropTarget === tier ? 'drop-active' : ''}`} onDragOver={e => { e.preventDefault(); setDropTarget(tier); }} onDrop={e => { e.preventDefault(); move(e.dataTransfer.getData('text/plain'), tier); }}>
               {members.map(i => renderPersonChip(data.people.find(p => p.id === i.personId)!, true))}
-              {!members.length && <span className="drop-placeholder"><Plus size={16} />Arraste pessoas para esta faixa</span>}
+              {!members.length && <span className="drop-placeholder">{ehToque() ? <><ArrowLeftRight size={15} />Use o botão ↔ da pessoa que está em Não classificadas</> : <><Plus size={16} />Arraste pessoas para esta faixa</>}</span>}
             </div>
           </div>;
         })}
@@ -77,7 +78,7 @@ export default function TierLists() {
         <aside className={`unclassified ${dropTarget === '__unassigned' ? 'drop-active' : ''}`} onDragOver={e => { e.preventDefault(); setDropTarget('__unassigned'); }} onDrop={e => { e.preventDefault(); move(e.dataTransfer.getData('text/plain'), ''); }}>
           <h3><Users size={17} />Não classificadas<span>{unclassified.length}</span></h3>
           <input value={query} aria-label="Buscar participantes" onChange={e => setQuery(e.target.value)} placeholder="Buscar pessoa..." />
-          <div className="unclassified-list">{unclassified.map(p => renderPersonChip(p))}{!unclassified.length && <p className="form-help">Tudo no seu lugar. Arraste uma pessoa de volta para cá se quiser remover a classificação.</p>}</div>
+          <div className="unclassified-list">{unclassified.map(p => renderPersonChip(p))}{!unclassified.length && <p className="form-help">{instrucaoMover('Tudo no seu lugar. Arraste uma pessoa de volta para cá se quiser remover a classificação.', 'Tudo no seu lugar. Use o botão ↔ da pessoa para trazê-la de volta e tirar a classificação.')}</p>}</div>
         </aside>
       </div>
     </> : <><PageTitle eyebrow="Seu olhar, suas escolhas" title="Minhas tierlists" description="Organize conexões em faixas que fazem sentido para você."><Button variant="primary" onClick={() => { setCreating(true); setName(''); setRows('S, A, B, C, D'); }}><Plus size={18} />Nova tierlist</Button></PageTitle><div className="tierlist-grid">{data.tierLists.map(t => <article className="tierlist-card" key={t.id}><button className="tierlist-open" onClick={() => setActiveId(t.id)}><span className="tierlist-icon"><Layers size={24} /></span><div className="tierlist-preview">{t.tiers.slice(0, 5).map((tier, i) => <span key={tier} style={{ backgroundColor: `${t.colors?.[tier] || PALETTE[i]}38`, color: t.colors?.[tier] || PALETTE[i] }}>{tier}</span>)}</div><h2>{t.nome}</h2><p>{t.tiers.length} faixas <span>·</span> {t.items.filter(i => data.people.some(p => p.id === i.personId && isActive(p))).length} pessoas organizadas</p></button><div className="tierlist-card-footer"><button className="text-action" onClick={() => setActiveId(t.id)}>Abrir tierlist<ArrowRight size={15} /></button><IconButton label={`Duplicar ${t.nome}`} onClick={() => duplicateList(t)}><Copy size={16} /></IconButton></div></article>)}</div>{!data.tierLists.length && <EmptyState icon={Layers} title="Uma lista com a sua personalidade" description="Crie faixas com nomes próprios, selecione categorias e organize as pessoas arrastando." action="Criar primeira tierlist" onAction={() => { setCreating(true); setName(''); }} />}</>}

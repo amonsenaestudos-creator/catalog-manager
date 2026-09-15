@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, Plus, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
+import { ArrowLeft, ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, Plus, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
 import { CatalogProvider, useCatalog } from './context';
 import { formatDate } from './store';
 import { Avatar, Button, IconButton, Toast } from './components/ui';
@@ -32,16 +32,17 @@ import Discover from './components/Discover';
 import NotificationCenter from './components/NotificationCenter';
 import QuickTools from './components/QuickTools';
 import Toolbox from './components/Toolbox';
+import Conversations from './components/Conversations';
 import { AchievementToast, ConfettiBurst, LevelUpBadge, RouletteModal } from './components/Celebrations';
 import OnboardingTour from './components/OnboardingTour';
 import { playSound } from './lib/sound';
 
 const PAGE_NAMES: Record<string, string> = {
-  home: 'Visão geral', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
+  home: 'Visão geral', conversas: 'Conversas', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
 };
 const SHORTCUT_PAGES = ['home', 'catalog', 'ranking', 'tierlists', 'add', 'gallery', 'stories', 'settings'];
 // Atalhos de letra: chegam rápido às telas novas sem mudar os atalhos antigos.
-const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox' };
+const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox', p: 'conversas' };
 // Código Konami: ↑ ↑ ↓ ↓ ← → ← → B A liga (ou desliga) o tema disco.
 const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
 
@@ -81,6 +82,7 @@ function ActivePage() {
   if (page === 'myspace') return <MySpace />;
   if (page === 'agenda') return <Agenda />;
   if (page === 'toolbox') return <Toolbox />;
+  if (page === 'conversas') return <Conversations />;
   if (page === 'discover') return <Discover />;
   if (page === 'catalog') return <Catalog />;
   if (page === 'add') return <AddPerson />;
@@ -102,6 +104,41 @@ function Application() {
   const { data, page, authenticated, ready } = ctx;
   const escTimes = useRef<number[]>([]);
   const konamiKeys = useRef<string[]>([]);
+  // No celular não existe Esc: segurar o título da tela aciona o modo pânico.
+  // Histórico de telas: no celular o topo ganha um botão de voltar que anda
+  // para trás dentro do aplicativo, como num app de verdade.
+  const [historico, setHistorico] = useState<string[]>([]);
+  const ultimaPagina = useRef(page);
+  useEffect(() => {
+    if (ultimaPagina.current === page) return;
+    const anterior = ultimaPagina.current;
+    ultimaPagina.current = page;
+    setHistorico(lista => (anterior === 'home' || anterior === page ? lista : [...lista, anterior]).slice(-12));
+  }, [page]);
+  const voltarPagina = () => setHistorico(lista => {
+    const copia = [...lista];
+    const destino = copia.pop();
+    if (destino) ctx.navigate(destino);
+    return copia;
+  });
+
+  const panicoTimer = useRef<number | null>(null);
+  const panicoOrigem = useRef<{ x: number; y: number } | null>(null);
+  const soltarPanico = () => {
+    if (panicoTimer.current !== null) { window.clearTimeout(panicoTimer.current); panicoTimer.current = null; }
+    panicoOrigem.current = null;
+  };
+  const segurarPanico = (evento: React.PointerEvent) => {
+    if (data.settings.panicEnabled === false) return;
+    soltarPanico();
+    panicoOrigem.current = { x: evento.clientX, y: evento.clientY };
+    panicoTimer.current = window.setTimeout(() => { panicoTimer.current = null; ctx.setPanic(true); }, 700);
+  };
+  const moverPanico = (evento: React.PointerEvent) => {
+    const origem = panicoOrigem.current;
+    if (!origem) return;
+    if (Math.abs(evento.clientX - origem.x) + Math.abs(evento.clientY - origem.y) > 12) soltarPanico();
+  };
   const [confetti, setConfetti] = useState(0);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [quickTools, setQuickTools] = useState(false);
@@ -166,7 +203,12 @@ function Application() {
       if (ctx.privacy) return;
       if (mod && value === 'k') { event.preventDefault(); ctx.setCommandOpen(!ctx.commandOpen); return; }
       const target = event.target as HTMLElement;
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable || document.querySelector('[role="dialog"]')) return;
+      const focado = document.activeElement as HTMLElement | null;
+      const digitando = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+        || (!!focado && ['INPUT', 'TEXTAREA', 'SELECT'].includes(focado.tagName))
+        || target.isContentEditable || !!focado?.isContentEditable;
+      // Quem está escrevendo (inclusive na conversa aberta fora de modal) não dispara atalhos.
+      if (digitando || document.querySelector('[role="dialog"]')) return;
       if (!mod && !event.altKey) {
         konamiKeys.current = [...konamiKeys.current, value].slice(-KONAMI.length);
         // O "B" do código não pode ligar o disfarce no meio da sequência.
@@ -212,8 +254,13 @@ function Application() {
       <div className="workspace">
         <header className="topbar">
           <div className="topbar-start">
-            <IconButton label="Abrir menu" className="mobile-menu-trigger" aria-expanded={mobileMenu} aria-controls="mobile-navigation" onClick={() => setMobileMenu(true)}><Menu size={21} /></IconButton>
-            <span className="topbar-mobile-title">{PAGE_NAMES[page] || 'Organizar'}</span>
+            {historico.length > 0
+              ? <IconButton label="Voltar para a tela anterior" className="mobile-back" onClick={voltarPagina}><ArrowLeft size={20} /></IconButton>
+              : <IconButton label="Abrir menu" className="mobile-menu-trigger" aria-expanded={mobileMenu} aria-controls="mobile-navigation" onClick={() => setMobileMenu(true)}><Menu size={21} /></IconButton>}
+            <span className="topbar-mobile-title" role="presentation"
+              onPointerDown={segurarPanico} onPointerUp={soltarPanico} onPointerCancel={soltarPanico}
+              onPointerLeave={soltarPanico} onPointerMove={moverPanico}
+              title={data.settings.panicEnabled === false ? undefined : 'Segure para o modo pânico'}>{PAGE_NAMES[page] || 'Organizar'}</span>
             <span className="topbar-breadcrumb">Meu espaço<ChevronRight size={12} /><b>{PAGE_NAMES[page] || 'Organizar'}</b></span>
             <button className="global-search" onClick={() => ctx.setCommandOpen(true)}><Search size={16} /><span>Buscar pessoas, tags e muito mais...</span><kbd>Ctrl K</kbd></button>
           </div>
@@ -231,7 +278,7 @@ function Application() {
           </div>
         </header>
         {ctx.demo && <div className="demo-banner"><span><ShieldCheck size={13} />Você está explorando fichas fictícias. Seus dados reais não são alterados.</span><button onClick={ctx.logout}>Sair da demonstração</button></div>}
-        <main className="page-content"><AnimatePresence mode="wait"><motion.div key={page} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.19 }}><ActivePage /></motion.div></AnimatePresence></main>
+        <main className="page-content"><motion.div key={page} className="page-fade" initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.19 }}><ActivePage /></motion.div></main>
         <div className="workspace-footer">
           <span><LockKeyhole size={11} />Armazenado neste dispositivo</span>
           <span className="footer-level"><button onClick={() => ctx.navigate('dashboard')}><Gauge size={12} />Nível {ctx.level.level} · {ctx.xp.toLocaleString('pt-BR')} XP</button>{ctx.unread > 0 && <button className="footer-alert" onClick={() => ctx.setNotificationsOpen(true)}><Sparkles size={12} />{ctx.unread} {ctx.unread === 1 ? 'aviso' : 'avisos'}</button>}</span>
@@ -241,7 +288,7 @@ function Application() {
       <nav className="mobile-bottom-nav" aria-label="Navegação rápida">
         <button className={page === 'home' ? 'active' : ''} onClick={() => ctx.navigate('home')}><HomeIcon size={20} /><span>Início</span></button>
         <button className={page === 'catalog' ? 'active' : ''} onClick={() => ctx.navigate('catalog')}><Users size={20} /><span>Catálogo</span></button>
-        <button className="mobile-add" onClick={() => ctx.setQuickOpen(true)} aria-label="Adicionar pessoa"><Plus size={25} /></button>
+        <button className="mobile-add" onClick={() => ctx.setQuickOpen(true)} aria-label="Adicionar pessoa"><span><Plus size={24} /></span></button>
         <button onClick={() => ctx.setCommandOpen(true)}><Search size={20} /><span>Buscar</span></button>
         <button onClick={() => setMobileMenu(true)} aria-expanded={mobileMenu}><Menu size={20} /><span>Menu</span></button>
       </nav>

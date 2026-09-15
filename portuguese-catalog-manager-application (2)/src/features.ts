@@ -4,6 +4,24 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Barra de baixo flutuante no celular', 'A navegação virou uma doca solta com cantos arredondados, vidro por cima do conteúdo e o “+” elevado de verdade — sem sobras de gradiente atrás do botão.', 'home'],
+  ['Sugestões que deslizam no dedo', 'Na conversa de celular as respostas sugeridas viraram cartões que correm de lado, um por vez, em vez de uma pilha que empurra o campo de escrita.', 'conversas'],
+  ['Abas em chip nas telas pequenas', 'Catálogo, editor e ferramentas trocam o sublinhado fino por chips redondos, do tamanho do dedo, que rolam de lado sem quebrar linha.', 'catalog'],
+  ['Voltar para o fim do papo', 'Rolou o histórico para reler? Um atalho flutua na base da conversa e leva você de volta à última mensagem — nas duas telas.', 'conversas'],
+  ['Caixa de texto sempre no lugar', 'No computador a conversa ocupa a altura da janela: só o histórico rola e o campo de escrita fica preso no rodapé, do jeito que você deixou.', 'conversas'],
+  ['Conversa em coluna de leitura', 'No computador as mensagens ficam centradas numa coluna confortável, com cabeçalho, medidor e sugestões alinhados no mesmo eixo.', 'conversas'],
+  ['Celular com acabamento de aplicativo', 'Cartões, listas, formulários, modais e a conversa seguem o mesmo desenho no celular: cantos, toque de 46px, topo com desfoque e barra inferior respeitando o aparelho.', 'home'],
+  ['Retrato do momento', 'A conversa mostra humor, paciência, química e estágio a cada mensagem — com os gatilhos: o que você escreveu que mudou o clima.', 'conversas'],
+  ['Paciência que existe de verdade', 'Falar grosso derruba a paciência e esfria o humor: ela corta o assunto e responde curto até o clima melhorar. Pedir desculpa reconstrói.', 'conversas'],
+  ['Ela lembra de você', 'As coisas que você conta viram memória: a lembrança mais parecida com o assunto do momento volta na conversa na hora certa.', 'conversas'],
+  ['Prompt do sistema à vista', 'Dá para ver e copiar como a ficha está sendo instruída: personalidade, maturidade, proximidade e o estado emocional daquele momento.', 'conversas'],
+  ['Maturidade ajustável na ficha', 'A idade sugere o vocabulário, mas você decide: na ficha dá para deixar a conversa mais séria e contida ou mais solta e brincalhona.', 'catalog'],
+  ['Modo pânico no celular', 'Sem tecla Esc no aparelho, o pânico ganhou um gesto: segure o título da tela por um segundo e tudo sai da frente na hora.', 'settings'],
+  ['Conversa que entende desabafo', 'Dia ruim é reconhecido como dia ruim: a resposta acolhe, sem carinha alegre e sem pergunta de rotina no meio. A pergunta de volta é de cuidado.', 'conversas'],
+  ['Botões que apareciam só com o mouse', 'No celular, ações como editar uma anotação, ajustar um cartão do quadro ou trocar alguém de faixa agora ficam sempre à vista, com tamanho de dedo. Nada de adivinhar onde tocar.', 'notes'],
+  ['Instruções que falam a língua do toque', 'Em tela de dedo, as dicas trocam “arraste” pelo caminho que funciona: o botão ↔ para mudar de faixa, a pasta mãe para aninhar e a etapa do cartão para mudar de coluna.', 'tierlists'],
+  ['Conversa em tela cheia', 'No celular, abrir um papo esconde a barra de baixo e o cabeçalho: sobra a conversa inteira, com o campo de escrita colado na parte inferior.', 'conversas'],
+  ['Teclado não cobre mais o campo', 'Quando o teclado do aparelho aparece, a conversa sobe junto e o campo de escrita continua visível enquanto você digita.', 'conversas'],
   ['Navegação feita para celular', 'Uma barra inferior mantém Início, Catálogo, Adicionar, Buscar e Menu ao alcance do polegar.', 'home'],
   ['Menu lateral deslizante', 'No celular e tablet, o menu abre por cima da tela, fecha ao tocar fora e não espreme mais o conteúdo.', 'home'],
   ['Central de ações rápidas', 'O botão de raio reúne mais de vinte atalhos úteis com contagens atualizadas. No computador, use também a tecla Q.', 'home'],
@@ -137,6 +155,20 @@ export const NEW_FEATURES: [string, string, string][] = [
   ['Grupo Meu espaço e rotina', 'Análise do diário, prompts de escrita guiada, painel de metas, Meu dia em uma tela, modo foco 25+5, cronômetro, metas de conexão e resumo semanal.', 'toolbox'],
   ['Grupo Utilidades do dia a dia', 'Dividir a conta com gorjeta, porcentagem e desconto, conversor de medidas, contas com datas, senha forte, link de WhatsApp com mensagem, formatador de texto, sorteio de pessoas ou de ordem, checklist que vira nota, busca profunda, contador de texto, roteiro de encontro e modelo de ficha.', 'toolbox'],
   ['Ferramentas que mostram antes de mudar', 'Toda ferramenta de escrita exibe o que vai mudar, explica o efeito e pede confirmação. Ctrl+Z desfaz.', 'toolbox'],
+  // Conversa simulada: vínculos, idade do dono e troca de pacotes
+  ['Conversas em tela própria', 'A aba Conversas (atalho P) reúne os papos com busca, selo da relação, química e prévia da última mensagem. Quem ainda não tem conversa vê o catálogo para começar.', 'conversas'],
+  ['A conversa conhece a sua idade', 'Em Ajustes → Conversas você informa a sua idade e o seu aniversário. Enquanto você é menor de idade e ela é bem mais velha, ela te trata como criança e o papo fica na amizade. Entre dois adultos a diferença vira assunto: o jeito de tia continua, e o clima sobe com química e modo adulto.', 'settings'],
+  ['Vínculos de família nas fichas', 'Marque quem é mãe, pai, irmã, tia, filha e outros papéis. A ficha mostra o parentesco e a rede familiar, e a conversa passa a falar de mãe, filha e família como gente de verdade.', 'catalog'],
+  ['Uma categoria inteira em um arquivo', 'Em Ajustes → Dados, exporte uma categoria ou subcategoria como .json com fichas, vínculos e uma tierlist pronta. Em outro aparelho, importe o mesmo arquivo: ele junta o que falta sem duplicar.', 'settings'],
+  ['Conversa que entende nomes e não repete', 'Ela reconhece o próprio nome, o seu e o de qualquer familiar cadastrado (mãe, filha, irmã...), responde o assunto certo e tem repertório de sobra: são centenas de falas por tom, com recepções do que você disse, gírias, risadas e abreviações.', 'conversas'],
+  ['Ritmo de gente de verdade, com tick', 'Nada de resposta instantânea: ela lê, pensa, digita e respira entre as bolhas — e o tempo de digitação acompanha o tamanho do texto. Sua mensagem ganha ✓ enviada, ✓✓ entregue e ✓✓ colorida quando ela lê. Em Ajustes → Conversas dá para escolher pausado, realista ou rápido.', 'conversas'],
+  ['Cada ficha fala do seu jeito', 'A marca registrada sai da própria ficha: risada (“kkkk”, “rs”, “hahaha”), aberturas (“Olha,”, “Mano,”, “Viu,”), bordões tirados do que ela é e o hábito de pontuação. Duas pessoas diferentes nunca respondem igual, e a mesma pessoa não vira outra de um dia pro outro.', 'conversas'],
+  ['Ela entende o seu português abreviado', '“vc viu o q eu te mandei hj?” é lido como “você viu o que eu te mandei hoje?”. São mais de cem abreviações (vc, hj, entt, pq, tbm, mds, blz, vlw, kd, bjs...) sem perder o jeito falado que já funcionava (“tá”, “tô”, “blz”).', 'conversas'],
+  ['Sugestões que combinam com a hora', 'Quando ela cuida de você, as opções são de agradecer; quando ela se fecha, são de dar espaço; quando ela conta uma história, são de perguntar mais. Cada categoria ganhou linhas novas — e a ficha adulta não recebe sugestão de molecagem.', 'conversas'],
+  ['Ficha adulta conversa como adulto', 'A idade e o jeito dela definem o registro: ficha de 25 anos ou mais fala de trabalho, saúde, contas e família, com frase inteira, menos "kkk", menos emoji e sem bordão de molecagem. Ficha mais nova continua leve — e menor de idade segue no papo de amizade.', 'conversas'],
+  ['Ela pergunta quem é quem', 'Cite "o João", "a Ana Clara" ou "meu chefe" e ela repara no nome, pergunta quem é e guarda. Nas próximas conversas, pode voltar no assunto: "E sobre o João, tem novidade?". Nome de mãe, filha e irmã cadastrados aparecem na resposta.', 'conversas'],
+  ['Mais respostas e menos repetição', 'As sugestões de resposta dobraram de tamanho e mudam a cada conversa, e ela nunca repete a mesma frase duas vezes seguidas. Novos assuntos entraram no motor: pedido de história, noite sem dormir, gratidão pela conversa e lembrança de quem você citou.', 'conversas'],
+  ['Menu lateral que não cresce sem fim', 'O menu esconde os itens extras atrás de um botão “Mais” e lembra a sua escolha: a lista fica curta no dia a dia e completa quando você quiser.', 'home'],
 ];
 
 export const FEATURES = [

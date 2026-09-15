@@ -766,7 +766,7 @@ const personaAdulta = (person: Person) => isAdult(person);
 function resumoDoChat(d: AppData, person: Person) {
   const mensagens = d.chats.filter(mensagem => mensagem.personId === person.id);
   const estado = estadoDe(d, person);
-  const persona = buildPersona(person);
+  const persona = buildPersona(person, { people: d.people, settings: d.settings });
   const analise = analisarConversa(mensagens);
   return { mensagens, estado, persona, analise };
 }
@@ -783,9 +783,9 @@ const FERRAMENTAS_SOCIAL: Tool[] = [
     run: (v, ctx) => {
       const person = escolhida(v, ctx.data);
       if (!person) return { texto: 'Cadastre uma pessoa para gerar os quebra-gelos.' };
-      const persona = buildPersona(person);
+      const persona = buildPersona(person, { people: ctx.data.people, settings: ctx.data.settings });
       const estado = estadoDe(ctx.data, person);
-      const sugestoes = sugerirAberturas({ person, persona, state: estado, historico: ctx.data.chats.filter(m => m.personId === person.id), adulto: marcado(v, 'adulto') && !!ctx.data.settings.adultMode, quantas: Math.max(1, inteiro(v, 'quantidade', 5)) });
+      const sugestoes = sugerirAberturas({ person, persona, state: estado, historico: ctx.data.chats.filter(m => m.personId === person.id), adulto: marcado(v, 'adulto') && !!ctx.data.settings.adultMode, quantas: Math.max(1, inteiro(v, 'quantidade', 5)), pessoas: ctx.data.people, dono: ctx.data.settings, });
       return {
         itens: sugestoes.map(sugestao => ({ title: sugestao.texto, detail: sugestao.motivo, personId: person.id })),
         texto: `Aberturas para ${person.nome} (${persona.resumo}):\n\n${sugestoes.map((sugestao, i) => `${i + 1}. ${sugestao.texto}\n   ↳ ${sugestao.motivo}`).join('\n')}`,
@@ -874,7 +874,7 @@ const FERRAMENTAS_SOCIAL: Tool[] = [
       const person = escolhida(v, ctx.data);
       if (!person) return { texto: 'Cadastre uma pessoa primeiro.' };
       const d = ctx.data;
-      const pessoa = buildPersona(person);
+      const pessoa = buildPersona(person, { people: d.people, settings: d.settings });
       const lembretes = d.reminders.filter(lembrete => lembrete.personId === person.id && !lembrete.concluido);
       const metas = d.goals.filter(meta => meta.personId === person.id && !meta.done);
       const ultimas = d.chats.filter(mensagem => mensagem.personId === person.id).slice(-6);
@@ -1640,7 +1640,7 @@ const FERRAMENTAS_UTEIS: Tool[] = [
       const periodo = campo(v, 'periodo', 'tarde');
       const horas = Math.max(1, Math.min(12, inteiro(v, 'duracao', 4)));
       const orcamento = numero(v, 'orcamento', 150);
-      const persona = buildPersona(person);
+      const persona = buildPersona(person, { people: ctx.data.people, settings: ctx.data.settings });
       const inicio = periodo === 'manha' ? 9 : periodo === 'tarde' ? 15 : 19;
       const etapas: string[] = [];
       const interesse = persona.interesses.map(item => item.label);

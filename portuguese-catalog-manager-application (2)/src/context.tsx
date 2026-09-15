@@ -24,6 +24,10 @@ interface CatalogContext {
   selectedId: string | null;
   openPerson: (p: Person | string) => void;
   closePerson: () => void;
+  /** Conversa aberta na aba Conversas (null = lista de conversas). */
+  chatPersonId: string | null;
+  openChat: (p: Person | string) => void;
+  closeChat: () => void;
   quickOpen: boolean;
   setQuickOpen: (v: boolean) => void;
   compareIds: string[] | null;
@@ -105,6 +109,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [page, setPage] = useState('home');
   const [filter, setFilter] = useState<CatalogFilter>({ ...DEFAULT_FILTER });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [chatPersonId, setChatPersonId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [compareIds, setCompareIds] = useState<string[] | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -302,6 +307,16 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [ready, authenticated, demo, data.people.length, data.settings.trashAutoCleanDays, commit]);
 
   const navigate = useCallback((page: string, scope?: CatalogFilter['scope']) => { setPage(page); if (scope) setFilter({ ...DEFAULT_FILTER, scope }); window.scrollTo({ top: 0 }); }, []);
+  // Aba Conversas: abre a pessoa certa direto do fichário, da ficha ou do catálogo.
+  const closeChat = useCallback(() => setChatPersonId(null), []);
+  const openChat = useCallback((person: Person | string) => {
+    const id = typeof person === 'string' ? person : person.id;
+    const alvo = current.current.people.find(p => p.id === id);
+    if (alvo?.deletedAt) { navigate('catalog', 'trash'); notify('Esta ficha está na lixeira. Restaure para conversar.'); return; }
+    if (!alvo) { notify('Ficha não encontrada.', true); return; }
+    setChatPersonId(id);
+    navigate('conversas');
+  }, [navigate, notify]);
   useEffect(() => {
     setFilter(f => {
       const category = data.categories.find(c => c.value === f.category);
@@ -469,7 +484,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [commit]);
 
   return <Context.Provider value={{
-    data, ready, authenticated, demo, page, filter, setFilter, navigate, selectedId, openPerson, closePerson: () => setSelectedId(null),
+    data, ready, authenticated, demo, page, filter, setFilter, navigate, selectedId, openPerson, closePerson: () => setSelectedId(null), chatPersonId, openChat, closeChat,
     quickOpen, setQuickOpen, compareIds, setCompareIds, commandOpen, setCommandOpen, privacy, setPrivacy, panic, setPanic, blur, setBlur,
     commit, savePerson, saveDraft, discardDraft, changePeople, trashPeople, restorePeople, deletePermanently, duplicate, seenToday,
     login, logout, enterDemo, undo, redo, canUndo: !!past.current.length, canRedo: !!future.current.length, status, lastSavedAt, retrySave: flush,

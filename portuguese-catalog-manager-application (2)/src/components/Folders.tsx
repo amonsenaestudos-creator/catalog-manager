@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Check, ChevronRight, Edit3, FileText, Folder as FolderIconGlyph, FolderOpen, FolderPlus, Heart, Image as ImageIcon, Layers, Link2, Lock, Pin, Plus, Search, Sparkles, Trash2, Users } from 'lucide-react';
 import type { Folder as FolderType, Photo } from '../types';
 import { useCatalog } from '../context';
+import { instrucaoMover } from '../lib/dispositivo';
 import { allFolderItems, folderChildren, folderCover, folderPath, folderTotals, generateId, getAllPhotos, normalizeText, PALETTE } from '../store';
 import { Avatar, Button, CheckBox, Confirm, EmptyState, Field, IconButton, Modal, PageTitle, PhotoView } from './ui';
 
@@ -115,7 +116,7 @@ export default function Folders() {
     </PageTitle>
     <div className="folder-toolbar">
       <div className="search-field"><Search size={17} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar pasta pelo nome..." aria-label="Buscar pastas" />{query && <button onClick={() => setQuery('')} aria-label="Limpar busca"><Trash2 size={14} /></button>}</div>
-      <span className="muted small">{data.folders.length} pastas · {data.folders.filter(folder => folder.parentId).length} subpastas · arraste uma pasta sobre outra para aninhar</span>
+      <span className="muted small">{data.folders.length} pastas · {data.folders.filter(folder => folder.parentId).length} subpastas · {instrucaoMover('arraste uma pasta sobre outra para aninhar', 'use Editar pasta → Pasta mãe para aninhar')}</span>
     </div>
     {query && <div className="folder-search-results">{searchResults.map(folder => <button key={folder.id} onClick={() => { setOpenId(folder.id); setQuery(''); }}><FolderIconGlyph size={15} />{folder.name}<small>{folderTotals(data, folder.id).all} itens</small></button>)}{!searchResults.length && <p className="form-help">Nenhuma pasta com esse nome.</p>}</div>}
     {!query && <div className="folders-grid">{roots.map(folder => <FolderCard key={folder.id} folder={folder} />)}</div>}

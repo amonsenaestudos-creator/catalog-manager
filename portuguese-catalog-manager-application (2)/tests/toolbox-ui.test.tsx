@@ -157,6 +157,10 @@ describe("Ajustes → Conversas", () => {
     await waitFor(() => expect((screen.getByLabelText(/Ligar o modo adulto/i) as HTMLInputElement).checked).toBe(true));
     expect(screen.getByText(/Fichas com menos de 18 anos nunca entram no flerte/i)).toBeInTheDocument();
     await clicar(screen.getByLabelText(/Mostrar o medidor de química/i));
-    expect(screen.getByLabelText(/Respostas rápidas/i)).toBeInTheDocument();
+    // O ritmo virou uma escolha de três tempos, com o pausado no topo.
+    const ritmo = screen.getByLabelText(/Ritmo das respostas/i) as HTMLSelectElement;
+    expect(ritmo).toBeInTheDocument();
+    expect([...ritmo.options].map(opcao => opcao.value)).toEqual(['pausado', 'realista', 'rapido']);
+    expect(screen.getByLabelText(/Usar gírias e risadas escritas/i)).toBeInTheDocument();
   });
 });
