@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Brain, Camera, Download, Eraser, Flame, Heart, Info, Lock, MessageCircle, MoreVertical, Send, Shuffle, Smile, Sparkles, Timer, Wand2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Brain, Camera, Download, Eraser, Flame, Heart, Info, Lock, MessageCircle, MoreVertical, Send, Shuffle, Smile, Sparkles, Timer, Wand2, X } from 'lucide-react';
 import type { ChatMessage, Person } from '../types';
 import { useCatalog } from '../context';
 import { Avatar, Button, IconButton, Modal } from './ui';
@@ -37,6 +37,9 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const [ultimoEstado, setUltimoEstado] = useState<{ estado: EstadoEmocional; json: EstadoEstruturado } | null>(null);
   const [promptAberto, setPromptAberto] = useState(false);
   const [aviso, setAviso] = useState('');
+  // Rolando o histórico para reler, o campo continua no lugar e aparece o atalho
+  // para voltar ao fim da conversa.
+  const [noFim, setNoFim] = useState(true);
   // Tick das suas mensagens: enviado → entregue → lida.
   const [ticks, setTicks] = useState<Record<string, 'enviado' | 'entregue' | 'lido'>>({});
   // Cada clique em "trocar sugestões" sorteia outras opções.
@@ -66,7 +69,20 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
+    setNoFim(true);
   }, [mensagens.length, typing]);
+
+  /** Sabe se a conversa está no fim: só aí o atalho de descer sai de cena. */
+  const acompanharRolagem = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setNoFim(el.scrollHeight - el.scrollTop - el.clientHeight < 90);
+  };
+  const descerConversa = () => {
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: s.reducedMotion ? 'auto' : 'smooth' });
+    setNoFim(true);
+  };
 
   useEffect(() => {
     if (!aviso) return;
@@ -322,7 +338,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
 
       {aviso && <div className="chat-aviso"><Sparkles size={13} /><span>{aviso}</span></div>}
 
-      <div className="chat-messages" ref={scrollRef}>
+      <div className="chat-messages" ref={scrollRef} onScroll={acompanharRolagem}>
         {dias.map(dia => (
           <div key={dia.chave}>
             <div className="chat-day-divider"><span>{rotuloDia(dia.chave)}</span></div>
@@ -362,6 +378,11 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
             </AnimatePresence>
           </div>
         ))}
+        {!noFim && mensagens.length > 3 && (
+          <button className="chat-descer" onClick={descerConversa} title="Voltar para a última mensagem">
+            <ArrowDown size={15} />Ir para o fim
+          </button>
+        )}
         {typing && (
           <motion.div className="chat-bubble-wrap theirs digitando" initial={s.reducedMotion ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: s.reducedMotion ? 0.1 : 0.3 }}>
             <Avatar person={person} size={30} />

@@ -4,6 +4,10 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Voltar para o fim do papo', 'Rolou o histórico para reler? Um atalho flutua na base da conversa e leva você de volta à última mensagem — nas duas telas.', 'conversas'],
+  ['Caixa de texto sempre no lugar', 'No computador a conversa ocupa a altura da janela: só o histórico rola e o campo de escrita fica preso no rodapé, do jeito que você deixou.', 'conversas'],
+  ['Conversa em coluna de leitura', 'No computador as mensagens ficam centradas numa coluna confortável, com cabeçalho, medidor e sugestões alinhados no mesmo eixo.', 'conversas'],
+  ['Celular com acabamento de aplicativo', 'Cartões, listas, formulários, modais e a conversa seguem o mesmo desenho no celular: cantos, toque de 46px, topo com desfoque e barra inferior respeitando o aparelho.', 'home'],
   ['Retrato do momento', 'A conversa mostra humor, paciência, química e estágio a cada mensagem — com os gatilhos: o que você escreveu que mudou o clima.', 'conversas'],
   ['Paciência que existe de verdade', 'Falar grosso derruba a paciência e esfria o humor: ela corta o assunto e responde curto até o clima melhorar. Pedir desculpa reconstrói.', 'conversas'],
   ['Ela lembra de você', 'As coisas que você conta viram memória: a lembrança mais parecida com o assunto do momento volta na conversa na hora certa.', 'conversas'],
