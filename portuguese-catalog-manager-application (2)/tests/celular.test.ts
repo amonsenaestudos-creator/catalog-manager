@@ -128,6 +128,13 @@ describe("sistema visual do celular", () => {
     expect(sistema).toMatch(/\.check-label\s*\{[^}]*min-height:\s*44px/);
   });
 
+  it("os chips de aba ficam fixos; o título grande rola junto", () => {
+    const trecho = daqui("14.3 título e abas", "14.4 cartões");
+    expect(trecho).toMatch(/\.page-title\s*\{[^}]*position:\s*static/);
+    expect(trecho).toMatch(/\.scope-tabs\s*\{[^}]*position:\s*sticky/);
+    expect(trecho).toMatch(/\.scope-tabs\s*\{[^}]*top:\s*var\(--topo\)/);
+  });
+
   it("as abas viram chips de dedo em todas as telas", () => {
     expect(sistema).toMatch(/\.scope-tabs > button\s*\{[^}]*border-radius:\s*999px/);
     expect(sistema).toMatch(/\.scope-tabs > button\.active::after\s*\{\s*display:\s*none/);

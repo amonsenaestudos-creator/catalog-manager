@@ -918,8 +918,8 @@ kbd { font: 500 10px 'Inter Variable', Inter, sans-serif; border: 1px solid var(
 .chat-modal { padding: 0; overflow: hidden; max-height: 92vh; width: min(520px, calc(100vw - 40px)); }
 .chat-modal .modal-body { padding: 0; display: flex; flex-direction: column; overflow: hidden; height: 75vh; }
 .chat-modal .modal-heading { display: none; }
-.chat-simulator { display: flex; flex-direction: column; height: 100%; background: linear-gradient(180deg, #1a1520 0%, #0f0d15 100%); }
-.light .chat-simulator { background: linear-gradient(180deg, #f6f0fa 0%, #ece4f3 100%); }
+.chat-simulator { --bg-chat: #171320; display: flex; flex-direction: column; height: 100%; background: linear-gradient(180deg, #1a1520 0%, #0f0d15 100%); }
+.light .chat-simulator { --bg-chat: #f3ecf8; background: linear-gradient(180deg, #f6f0fa 0%, #ece4f3 100%); }
 .chat-header { position: relative; border-bottom: 1px solid var(--line); background: var(--surface); padding: 10px 12px; }
 .chat-header-top { display: flex; align-items: center; gap: 10px; }
 .chat-header-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
@@ -1265,7 +1265,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .light .chat-tick.lido { color: #1d7fbd; }
 
 /* Divisor de dia fixo enquanto a conversa rola */
-.chat-day-divider { position: sticky; top: 0; z-index: 2; padding: 4px 0 2px; background: linear-gradient(180deg, var(--bg-chat, transparent) 60%, transparent); }
+.chat-day-divider { position: sticky; top: 0; z-index: 2; padding: 4px 0 2px; background: color-mix(in srgb, var(--bg-chat, var(--bg)) 74%, transparent); backdrop-filter: blur(8px); }
 
 /* Sugestões: mais opções, cada uma com o motivo e o botão de trocar */
 .chat-icebreakers { display: grid; gap: 6px; padding: 0 14px 10px; }
@@ -2284,12 +2284,12 @@ img, video, canvas { max-width: 100%; }
   .topbar-actions .icon-btn:active { background: var(--surface-3); }
 
   /* ------------------------------------------------- 14.3 título e abas -- */
-  /* Título de tela com desvanecimento: em vez de tarja dura, o texto some
-     suave por baixo do topo enquanto a tela rola. */
+  /* Título de tela rola junto: quem carrega o nome da tela é o topo, e com o
+     botão de ação em largura cheia um título fixo comeria 100px de altura. */
   .page-title {
-    position: sticky; top: var(--topo); z-index: 12;
+    position: static; top: auto; z-index: auto;
     margin: 0 -2px 12px; padding: 10px 2px 12px;
-    background: linear-gradient(180deg, var(--bg) 74%, transparent);
+    background: none;
   }
   .page-title h1 { font-size: var(--t-h1); letter-spacing: -.7px; line-height: 1.22; }
   .page-title p, .page-description { font-size: 13px; line-height: 1.6; }
@@ -2302,8 +2302,9 @@ img, video, canvas { max-width: 100%; }
 
   /* Abas viram chips de dedo em vez de sublinhado fino de desktop. */
   .scope-tabs {
-    border-bottom: 0; gap: 8px; padding: 2px 0 12px; min-height: 0;
-    background: linear-gradient(180deg, var(--bg) 76%, transparent);
+    position: sticky; top: var(--topo); z-index: 11;
+    border-bottom: 0; gap: 8px; padding: 8px 0 12px; min-height: 0;
+    background: linear-gradient(180deg, var(--bg) 82%, transparent);
   }
   .catalog-page > .scope-tabs { position: sticky; top: var(--topo); z-index: 11; }
   .scope-tabs > button {
@@ -2757,6 +2758,7 @@ img, video, canvas { max-width: 100%; }
   .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .gallery-grid > button { border-radius: var(--raio-p); }
   .photo-caption { padding: 26px 11px 10px; }
+  .gallery-checkbox { width: 30px; height: 30px; border-radius: 10px; }
   .photo-caption strong { font-size: 12.5px; }
   .photo-caption small { font-size: 10px; }
   .album-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
