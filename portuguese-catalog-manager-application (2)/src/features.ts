@@ -4,6 +4,14 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Celular com UI própria', 'O celular deixou de ser o desktop espremido: folha que sobe do pé da tela, deslizar da borda para voltar, topo que se recolhe ao rolar e doca que sai da frente quando uma folha ou o visor assumem a tela.', 'home'],
+  ['Galeria em mosaico de verdade', 'Cada foto aparece na sua própria proporção (retrato, paisagem, panorama). Há também a quadra de quadrados e a linha do tempo, que agrupa por dia e deixa a data grudada no topo enquanto você rola.', 'gallery'],
+  ['Visor de fotos de aplicativo', 'Tela inteira, deslizar para o lado troca a foto, pinça ou toque duplo dão zoom, puxar para baixo fecha e um toque esconde as barras. Abaixo, a faixa de miniaturas.', 'gallery'],
+  ['Segurar a foto abre as ações', 'O toque longo na foto — e no cartão de uma pessoa no catálogo — sobe a folha de ações do dedo: favoritar, lote, baixar, cofre, excluir. O “⋯” pequeno deixou de ser obrigatório.', 'gallery'],
+  ['Filtros da galeria viraram folha', 'Buscar por nome, escolher pessoa, pasta, álbum e ordem acontece numa folha com alvos de polegar; o que está ativo aparece em chips que saem com um toque.', 'gallery'],
+  ['Lote no alcance do polegar', 'Escolher várias fotos mostra uma barra fixa no pé da tela com pasta, álbum, favoritar, cofre e excluir; a doca recua para não brigar com ela.', 'gallery'],
+  ['Topo do celular respirando', 'O que não cabia na largura do aparelho — disfarce, privacidade, tema, desfazer, status do salvamento — foi para o botão ⋯, que abre uma folha de ações.', 'home'],
+  ['A ficha também usa o visor', 'As fotos da pessoa, na aba Fotos e na capa, abrem no mesmo visor em tela cheia, com deslizar entre as fotos da ficha, favoritar e baixar.', 'catalog'],
   ['Barra de baixo flutuante no celular', 'A navegação virou uma doca solta com cantos arredondados, vidro por cima do conteúdo e o “+” elevado de verdade — sem sobras de gradiente atrás do botão.', 'home'],
   ['Sugestões que deslizam no dedo', 'Na conversa de celular as respostas sugeridas viraram cartões que correm de lado, um por vez, em vez de uma pilha que empurra o campo de escrita.', 'conversas'],
   ['Abas em chip nas telas pequenas', 'Catálogo, editor e ferramentas trocam o sublinhado fino por chips redondos, do tamanho do dedo, que rolam de lado sem quebrar linha.', 'catalog'],

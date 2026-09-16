@@ -59,7 +59,9 @@ describe("novas telas", () => {
     expect(tabs.some(text => /Álbuns/i.test(text))).toBe(true);
     expect(tabs.some(text => /Duplicadas/i.test(text))).toBe(true);
     expect(tabs.some(text => /Antes e depois/i.test(text))).toBe(true);
-    expect(screen.getByRole("button", { name: /Favoritas/i })).toBeInTheDocument();
+    // O chip da barra é o filtro; o coração de cada foto também fala de favoritas.
+    const barra = document.querySelector(".gallery-barra") as HTMLElement;
+    expect(within(barra).getByRole("button", { name: /Favoritas/i })).toBeInTheDocument();
   });
 
   it("central de avisos lista pendências do catálogo", async () => {

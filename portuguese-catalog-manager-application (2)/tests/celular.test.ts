@@ -159,4 +159,40 @@ describe("sistema visual do celular", () => {
     expect((botoes.match(/<button/g) || []).length).toBe(5);
     expect(botoes).toMatch(/className="mobile-add"[\s\S]{0,160}?<span><Plus size=\{24\} \/><\/span>/);
   });
+
+  it("deslizar da borda esquerda volta uma tela, e o topo se recolhe ao rolar", () => {
+    const volta = daqui("15.3 topo e volta", "15.4 topo enxuto");
+    expect(volta).toMatch(/\.borda-trilha\s*\{[^}]*position:\s*fixed/);
+    expect(volta).toMatch(/\.borda-trilha\s*\{[^}]*background:\s*var\(--grad\)/);
+    expect(volta).toMatch(/html\.topo-compacto \.topbar\s*\{[^}]*box-shadow/);
+    expect(volta).toMatch(/html\.topo-compacto \.page-title h1\s*\{[^}]*font-size/);
+
+    // a fiação: o gesto mora no `.workspace`, só vale no aparelho e usa o mesmo
+    // histórico do botão de voltar do topo — uma única fonte de "tela anterior".
+    expect(app).toMatch(/import \{ useBordaVoltar \} from '\.\/lib\/toque';/);
+    expect(app).toMatch(/const borda = useBordaVoltar\(\{\n\s*ativo: celula && historico\.length > 0/);
+    expect(app).toMatch(/\{\.\.\.borda\.props\}/);
+    expect(app).toMatch(/const voltarDaBorda = \(\) => \{ ctx\.buzz\?\.\(10\); voltarPagina\(\); \};/);
+    expect(app).toMatch(/className=\{`workspace \$\{borda\.progresso > 0 \? "deslizando" : ""\}`\} \{\.\.\.borda\.props\}/);
+    expect(app).toMatch(/borda\.progresso > 0 && <span className="borda-trilha"/);
+  });
+
+  it("o topo do celular cabe na mão: o que não cabe vai para a folha do “mais”", () => {
+    const topo = daqui("15.4 topo enxuto", "15.5 doca");
+    expect(topo).toMatch(/\.topbar-more \{ display: none; \}/);
+    expect(topo).toMatch(/\.topbar-more \{ display: inline-flex; \}/);
+    expect(topo).toMatch(/\.topbar-actions \.desktop-so \{ display: none; \}/);
+    expect(app).toMatch(/<TopbarMais onAbrirRapidas=\{\(\) => setQuickTools\(true\)\} \/>/);
+    expect(app).toMatch(/FolhaDeAcoes titulo="O que você precisa agora\?"/);
+    // disfarce, privacidade, tema e ações rápidas: escondidos no aparelho, no topo no computador
+    expect((app.match(/desktop-so/g) || []).length).toBe(4);
+  });
+
+  it("folha e visor mandam a doca sair da frente", () => {
+    const doca = daqui("15.5 doca", "15.6 galeria");
+    expect(doca).toMatch(/html\.folha-aberta \.mobile-bottom-nav\s*\{[^}]*translateY\(140%\)/);
+    expect(doca).toMatch(/html\.visor-aberto \.mobile-bottom-nav\s*\{[^}]*translateY\(140%\)/);
+    expect(css).toMatch(/html\.gallery-escolhendo \.mobile-bottom-nav/);   /* a barra do lote manda na doca */
+    expect(doca).toMatch(/\.person-card:active\s*\{[^}]*transform:\s*scale\(\.985\)/);
+  });
 });

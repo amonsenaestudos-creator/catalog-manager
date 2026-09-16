@@ -11,7 +11,8 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 
 ## Onde encontrar
 
-- **Celular e tablet:** barra inferior para Início, Catálogo, cadastro rápido, busca e menu; menu lateral deslizante; modais em painel inferior; grades, formulários, tierlists e abas responsivas; suporte às áreas seguras do aparelho.
+- **Celular (UI própria):** barra inferior para Início, Catálogo, cadastro rápido, busca e menu; menu lateral deslizante; grades, formulários, tierlists e abas responsivas; áreas seguras do aparelho respeitadas. Além disso, o que só existe no aparelho: **folha que sobe do pé da tela** (filtros, ações, detalhes) com puxador e arrastar para baixo para fechar, **deslizar da borda esquerda para voltar** com trilha lilás, **toque longo** como menu de contexto, **título grande que se recolhe** ao rolar, doca que sai da frente quando uma folha ou o visor assumem a tela e o “⋯” no topo que reúne disfarce, privacidade, tema, desfazer/refazer e o status do salvamento. Na galeria e no cofre, a barra de tipo/filtro/modo fica **grudada embaixo das abas** — a altura é medida no pixel (`useFaixasGrudadas`), para o título de cada dia parar logo abaixo dela — e depois de rolar aparece o botão de voltar ao começo do álbum. As medidas (alvo de 48px, raios, sombras, tipografia e as três larguras de tela) estão na seção 14 de `src/index.css`, e a camada própria do celular, na seção 15.
+- **Prancha do celular:** rode `npm run dev` e abra **`/celular.html`** para ver as dez telas lado a lado em 390×844, rodando o CSS real do aplicativo — inclusive Galeria em mosaico com a barra grudada no topo, cofre do Meu espaço, visor de fotos, folha de ações e folha de filtros. Uma tela sozinha e maior: `/celular.html?tela=visor` (ou `galeria`, `acoes`, `cofre`, `filtros`, `conversa`, …).
 - **Ações rápidas:** toque no botão de raio no cabeçalho (ou pressione `Q`) para abrir mais de vinte utilidades: filtros prontos, surpresa, roleta, comparação, agenda de hoje, avisos, CSV, resumo copiável/compartilhável, tela cheia, privacidade, tema e densidade.
 - **Catálogo:** favoritos, arquivo, lixeira, seleção em lote, filtros, buscas salvas e CSV.
 - **Notas gerais:** ideias, observações, referências e lembretes vinculáveis a pessoas e pastas.
@@ -19,7 +20,8 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Quadro de investigação:** cartões pessoais em etapas de observação, conexão, confirmação e arquivo.
 - **Organizar:** coleções legadas, categorias, subcategorias, localizações, tags, rascunhos, possíveis duplicatas e atividade.
 - **Tierlists:** participantes por categoria/subcategoria, faixas personalizadas, cores, ordenação e duplicação independente.
-- **Galeria:** upload múltiplo, imagens não vinculadas, vínculos, pastas, seleção em lote, ampliação e navegação por setas.
+- **Galeria:** mosaico com a proporção real de cada arquivo, quadra de quadrados iguais e linha do tempo agrupada por dia com a data grudada no topo; busca por nome/anotação/pessoa, filtros de tipo, pessoa, pasta e álbum numa folha, com chips removíveis — tudo numa faixa que segura o topo da tela enquanto o álbum rola; seleção em lote (toque, Shift para intervalo, barra fixa no pé da tela com pasta, álbum, favoritar, cofre e excluir); upload múltiplo, fotos não vinculadas, vínculos, duplicatas, álbuns e antes/depois.
+- **Visor de fotos:** tela inteira com deslizar para trocar de foto, pinça e toque duplo para zoom, puxar para baixo para fechar, um toque para esconder as barras, faixa de miniaturas, coração com animação, baixar, folha de detalhes (vincular ficha, mover de pasta, tipo, excluir) e, no computador, setas, `+`/`-`, `F`, `I` e `Esc`. `Esc` fecha. A mesma tela abre as fotos da ficha (aba **Fotos** e a capa) e as do cofre do Meu espaço.
 - **Lembretes:** datas, edição, prioridade, conclusão e adiamento.
 - **Ajustes:** perfil, tema, acessibilidade, sons e comemorações, PIN opcional, importação, exportação e pontos de restauração.
 - **Painel:** nível e XP, desafios da semana (marcados automaticamente), aniversários e revisitas, roleta, cinturão da campeã do duelo, gráficos e conquistas.
@@ -100,6 +102,9 @@ Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não
 - `/`: busca da página, ou busca global.
 - `Ctrl+Z` e `Ctrl+Shift+Z`: desfazer e refazer alterações da sessão, fora dos formulários.
 - `Esc`: fechar o modal atual, preservando rascunhos.
+- **Galeria com o visor aberto:** `←`/`→` trocam a foto, `+` e `-` dão zoom, `F` favorite, `I` abre os detalhes e `Esc` fecha.
+- **Galeria no teclado, sem o visor:** `S` entra na seleção em lote; com fotos escolhidas, `Shift` + clique estende o intervalo.
+- **No aparelho, os gestos substituem as teclas:** deslizar da borda esquerda volta uma tela, segurar o título da tela aciona o pânico (≈0,7s), segurar uma foto ou um cartão abre a folha de ações, puxar a folha para baixo fecha, e no visor deslizar troca, pinça/`2 toques` zoom e puxar para baixo fecha.
 
 ## Implementação
 
@@ -114,6 +119,13 @@ Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não
 - `src/lib/toolkit.ts`: as 50 ferramentas, com campos, prévia e execução sobre os dados.
 - `src/components/Toolbox.tsx`: tela Ferramentas, com busca, grupos, formulário dinâmico e resultado.
 - `src/lib/ics.ts`: exportação da agenda em iCalendar.
+- `src/lib/galeria.ts`: a conta da galeria — proporção de cada foto, span do mosaico, agrupamento por dia, filtros, chips, seleção por intervalo e resumo.
+- `src/lib/toque.ts`: gestos do dedo — `useToqueLongo`, `useArrastarParaFechar` e `useBordaVoltar`, todos com `Pointer Events` e neutros onde não há toque.
+- `src/components/Folha.tsx`: a folha que sobe do pé da tela (com `FolhaDeAcoes`, o menu de contexto do dedo) — puxador, arrastar para fechar, fundo travado e `Esc` preservado.
+- `src/components/GaleriaGrade.tsx`: mosaico justificado, quadra e linha do tempo, com lote progressivo e proporção medida na primeira exibição.
+- `src/components/VisorDeFotos.tsx`: visor em tela inteira — deslizar, pinça, toque duplo, puxar para fechar, faixa de miniaturas e folha de detalhes.
+- `src/hooks/useFaixasGrudadas.ts`: mede abas e barra de ferramentas e entrega os pixels para o `position: sticky` da galeria e do cofre.
+- `src/hooks/useSelecaoLote.ts`: a seleção em lote do dedo (primeiro toque abre, Shift estende por intervalo, a doca recua) — a mesma nos dois mosaicos.
 - `src/components/Celebrations.tsx`: confete, cartão de nível, aviso de conquista, cinturão da campeã e roleta.
 - `src/hooks/usePersonDraft.ts`: recuperação e isolamento de rascunhos.
 - `src/components/`: telas e componentes reutilizáveis.
@@ -128,6 +140,13 @@ O build de produção é gerado pelo script `npm run build`, com saída em `dist
 - `tests/chat.test.ts`: persona derivada da ficha, detecção de intenções, química e estágios, travas de idade e de clima, memória, variedade das respostas, sugestões e análise da conversa.
 - `tests/toolbox.test.ts`: as 50 ferramentas (contagem, grupos, ids únicos), execução sem quebrar com catálogo vazio, resultado visível nas ferramentas de leitura, uso do `commit` nas que alteram dados e conferência das contas do dia a dia.
 - `tests/toolbox-ui.test.tsx`: a tela Ferramentas navegando, filtrando e executando de verdade, e a conversa simulada abrindo pela ficha com medidor de química, humor automático e resposta salva.
+- `tests/galeria-celular.test.tsx`: a conta do mosaico e da linha do tempo, os filtros e chips, a folha de ações, a barra do lote no pé da tela, o topo enxuto do celular e a tela da galeria aberta de verdade (mosaico → visor → favoritar → segurar → filtros → lote), a faixa grudada medida no pixel e o cofre do Meu espaço usando o mesmo mosaico, o mesmo lote e o mesmo visor.
+- `tests/celular.test.ts`: as seções 14.1 a 14.20 do CSS de celular (medidas, topo, navegação, listas, gestos, formulários, conversa, toque), a doca sem gradiente, o voltar pelo histórico, o deslizar da borda e o pânico por toque longo.
+
+Os testes leem o CSS e os arquivos-fonte de propósito: os valores listados são o
+contrato de quem usa no bolso (alvo de 46px, doca com o “+” sem gradiente,
+folha respeitando a área segura, azulejo com `content-visibility`, data grudada
+no topo). Se você refizer alguma dessas telas, ajuste o teste junto com o CSS.
 
 A última instalação de dependências reportou três alertas de auditoria npm (um baixo, um moderado e um alto). As atualizações compatíveis reduziram os alertas, mas uma revisão de segurança das dependências ainda é necessária antes de publicação pública.
 

@@ -1,11 +1,19 @@
-import { useMemo, useState } from 'react';
-import { BookHeart, Check, ExternalLink, Heart, KeyRound, Link2, Lock, NotebookPen, Plus, Search, Smile, Sparkles, Tag, Trash2, Trophy, Unlock, X } from 'lucide-react';
-import type { Goal, JournalEntry, PersonalLink } from '../types';
+import { useMemo, useRef, useState } from 'react';
+import { BookHeart, CalendarDays, Check, Download, ExternalLink, Grid3x3, Heart, KeyRound, LayoutGrid, Link2, Lock, NotebookPen, Plus, Search, Smile, Sparkles, Tag, Trash2, Trophy, Unlock } from 'lucide-react';
+import type { Goal, JournalEntry, PersonalLink, Photo } from '../types';
 import { useCatalog } from '../context';
-import { daysUntil, formatDate, generateId, normalizeText, textStats, today } from '../store';
+import { daysUntil, downloadBlob, formatDate, generateId, normalizeText, PHOTO_LABELS, textStats, today } from '../store';
 import { streakInfo } from '../lib/progress';
 import { playMood } from '../lib/sound';
 import { Avatar, Button, Confirm, EmptyState, Field, IconButton, Modal, PageTitle, SectionHeading } from './ui';
+import GaleriaGrade from './GaleriaGrade';
+import VisorDeFotos from './VisorDeFotos';
+import { FolhaDeAcoes } from './Folha';
+import type { AcaoDeFolha } from './Folha';
+import { MODOS_GALERIA } from '../lib/galeria';
+import type { ModoGaleria } from '../lib/galeria';
+import { useFaixasGrudadas } from '../hooks/useFaixasGrudadas';
+import { useSelecaoLote } from '../hooks/useSelecaoLote';
 
 const MOODS = [{ value: 1, label: 'Difícil', emoji: '😔' }, { value: 2, label: 'Baixo', emoji: '😕' }, { value: 3, label: 'Ok', emoji: '🙂' }, { value: 4, label: 'Bom', emoji: '😊' }, { value: 5, label: 'Ótimo', emoji: '🤩' }];
 const moodEmoji = (value: number) => MOODS.find(mood => mood.value === value)?.emoji || '🙂';
@@ -23,7 +31,10 @@ export default function MySpace() {
     { id: 'links', label: 'Meus links', icon: Link2, count: data.personalLinks.length },
     { id: 'cofre', label: 'Cofre', icon: KeyRound, count: data.vault.photoIds.length },
   ];
-  return <div className="myspace-page">
+  // A barra do cofre gruda embaixo das abas: a página inteira mede as duas faixas.
+  const pagina = useRef<HTMLDivElement>(null);
+  const estiloPagina = useFaixasGrudadas(pagina, [tab, data.vault.photoIds.length]);
+  return <div className="myspace-page" ref={pagina} style={estiloPagina}>
     <PageTitle eyebrow="Ambiente pessoal" title="Meu espaço" description="Um canto só seu: humor, metas, links e um cofre separado do catálogo.">
       <Button onClick={() => ctx.navigate('agenda')}><Sparkles size={16} />Agenda</Button>
     </PageTitle>
@@ -146,7 +157,20 @@ function VaultTab() {
   const ctx = useCatalog(), { data } = ctx;
   const [pin, setPin] = useState(''); const [error, setError] = useState('');
   const [configOpen, setConfigOpen] = useState(false); const [newPin, setNewPin] = useState('');
-  const photos = data.vault.photoIds.map(id => [...data.orphanPhotos, ...data.people.flatMap(p => p.fotos)].find(photo => photo.id === id)).filter(Boolean);
+  const [modo, setModo] = useState<ModoGaleria>('mosaico');
+  const [visor, setVisor] = useState(-1);
+  const [sobAcao, setSobAcao] = useState<Photo | null>(null);
+  /* O cofre guarda ids: a foto pode continuar na galeria, sumir da ficha ou
+     ser apagada — a lista é sempre lida por cima do que ainda existe. */
+  const fotos = useMemo(() => {
+    const porId = new Map<string, Photo>();
+    for (const person of data.people) for (const photo of person.fotos) porId.set(photo.id, photo);
+    for (const photo of data.orphanPhotos) porId.set(photo.id, photo);
+    return data.vault.photoIds.map(id => porId.get(id)).filter((photo): photo is Photo => Boolean(photo));
+  }, [data]);
+  const lote = useSelecaoLote(fotos);
+  const nomeDe = (photo: Photo) => data.people.find(person => person.id === photo.personId)?.nome || 'Sem ficha';
+
   if (!ctx.vaultUnlocked) return <div className="vault-locked">
     <Lock size={34} strokeWidth={1.3} />
     <h2>Cofre pessoal</h2>
@@ -160,17 +184,97 @@ function VaultTab() {
     {configOpen && <Modal title={data.vault.pin ? 'Trocar PIN do cofre' : 'Definir PIN do cofre'} description="Use de 4 a 8 números. Ele protege apenas este cofre." onClose={() => setConfigOpen(false)} footer={<><Button onClick={() => setConfigOpen(false)}>Cancelar</Button><Button variant="primary" disabled={!/^\d{4,8}$/.test(newPin)} onClick={() => { ctx.commit(d => ({ ...d, vault: { ...d.vault, pin: newPin } }), 'PIN do cofre atualizado.'); ctx.unlockVault(newPin); setConfigOpen(false); }}><KeyRound size={16} />Salvar PIN</Button></>}>
       <Field label="Novo PIN"><input type="password" inputMode="numeric" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))} maxLength={8} /></Field>
     </Modal>}
-  </div>;
+  </div>;;
+
+  const tirarDoCofre = (ids: string[]) => {
+    ctx.commit(d => ({ ...d, vault: { ...d.vault, photoIds: d.vault.photoIds.filter(id => !ids.includes(id)) } }), ids.length === 1 ? 'Foto retirada do cofre. Ela continua na galeria.' : `${ids.length} fotos fora do cofre. Elas continuam na galeria.`);
+    setVisor(-1); setSobAcao(null); lote.sair();
+  };
+  const baixar = async (photo: Photo) => {
+    if (ctx.privacy) return;
+    try {
+      const blob = await (await fetch(photo.url)).blob();
+      const extensao = ({ 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif' } as Record<string, string>)[blob.type] || 'png';
+      const nome = (photo.name || 'foto-do-cofre').replace(/\.[^.]+$/, '');
+      if (!document.documentElement.classList.contains('privacy-active')) downloadBlob(blob, `${nome}.${extensao}`);
+    } catch { ctx.notify('Não foi possível baixar esta imagem.', true); }
+  };
+  const abrir = (photo: Photo) => setVisor(Math.max(0, fotos.findIndex(item => item.id === photo.id)));
+
+  /** Segurar a foto: o menu do dedo, com o que faz sentido dentro do cofre. */
+  const acoesDaFoto = (photo: Photo): AcaoDeFolha[] => [
+    { rotulo: photo.favorite ? 'Tirar das favoritas' : 'Guardar nas favoritas', icone: Heart, onClick: () => ctx.togglePhotoFavorite(photo.id) },
+    { rotulo: lote.tem(photo.id) ? 'Tirar do lote' : 'Escolher no lote', icone: Check, onClick: () => lote.alternar(photo, false) },
+    { rotulo: 'Baixar a imagem', icone: Download, onClick: () => { void baixar(photo); } },
+    { rotulo: 'Tirar do cofre', icone: Unlock, perigo: true, onClick: () => tirarDoCofre([photo.id]) },
+    ...(photo.personId ? [{ rotulo: `Abrir a ficha de ${nomeDe(photo)}`, icone: ExternalLink, onClick: () => ctx.openPerson(photo.personId!) } as AcaoDeFolha] : []),
+  ];
+
+  const detalhesDaFoto = (photo: Photo) => (
+    <div className="visor-detalhes-corpo">
+      <dl className="visor-dados">
+        <div><dt>Ficha</dt><dd>{nomeDe(photo)}</dd></div>
+        <div><dt>Guardada em</dt><dd>{formatDate(photo.createdAt)}</dd></div>
+        <div><dt>Tipo</dt><dd>{PHOTO_LABELS[photo.type]}</dd></div>
+        <div><dt>Arquivo</dt><dd>{photo.name || '—'}</dd></div>
+      </dl>
+      <div className="visor-detalhes-acoes">
+        {photo.personId && <Button onClick={() => ctx.openPerson(photo.personId!)}><ExternalLink size={15} />Abrir a ficha</Button>}
+        <Button variant="danger" onClick={() => tirarDoCofre([photo.id])}><Unlock size={15} />Tirar do cofre</Button>
+      </div>
+    </div>
+  );
+
   return <div className="vault-open">
-    <div className="journal-toolbar"><p className="muted small"><Smile size={14} />{photos.length} {photos.length === 1 ? 'foto guardada' : 'fotos guardadas'} no cofre. Elas continuam fora da galeria comum.</p>
+    <div className="journal-toolbar"><p className="muted small"><Smile size={14} />{fotos.length} {fotos.length === 1 ? 'foto guardada' : 'fotos guardadas'} no cofre. Elas continuam fora da galeria comum.</p>
       <span><Button onClick={() => setConfigOpen(true)}><KeyRound size={15} />{data.vault.pin ? 'Trocar PIN' : 'Definir PIN'}</Button><Button onClick={ctx.lockVault}><Lock size={15} />Fechar cofre</Button></span></div>
-    <div className="gallery-grid">{photos.map(photo => <figure key={photo!.id} className="gallery-photo"><img src={photo!.url} alt={photo!.name || 'Foto do cofre'} className="person-photo" />
-      <figcaption><strong>{data.people.find(p => p.fotos.some(f => f.id === photo!.id))?.nome || 'Sem vínculo'}</strong>
-        <button onClick={() => ctx.commit(d => ({ ...d, vault: { ...d.vault, photoIds: d.vault.photoIds.filter(id => id !== photo!.id) } }), 'Foto retirada do cofre.')}><X size={14} />Tirar do cofre</button></figcaption></figure>)}
-    {!photos.length && <EmptyState icon={Lock} title="Cofre vazio" description="Na galeria, use o menu da foto para enviá-la ao cofre." action="Ir para a galeria" onAction={() => ctx.navigate('gallery')} />}</div>
+
+    {/* A mesma faixa da galeria: modo de ver e escolha em lote, grudada no topo. */}
+    {!!fotos.length && <div className="gallery-topo">
+      <div className="gallery-barra">
+        <div className="gallery-barra-fim">
+          <span className="gallery-contagem">{fotos.length} no cofre</span>
+          <button type="button" className={`gallery-ajuste ${lote.ativa ? 'ligado' : ''}`} onClick={() => (lote.ativa ? lote.sair() : lote.entrar())}><Check size={15} />{lote.ativa ? 'Sair da seleção' : 'Escolher'}</button>
+          <div className="gallery-modos" role="group" aria-label="Modo de ver">
+            {MODOS_GALERIA.map(item => <button key={item.id} type="button" title={item.dica} aria-label={`Ver como ${item.nome}`} aria-pressed={modo === item.id} className={modo === item.id ? 'active' : ''} onClick={() => setModo(item.id)}>
+              {item.id === 'mosaico' ? <Grid3x3 size={16} /> : item.id === 'quadra' ? <LayoutGrid size={16} /> : <CalendarDays size={16} />}<span>{item.nome}</span>
+            </button>)}
+          </div>
+        </div>
+      </div>
+    </div>}
+
+    {fotos.length ? <GaleriaGrade fotos={fotos} modo={modo} dados={data} selecionando={lote.ativa} selecionadas={lote.ids}
+      aoAbrir={abrir} aoAlternar={lote.alternar} aoFavoritar={photo => ctx.togglePhotoFavorite(photo.id)}
+      aoSegurar={photo => { ctx.buzz?.(14); setSobAcao(photo); }} aoSelecionarTudo={lote.selecionarTudo} />
+      : <EmptyState icon={Lock} title="Cofre vazio" description="Na galeria, segure uma foto e escolha Enviar ao cofre. Só aqui ela fica fora da galeria comum." action="Ir para a galeria" onAction={() => ctx.navigate('gallery')} />}
+
+    {lote.ativa && <div className="gallery-lote" role="group" aria-label="Ações do cofre">
+      <strong>{lote.ids.length ? `${lote.ids.length} escolhida${lote.ids.length === 1 ? '' : 's'}` : 'Toque nas fotos'}</strong>
+      <div>
+        <button type="button" onClick={lote.selecionarTudo}><Check size={17} />Tudo</button>
+        <button type="button" disabled={!lote.ids.length} onClick={() => tirarDoCofre(lote.ids)}><Unlock size={17} />Tirar do cofre</button>
+        <button type="button" onClick={lote.sair}>Concluir</button>
+      </div>
+    </div>}
+
+    {visor >= 0 && fotos[visor] && (
+      <VisorDeFotos fotos={fotos} indice={Math.min(visor, fotos.length - 1)} aoMudar={setVisor} aoFechar={() => setVisor(-1)}
+        titulo={nomeDe} apoio={photo => `No cofre desde ${formatDate(photo.createdAt)} · ${PHOTO_LABELS[photo.type]}`}
+        aoFavoritar={photo => ctx.togglePhotoFavorite(photo.id)} aoBaixar={photo => { void baixar(photo); }}
+        acoes={acoesDaFoto} selecionada={!!fotos[Math.min(visor, fotos.length - 1)] && lote.tem(fotos[Math.min(visor, fotos.length - 1)].id)}
+        aoAlternarSelecao={photo => lote.alternar(photo, false)} detalhes={detalhesDaFoto} />
+    )}
+
+    {sobAcao && (
+      <FolhaDeAcoes titulo={nomeDe(sobAcao)} subtitulo={`No cofre · ${PHOTO_LABELS[sobAcao.type]}`}
+        aoFechar={() => setSobAcao(null)} acao={{ rotulo: 'Abrir a foto', onClick: () => { abrir(sobAcao); setSobAcao(null); } }} itens={acoesDaFoto(sobAcao)} />
+    )}
+
     {configOpen && <Modal title={data.vault.pin ? 'Trocar PIN do cofre' : 'Definir PIN do cofre'} onClose={() => setConfigOpen(false)} footer={<><Button onClick={() => setConfigOpen(false)}>Cancelar</Button><Button variant="primary" disabled={!/^\d{4,8}$/.test(newPin)} onClick={() => { ctx.commit(d => ({ ...d, vault: { ...d.vault, pin: newPin } }), 'PIN do cofre atualizado.'); setConfigOpen(false); }}><KeyRound size={16} />Salvar PIN</Button></>}>
       <Field label="Novo PIN"><input type="password" inputMode="numeric" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))} maxLength={8} /></Field>
     </Modal>}
+
   </div>;
 }
 

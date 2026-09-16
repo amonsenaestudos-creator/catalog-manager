@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Archive, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, History, Lightbulb, Link2, MapPin, MessageCircle, MoreHorizontal, Pin, PinOff, Plus, Printer, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
 import { ADULT_APPEARANCE_TAGS } from '../types';
 import type { Person } from '../types';
+import VisorDeFotos from './VisorDeFotos';
 import { useCatalog } from '../context';
-import { ageFromBirthday, calculateOverallRating, completeness, daysUntil, downloadJson, formatDate, formatNumber, friendshipLabel, generateId, isAdult, locationLabel, RARITY_LABELS, rarityFor, RATING_FIELDS, upcomingBirthday } from '../store';
+import { ageFromBirthday, calculateOverallRating, completeness, daysUntil, downloadBlob, downloadJson, formatDate, formatNumber, friendshipLabel, generateId, isAdult, locationLabel, PHOTO_LABELS, RARITY_LABELS, rarityFor, RATING_FIELDS, upcomingBirthday } from '../store';
 import { Radar } from './Charts';
 import { exportPersonPng } from '../lib/export';
 import { usePersonDraft } from '../hooks/usePersonDraft';
@@ -24,7 +25,12 @@ export default function PersonDrawer({ person }: { person: Person }) {
   const [menu, setMenu] = useState(false);
   const [confirmTrash, setConfirmTrash] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [photo, setPhoto] = useState<string | null>(null);
+  // A foto aberta é um índice: assim o visor pode deslizar entre as fotos da ficha.
+  const [fotoAberta, setFotoAberta] = useState(-1);
+  const abrirFoto = (url: string | null) => {
+    const indice = person.fotos.findIndex(file => file.url === url);
+    setFotoAberta(indice >= 0 ? indice : 0);
+  };
   const [iceOpen, setIceOpen] = useState(false);
   const draft = usePersonDraft(`edit-${person.id}`, 'edit', person);
   const complete = completeness(person);
@@ -52,7 +58,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
   return <Modal title={editing ? `Editar ${person.nome}` : 'Fichário pessoal'} description={person.archivedAt ? 'Esta ficha está arquivada. Seus dados e vínculos continuam preservados.' : undefined} onClose={ctx.closePerson} wide className="person-drawer">
     {editing ? <PersonEditor {...draft} onDiscard={draft.discard} onSave={() => { if (ctx.savePerson(draft.person, `edit-${person.id}`)) setEditing(false); }} onCancel={ctx.closePerson} /> : <div className="person-read no-print">
       <div className="person-cover">
-        <button className="cover-photo" onClick={() => setPhoto(person.fotos.find(f => f.isMain)?.url || person.fotos[0]?.url || null)}>
+        <button className="cover-photo" onClick={() => { if (person.fotos.length) abrirFoto(person.fotos.find(f => f.isMain)?.url || person.fotos[0]?.url); }}>
           <PhotoView person={person} /><span><Camera size={16} />Ver foto</span>
         </button>
         <div className="person-intro">
@@ -81,11 +87,22 @@ export default function PersonDrawer({ person }: { person: Person }) {
       {tab === 'goals' && <PersonGoals personId={person.id} personName={person.nome} />}
       {tab === 'timeline' && <PersonTimeline person={person} />}
       {tab === 'notes' && <ReadNotes person={person} />}
-      {tab === 'photos' && <div className="gallery-grid drawer-gallery">{person.fotos.map(file => <button key={file.id} onClick={() => setPhoto(file.url)}><PhotoView src={file.url} alt={person.nome} />{file.isMain && <span className="photo-caption"><Star size={13} />Foto principal</span>}</button>)}{!person.fotos.length && <EmptyState icon={Camera} title="Sua galeria começa aqui" action="Adicionar fotos" onAction={() => setEditing(true)} />}</div>}
+      {tab === 'photos' && <div className="gallery-grid drawer-gallery">{person.fotos.map((file, index) => <button key={file.id} onClick={() => setFotoAberta(index)}><PhotoView src={file.url} alt={person.nome} />{file.isMain && <span className="photo-caption"><Star size={13} />Foto principal</span>}</button>)}{!person.fotos.length && <EmptyState icon={Camera} title="Sua galeria começa aqui" action="Adicionar fotos" onAction={() => setEditing(true)} />}</div>}
     </div>}
     <article className="print-only print-region"><h1>{person.nome}</h1><p>{locationLabel(person, data)}</p><PhotoView person={person} /><p>{person.descricao}</p><dl>{details.map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl><h2>Avaliações</h2>{RATING_FIELDS.filter(field => !field.adult || adult).map(field => <p key={field.key}>{field.label}: {formatNumber(person.rating[field.key])} / 5</p>)}<h2>Notas</h2>{person.notas.map(note => <section key={note.id}><h3>{note.title}</h3><p>{note.content}</p></section>)}<h3>Observações</h3><p>{person.observacoesGerais}</p>{(person.customFields || []).map(custom => <p key={custom.id}>{custom.label}: {custom.value}</p>)}<p>{person.comportamento}</p><p>{person.descricaoCorporal}</p></article>
     {confirmTrash && <Confirm title="Mover esta ficha para a lixeira?" description="As fotos, notas e vínculos serão preservados. Você poderá restaurar a ficha a qualquer momento." confirmLabel="Mover para lixeira" danger onConfirm={() => ctx.trashPeople([person.id])} onClose={() => setConfirmTrash(false)} />}
-    {photo && <Modal title={person.nome} onClose={() => setPhoto(null)} wide><img src={photo} alt={`Foto de ${person.nome}`} className="full-photo" /></Modal>}
+    {fotoAberta >= 0 && !!person.fotos.length && (
+      <VisorDeFotos fotos={person.fotos} indice={Math.min(fotoAberta, person.fotos.length - 1)} aoMudar={setFotoAberta} aoFechar={() => setFotoAberta(-1)}
+        titulo={() => person.nome} apoio={file => `${file.isMain ? 'Foto principal · ' : ''}${PHOTO_LABELS[file.type]}`}
+        aoFavoritar={file => ctx.togglePhotoFavorite(file.id)}
+        aoBaixar={async file => {
+          try {
+            const blob = await (await fetch(file.url)).blob();
+            const extensao = ({ 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif' } as Record<string, string>)[blob.type] || 'png';
+            downloadBlob(blob, `${(file.name || `foto-${person.nome}`).replace(/\.[^.]+$/, '')}.${extensao}`);
+          } catch { ctx.notify('Não foi possível baixar esta imagem.', true); }
+        }} />
+    )}
     {iceOpen && <Icebreakers person={person} onClose={() => setIceOpen(false)} onStartChat={() => { setIceOpen(false); ctx.openChat(person); ctx.closePerson(); }} />}
   </Modal>;
 }
