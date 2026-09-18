@@ -21,7 +21,7 @@ import { Folha, FolhaDeAcoes } from './Folha';
 import type { AcaoDeFolha } from './Folha';
 import GaleriaGrade from './GaleriaGrade';
 import VisorDeFotos from './VisorDeFotos';
-import { FILTROS_PADRAO, MODOS_GALERIA, ORDENACOES, aplicarFiltros, chipsDeFiltro, contarFiltrosAtivos, fotoEmPasta, resumoDaGaleria } from '../lib/galeria';
+import { FILTROS_PADRAO, MODOS_GALERIA, ORDENACOES, aplicarFiltros, chipsDeFiltro, contarFiltrosAtivos, fotoEmPasta, lerModoSalvo, resumoDaGaleria, salvarModo } from '../lib/galeria';
 import type { FiltrosDeGaleria, ModoGaleria } from '../lib/galeria';
 import { movimentoReduzido } from '../lib/toque';
 import { useFaixasGrudadas } from '../hooks/useFaixasGrudadas';
@@ -32,18 +32,10 @@ const TIPOS: { valor: FiltrosDeGaleria['tipo']; nome: string }[] = [
   { valor: '', nome: 'Todas' }, { valor: 'normal', nome: 'Normal' }, { valor: 'biquini', nome: 'Biquíni' }, { valor: 'sem_nada', nome: 'Sem nada' },
 ];
 
-const lerModo = (): ModoGaleria => {
-  try {
-    const salvo = localStorage.getItem(MODO_CHAVE);
-    if (salvo === 'mosaico' || salvo === 'quadra' || salvo === 'linha') return salvo;
-  } catch { /* preferência é opcional */ }
-  return 'mosaico';
-};
-
 export default function Gallery() {
   const ctx = useCatalog(), { data } = ctx;
   const [view, setView] = useState<'fotos' | 'albuns' | 'duplicadas' | 'comparar'>('fotos');
-  const [modo, setModo] = useState<ModoGaleria>(lerModo);
+  const [modo, setModo] = useState<ModoGaleria>(() => lerModoSalvo(MODO_CHAVE) || 'mosaico');
   const [filtros, setFiltros] = useState<FiltrosDeGaleria>({ ...FILTROS_PADRAO });
   const [folha, setFolha] = useState<'filtros' | 'pasta' | 'album' | null>(null);
   const [visor, setVisor] = useState(-1);
@@ -76,7 +68,7 @@ export default function Gallery() {
     if (!filtros.pessoa) return;
     if (filtros.pessoa !== '__orphan' && !data.people.some(person => person.id === filtros.pessoa)) setFiltros(f => ({ ...f, pessoa: '' }));
   }, [data.people, filtros.pessoa]);
-  useEffect(() => { try { localStorage.setItem(MODO_CHAVE, modo); } catch { /* preferência é opcional */ } }, [modo]);
+  useEffect(() => { salvarModo(MODO_CHAVE, modo); }, [modo]);
   /* A barra grudada embaixo das abas: sticky não sabe a altura do sticky vizinho,
      então a página mede as duas faixas e entrega os números para o CSS. */
   const pagina = useRef<HTMLDivElement>(null);

@@ -49,6 +49,26 @@ export function razaoDaFoto(photo: Photo): number {
 /** Limita a proporção: uma panorama 21:9 não pode abrir um buraco na tela. */
 export const razaoParaMosaico = (razao: number) => Math.min(2.4, Math.max(0.5, razao || 1));
 
+/* ------------------------------------------------------------ preferência -- */
+
+/**
+ * Modo de ver preferido por tela.
+ *
+ * Galeria e cofre guardam a escolha cada uma na sua chave: quem organiza o
+ * cofre em quadra não quer o catálogo inteiro em quadra por causa disso.
+ */
+export function lerModoSalvo(chave: string): ModoGaleria | '' {
+  try {
+    const salvo = localStorage.getItem(chave);
+    if (salvo === 'mosaico' || salvo === 'quadra' || salvo === 'linha') return salvo;
+  } catch { /* preferência é opcional */ }
+  return '';
+}
+
+export function salvarModo(chave: string, modo: ModoGaleria) {
+  try { localStorage.setItem(chave, modo); } catch { /* preferência é opcional */ }
+}
+
 /**
  * Quantas linhas o item ocupa num grid com `grid-auto-rows: alturaDaLinha`.
  *

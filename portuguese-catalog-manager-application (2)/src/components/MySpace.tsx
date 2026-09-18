@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookHeart, CalendarDays, Check, Download, ExternalLink, Grid3x3, Heart, KeyRound, LayoutGrid, Link2, Lock, NotebookPen, Plus, Search, Smile, Sparkles, Tag, Trash2, Trophy, Unlock } from 'lucide-react';
 import type { Goal, JournalEntry, PersonalLink, Photo } from '../types';
 import { useCatalog } from '../context';
@@ -10,10 +10,12 @@ import GaleriaGrade from './GaleriaGrade';
 import VisorDeFotos from './VisorDeFotos';
 import { FolhaDeAcoes } from './Folha';
 import type { AcaoDeFolha } from './Folha';
-import { MODOS_GALERIA } from '../lib/galeria';
+import { MODOS_GALERIA, lerModoSalvo, salvarModo } from '../lib/galeria';
 import type { ModoGaleria } from '../lib/galeria';
 import { useFaixasGrudadas } from '../hooks/useFaixasGrudadas';
 import { useSelecaoLote } from '../hooks/useSelecaoLote';
+
+const MODO_COFRE_CHAVE = 'catalog_cofre_modo';
 
 const MOODS = [{ value: 1, label: 'Difícil', emoji: '😔' }, { value: 2, label: 'Baixo', emoji: '😕' }, { value: 3, label: 'Ok', emoji: '🙂' }, { value: 4, label: 'Bom', emoji: '😊' }, { value: 5, label: 'Ótimo', emoji: '🤩' }];
 const moodEmoji = (value: number) => MOODS.find(mood => mood.value === value)?.emoji || '🙂';
@@ -157,7 +159,7 @@ function VaultTab() {
   const ctx = useCatalog(), { data } = ctx;
   const [pin, setPin] = useState(''); const [error, setError] = useState('');
   const [configOpen, setConfigOpen] = useState(false); const [newPin, setNewPin] = useState('');
-  const [modo, setModo] = useState<ModoGaleria>('mosaico');
+  const [modo, setModo] = useState<ModoGaleria>(() => lerModoSalvo(MODO_COFRE_CHAVE) || 'mosaico');
   const [visor, setVisor] = useState(-1);
   const [sobAcao, setSobAcao] = useState<Photo | null>(null);
   /* O cofre guarda ids: a foto pode continuar na galeria, sumir da ficha ou
@@ -169,6 +171,7 @@ function VaultTab() {
     return data.vault.photoIds.map(id => porId.get(id)).filter((photo): photo is Photo => Boolean(photo));
   }, [data]);
   const lote = useSelecaoLote(fotos);
+  useEffect(() => { salvarModo(MODO_COFRE_CHAVE, modo); }, [modo]);
   const nomeDe = (photo: Photo) => data.people.find(person => person.id === photo.personId)?.nome || 'Sem ficha';
 
   if (!ctx.vaultUnlocked) return <div className="vault-locked">

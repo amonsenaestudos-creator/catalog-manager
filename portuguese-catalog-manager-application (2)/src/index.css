@@ -3365,3 +3365,25 @@ html.visor-aberto, html.visor-aberto body { overflow: hidden; overscroll-behavio
   .azulejo.escolhendo { cursor: pointer; }
   .visor-detalhes-foto { display: none; }   /* a foto já está atrás da folha */
 }
+
+/* ------------------------------------ 15.9 antes e depois na palma da mão -- */
+/* O divisor é arrastado com o dedo em cima da foto: a linha continua fina, o
+   alvo é largo, e a página ainda rola por cima do palco quando o gesto é vertical. */
+.compare-stage { touch-action: pan-y; user-select: none; cursor: ew-resize; }
+.compare-stage > img { pointer-events: none; }
+.compare-handle { background: transparent; border: 0; padding: 0; cursor: ew-resize; touch-action: none; }
+.compare-valor {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  padding: 4px 11px; border-radius: 999px; font-size: 11px; color: #f2ecf6;
+  background: #0c0b10a8; border: 1px solid #ffffff1f; backdrop-filter: blur(6px);
+}
+
+@media (max-width: 1100px) {
+  .compare-handle { width: 34px; margin-left: -17px; }
+  .compare-handle::before {
+    content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 3px;
+    transform: translateX(-50%); background: var(--accent);
+  }
+  .compare-valor { font-size: 12px; bottom: 12px; }
+  .before-after input[type=range] { height: 42px; }
+}

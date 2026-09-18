@@ -5,8 +5,9 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   FILTROS_PADRAO, MODOS_GALERIA, alternarSelecao, aplicarFiltros, agruparPorDia, chipsDeFiltro,
-  colunasDaQuadra, contarFiltrosAtivos, intervaloEntre, medirFaixasDoTopo, posicaoNoConjunto,
-  razaoDaFoto, razaoParaMosaico, registrarRazao, resumoDaGaleria, spanDaFoto, tituloDoDia,
+  colunasDaQuadra, contarFiltrosAtivos, intervaloEntre, lerModoSalvo, medirFaixasDoTopo,
+  posicaoNoConjunto, razaoDaFoto, razaoParaMosaico, registrarRazao, resumoDaGaleria,
+  salvarModo, spanDaFoto, tituloDoDia,
 } from "../src/lib/galeria";
 import { bootApp, openCatalog, seededData, seedIdb } from "./catalog.test";
 import type { AppData, Photo } from "../src/types";
@@ -383,6 +384,35 @@ describe("galeria na tela", () => {
     expect(document.querySelector(".app-shell.blur-mode") || document.documentElement.classList.contains("blur-mode")).toBeTruthy();
   });
 
+  it("arrasta o divisor do antes e depois sobre a foto", async () => {
+    const user = userEvent.setup();
+    await abrirGaleria(user);
+    const aba = [...document.querySelectorAll<HTMLElement>(".scope-tabs > button")].find(b => /Antes e depois/i.test(b.textContent || "")) as HTMLElement;
+    await act(async () => { aba.click(); });
+    await waitFor(() => expect(document.querySelector(".before-after")).toBeTruthy());
+    const [esquerda, direita] = document.querySelectorAll<HTMLSelectElement>(".before-after select");
+    await user.selectOptions(esquerda, "seed-1-foto-0");
+    await user.selectOptions(direita, "seed-1-foto-1");
+    await waitFor(() => expect(document.querySelector(".compare-stage")).toBeTruthy());
+    const palco = document.querySelector(".compare-stage") as HTMLElement;
+    // jsdom não tem caixa: o divisor só se move com uma largura real sob o dedo
+    palco.getBoundingClientRect = () => ({ left: 0, width: 100, top: 0, height: 75, right: 100, bottom: 75, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    const alca = () => (document.querySelector(".compare-handle") as HTMLElement).style.left;
+    expect(alca(), "o divisor começa no meio").toBe("50%");
+    await act(async () => {
+      palco.dispatchEvent(new MouseEvent("pointerdown", { clientX: 10, bubbles: true }));
+      palco.dispatchEvent(new MouseEvent("pointermove", { clientX: 90, bubbles: true }));
+      palco.dispatchEvent(new MouseEvent("pointerup", { clientX: 90, bubbles: true }));
+    });
+    await waitFor(() => expect(alca()).toBe("90%"));
+    expect(document.querySelector(".compare-valor")?.textContent).toBe("90% A");
+    // e o teclado continua mandando, para quem não quer arrastar
+    await act(async () => {
+      (document.querySelector(".compare-handle") as HTMLElement).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    });
+    await waitFor(() => expect(document.querySelector(".compare-valor")?.textContent).toBe("85% A"));
+  });
+
   it("entra na seleção em lote e mostra a barra do pé da tela", async () => {
     const user = userEvent.setup();
     await abrirGaleria(user);
@@ -432,6 +462,26 @@ describe("faixa grudada no topo da galeria", () => {
     expect(bolso).toMatch(/\.gallery-contagem \{ display: none; \}/);
     expect(celular).toMatch(/^\.gallery-topo-volta \{ display: none; \}$/m);
     expect(celular).toMatch(/html\.topo-compacto \.gallery-topo-volta\s*\{[^}]*display:\s*inline-flex/);
+  });
+
+  it("lembra do modo de ver de cada tela, sem atrapalhar a outra", () => {
+    expect(lerModoSalvo("catalog_teste_modo")).toBe("");
+    salvarModo("catalog_teste_modo", "quadra");
+    expect(lerModoSalvo("catalog_teste_modo")).toBe("quadra");
+    localStorage.setItem("catalog_teste_modo", "nada-a-ver");
+    expect(lerModoSalvo("catalog_teste_modo"), "valor desconhecido não entra na tela").toBe("");
+  });
+
+  it("faz o divisor do antes e depois ser arrastado com o dedo", () => {
+    const extras = readFileSync(resolve(__dirname, "../src/components/GalleryExtras.tsx"), "utf8");
+    const cofre = readFileSync(resolve(__dirname, "../src/components/MySpace.tsx"), "utf8");
+    expect(css).toMatch(/\.compare-stage \{[^}]*touch-action: pan-y/);
+    expect(css).toMatch(/\.compare-stage > img \{ pointer-events: none; \}/);
+    expect(css).toMatch(/\.compare-handle\s*\{[^}]*touch-action:\s*none/);
+    expect(css.slice(css.indexOf("15.9 antes e depois"))).toMatch(/\.compare-handle \{ width: 34px; margin-left: -17px; \}/);
+    expect(extras).toMatch(/const caixa = palco\.current\?\.getBoundingClientRect\(\);/);
+    expect(extras).toMatch(/onPointerMove=\{evento => \{ if \(arrastando\.current\) moverPara\(evento\.clientX\); \}\}/);
+    expect(cofre).toMatch(/lerModoSalvo\(MODO_COFRE_CHAVE\)/);
   });
 
   it("entrega a medida do topo para o CSS num gancho só", () => {
