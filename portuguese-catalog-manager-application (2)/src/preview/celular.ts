@@ -66,9 +66,9 @@ const topbar = (titulo: string) => `
       <strong class="topbar-mobile-title">${titulo}</strong>
     </div>
     <div class="topbar-actions">
-      <button class="icon-btn" aria-label="Buscar">${ICONE.busca}</button>
-      <button class="icon-btn" aria-label="Avisos">${ICONE.sino}</button>
-      ${avatar(FOTO.marina, 32, 'Você')}
+      <button class="icon-btn" aria-label="Avisos">${ICONE.sino}<i class="notification-dot">3</i></button>
+      <button class="icon-btn topbar-more" aria-label="Mais ações">⋯</button>
+      <div class="topbar-profile">${avatar(FOTO.marina, 32, 'Você')}</div>
     </div>
   </header>`;
 
@@ -76,7 +76,7 @@ const dock = (ativo: string) => `
   <nav class="mobile-bottom-nav" aria-label="Navegação rápida">
     <button class="${ativo === 'inicio' ? 'active' : ''}">${ICONE.inicio}<span>Início</span></button>
     <button class="${ativo === 'catalogo' ? 'active' : ''}">${ICONE.pessoas}<span>Catálogo</span></button>
-    <button class="mobile-add" aria-label="Adicionar pessoa"><span>${ICONE.mais}</span></button>
+    <button class="mobile-add" aria-label="Adicionar pessoa"><span>${ICONE.mais}</span><small>Adicionar</small></button>
     <button>${ICONE.busca}<span>Buscar</span></button>
     <button>${ICONE.menu}<span>Menu</span></button>
   </nav>`;

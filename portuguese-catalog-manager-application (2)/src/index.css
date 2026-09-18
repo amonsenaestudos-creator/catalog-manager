@@ -3024,8 +3024,43 @@ img, video, canvas { max-width: 100%; }
      existem onde há espaço para eles. assim o título da tela respira. */
   .topbar-more { display: inline-flex; }
   .topbar-actions .desktop-so { display: none; }
-  .topbar-actions { gap: 5px; }
-  .topbar-actions .topbar-profile .avatar { border-width: 1px; }
+
+  /* A cara do topo no aparelho: em vez de uma caixa em volta de cada ícone,
+     os controles da direita formam um cluster só, e o botão de navegação da
+     esquerda fica sem borda — o que importa é o título da tela. */
+  .topbar-start { gap: 6px; }
+  .mobile-menu-trigger, .mobile-back {
+    border-color: transparent;
+    background: color-mix(in srgb, var(--surface) 74%, transparent);
+  }
+  .mobile-menu-trigger:active, .mobile-back:active { transform: scale(.92); background: var(--surface-3); }
+  .topbar-mobile-title { font-size: 16px; letter-spacing: -.35px; padding-left: 1px; }
+
+  .topbar-actions {
+    gap: 2px; padding: 2px 3px 2px 2px; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+  }
+  .topbar-actions .icon-btn { border: 0; background: none; border-radius: 999px; }
+  .topbar-actions .icon-btn:active { background: var(--surface-3); transform: scale(.9); }
+  /* o estado da gravação mora na folha do “⋯”: aqui ele só empurraria ícone */
+  .topbar .save-status { display: none; }
+  .topbar-actions .notification-dot { top: 1px; right: 0; }   /* o badge cabe dentro da pílula */
+  .topbar-actions .topbar-profile { margin-left: 3px; padding-left: 5px; border-left: 1px solid color-mix(in srgb, var(--line) 85%, transparent); }
+  .topbar-actions .topbar-profile .avatar { border: 0; box-shadow: 0 0 0 1px color-mix(in srgb, var(--line) 92%, transparent), 0 8px 16px -12px #000000c0; }
+
+  /* no alto da tela o topo derrete no fundo; ao rolar, vira vidro com hairline.
+     a troca é lenta o bastante para não piscar quando o dedo rola um palmo. */
+  .topbar { transition: background .28s ease, border-color .28s ease, backdrop-filter .28s ease, box-shadow .28s ease; }
+  html:not(.topo-compacto) .topbar {
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    border-bottom-color: transparent;
+    backdrop-filter: blur(6px);
+  }
+  html.topo-compacto .topbar {
+    border-bottom-color: color-mix(in srgb, var(--line) 80%, transparent);
+    backdrop-filter: blur(18px) saturate(1.4);
+  }
 }
 
 /* ---------------------------------------------------------------- 15.5 doca */
@@ -3040,6 +3075,39 @@ img, video, canvas { max-width: 100%; }
   html.folha-aberta .mobile-bottom-nav { transform: translateY(140%); opacity: 0; }
   html.visor-aberto .mobile-bottom-nav { transform: translateY(140%); opacity: 0; }
   .mobile-bottom-nav button:active { transform: scale(.93); }
+}
+
+/* O botão do meio: um círculo com rótulo, como os quatro vizinhos têm. O anel
+   da cor do fundo ia embora com a translucidez da doca — saiu; no lugar dele,
+   sombra colorida, brilho por dentro e o afundar no toque. */
+@media (max-width: 760px) {
+  .mobile-bottom-nav { padding: 8px 8px 6px; }
+  .mobile-bottom-nav .mobile-add {
+    flex: 1 1 0; min-width: 0; padding: 0 4px;
+    background: none; border-radius: 0;
+  }
+  .mobile-bottom-nav .mobile-add:active { background: none; transform: none; }
+  .mobile-bottom-nav .mobile-add > span {
+    width: 50px; height: 50px; margin-top: -24px;
+    display: grid; place-items: center; border-radius: 999px;
+    background: var(--grad); color: #fff; border: 1px solid #ffffff30;
+    box-shadow: 0 12px 22px -10px color-mix(in srgb, var(--accent) 78%, #000), inset 0 1px 0 #ffffff47;
+    transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease;
+  }
+  .mobile-bottom-nav .mobile-add > small {
+    display: block; margin-top: 3px; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 10.5px; font-weight: 650; letter-spacing: -.1px; color: var(--muted);
+  }
+  .mobile-bottom-nav .mobile-add:active > span { transform: scale(.9) translateY(4px); }
+  .mobile-bottom-nav .mobile-add:active > small { color: var(--accent); }
+  /* qualquer modal — inclusive o fichário rápido aberto por este botão — é folha
+     de baixo no aparelho: a doca recolhe junto, para nenhum dos dois ficar por
+     cima do outro. */
+  html.modal-aberto .mobile-bottom-nav { transform: translateY(140%); opacity: 0; }
+}
+@media (max-width: 380px) {
+  .mobile-bottom-nav .mobile-add > span { width: 46px; height: 46px; margin-top: -22px; }
 }
 
 /* --------------------------------------------------- 15.6 galeria: barra -- */

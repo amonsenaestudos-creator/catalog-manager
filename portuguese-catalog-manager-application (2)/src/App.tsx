@@ -190,6 +190,9 @@ function Application() {
   }, []);
 
   // Deslizar da borda esquerda volta uma tela, como em qualquer aplicativo.
+  // O botão do meio da doca: o mesmo haptic dos vizinhos e o estado aberto no próprio botão.
+  const abrirAdicionar = () => { ctx.buzz?.(12); ctx.setQuickOpen(!ctx.quickOpen); };
+
   const borda = useBordaVoltar({
     ativo: celula && historico.length > 0 && !ctx.privacy && !ctx.quickOpen && !ctx.commandOpen && !ctx.rouletteOpen,
     aoVoltar: voltarDaBorda,
@@ -363,7 +366,7 @@ function Application() {
       <nav className="mobile-bottom-nav" aria-label="Navegação rápida">
         <button className={page === 'home' ? 'active' : ''} onClick={() => { ctx.buzz?.(6); ctx.navigate('home'); }}><HomeIcon size={20} /><span>Início</span></button>
         <button className={page === 'catalog' ? 'active' : ''} onClick={() => { ctx.buzz?.(6); ctx.navigate('catalog'); }}><Users size={20} /><span>Catálogo</span></button>
-        <button className="mobile-add" onClick={() => ctx.setQuickOpen(true)} aria-label="Adicionar pessoa"><span><Plus size={24} /></span></button>
+        <button aria-label="Adicionar pessoa" aria-expanded={ctx.quickOpen} onClick={abrirAdicionar} className="mobile-add"><span><Plus size={24} /></span><small>Adicionar</small></button>
         <button onClick={() => ctx.setCommandOpen(true)}><Search size={20} /><span>Buscar</span></button>
         <button onClick={() => setMobileMenu(true)} aria-expanded={mobileMenu}><Menu size={20} /><span>Menu</span></button>
       </nav>

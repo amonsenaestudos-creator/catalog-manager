@@ -12,6 +12,8 @@ import { resolve } from "node:path";
  */
 const css = readFileSync(resolve(__dirname, "../src/index.css"), "utf8");
 const app = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
+const previa = readFileSync(resolve(__dirname, "../src/preview/celular.ts"), "utf8");
+const ui = readFileSync(resolve(__dirname, "../src/components/ui.tsx"), "utf8");
 
 /** Do comentário de um tópico até o comentário do próximo (ou até o fim). */
 const daqui = (inicio: string, fim?: string) => {
@@ -194,5 +196,40 @@ describe("sistema visual do celular", () => {
     expect(doca).toMatch(/html\.visor-aberto \.mobile-bottom-nav\s*\{[^}]*translateY\(140%\)/);
     expect(css).toMatch(/html\.gallery-escolhendo \.mobile-bottom-nav/);   /* a barra do lote manda na doca */
     expect(doca).toMatch(/\.person-card:active\s*\{[^}]*transform:\s*scale\(\.985\)/);
+  });
+
+  it("o botão do meio da doca é um círculo com rótulo que afunda no toque", () => {
+    const doca = daqui("15.5 doca", "15.6 galeria");
+    // divide a largura igual com os vizinhos e não pinta caixa cinza atrás do círculo
+    expect(doca).toMatch(/\.mobile-bottom-nav \.mobile-add\s*\{[^}]*flex:\s*1 1 0/);
+    expect(doca).toMatch(/\.mobile-bottom-nav \.mobile-add:active\s*\{[^}]*background:\s*none/);
+    expect(doca).toMatch(/\.mobile-bottom-nav \.mobile-add > span\s*\{[^}]*width:\s*50px/);
+    expect(doca).toMatch(/\.mobile-bottom-nav \.mobile-add > span\s*\{[^}]*box-shadow:[^}]*var\(--accent\)/);
+    expect(doca).toMatch(/\.mobile-bottom-nav \.mobile-add > small\s*\{[^}]*font-size:\s*10\.5px/);
+    expect(doca).toMatch(/\.mobile-bottom-nav \.mobile-add:active > span\s*\{[^}]*scale\(\.9\) translateY\(4px\)/);
+    // o fichário rápido é folha de baixo: com modal aberto a doca recolhe com as outras
+    expect(doca).toMatch(/html\.modal-aberto \.mobile-bottom-nav\s*\{[^}]*translateY\(140%\)/);
+    expect(ui).toMatch(/if \(openModalCount === 1\) document\.documentElement\.classList\.add\('modal-aberto'\);/);
+    expect(ui).toMatch(/document\.documentElement\.classList\.remove\('modal-aberto'\);/);
+
+    // a fiação: rótulo no markup, haptic como o dos vizinhos e o toque alterna a folha
+    expect(app).toMatch(/className="mobile-add"><span><Plus size=\{24\} \/><\/span><small>Adicionar<\/small><\/button>/);
+    expect(app).toMatch(/const abrirAdicionar = \(\) => \{ ctx\.buzz\?\.\(12\); ctx\.setQuickOpen\(!ctx\.quickOpen\); \};/);
+    expect(app).toMatch(/aria-expanded=\{ctx\.quickOpen\} onClick=\{abrirAdicionar\}/);
+    expect(previa).toMatch(/<small>Adicionar<\/small>/);
+  });
+
+  it("o topo do aparelho junta os controles num cluster e derrete no fundo", () => {
+    const topo = daqui("15.4 topo enxuto", "15.5 doca");
+    expect(topo).toMatch(/\.topbar-actions\s*\{[^}]*border-radius:\s*999px/);
+    expect(topo).toMatch(/\.topbar-actions \.icon-btn\s*\{[^}]*border:\s*0/);
+    expect(topo).toMatch(/\.topbar-actions \.icon-btn:active\s*\{[^}]*background:\s*var\(--surface-3\)/);
+    expect(topo).toMatch(/\.topbar \.save-status\s*\{\s*display:\s*none/);
+    expect(topo).toMatch(/\.mobile-menu-trigger, \.mobile-back\s*\{[^}]*border-color:\s*transparent/);
+    // no alto o topo some no fundo; ao rolar ele vira vidro com hairline
+    expect(topo).toMatch(/html:not\(\.topo-compacto\) \.topbar\s*\{[^}]*border-bottom-color:\s*transparent/);
+    expect(topo).toMatch(/html\.topo-compacto \.topbar\s*\{[^}]*backdrop-filter:\s*blur\(18px\)/);
+    expect(topo).toMatch(/\.topbar-actions \.topbar-profile\s*\{[^}]*border-left:/);
+    expect(previa).toMatch(/class="icon-btn topbar-more" aria-label="Mais ações"/);
   });
 });
