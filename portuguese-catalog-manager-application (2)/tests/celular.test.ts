@@ -177,6 +177,9 @@ describe("sistema visual do celular", () => {
     expect(app).toMatch(/const borda = useBordaVoltar\(\{\n\s*ativo: celula && historico\.length > 0/);
     expect(app).toMatch(/\{\.\.\.borda\.props\}/);
     expect(app).toMatch(/const voltarDaBorda = \(\) => \{ ctx\.buzz\?\.\(10\); voltarPagina\(\); \};/);
+    // o início é raiz: chegar nele zera o histórico, senão a seta aparece onde
+    // não há para onde voltar e o primeiro toque joga a pessoa para trás
+    expect(app).toMatch(/if \(page === 'home'\) \{ setHistorico\(\[\]\); return; \}/);
     expect(app).toMatch(/className=\{`workspace \$\{borda\.progresso > 0 \? "deslizando" : ""\}`\} \{\.\.\.borda\.props\}/);
     expect(app).toMatch(/borda\.progresso > 0 && <span className="borda-trilha"/);
   });
@@ -227,11 +230,20 @@ describe("sistema visual do celular", () => {
     expect(topo).toMatch(/\.topbar-actions \.icon-btn\s*\{[^}]*border:\s*0/);
     expect(topo).toMatch(/\.topbar-actions \.icon-btn:active\s*\{[^}]*background:\s*var\(--surface-3\)/);
     expect(topo).toMatch(/\.topbar \.save-status\s*\{\s*display:\s*none/);
-    expect(topo).toMatch(/\.mobile-menu-trigger, \.mobile-back\s*\{[^}]*border-color:\s*transparent/);
+    // os dois botões da esquerda têm a MESMA caixa redonda de 40px, com a borda
+    // transparente em vez de sumida: é ela que segura o título no mesmo lugar
+    expect(topo).toMatch(/\.mobile-menu-trigger, \.mobile-back\s*\{[^}]*width:\s*var\(--toque-p\)/);
+    expect(topo).toMatch(/\.mobile-menu-trigger, \.mobile-back\s*\{[^}]*border:\s*1px solid transparent/);
     // no alto o topo some no fundo; ao rolar ele vira vidro com hairline
     expect(topo).toMatch(/html:not\(\.topo-compacto\) \.topbar\s*\{[^}]*border-bottom-color:\s*transparent/);
     expect(topo).toMatch(/html\.topo-compacto \.topbar\s*\{[^}]*backdrop-filter:\s*blur\(18px\)/);
-    expect(topo).toMatch(/\.topbar-actions \.topbar-profile\s*\{[^}]*border-left:/);
+    // tudo na mesma caixa de 40px, o mesmo corpo de ícone — e o retrato, que não
+    // é `.icon-btn`, entra com caixa própria em vez do botão padrão do app
+    expect(topo).toMatch(/\.topbar-actions \.icon-btn > svg \{\s*width:\s*20px/);
+    expect(topo).toMatch(/\.topbar-actions \.topbar-profile\s*\{[^}]*width:\s*var\(--toque-p\)/);
+    expect(topo).toMatch(/\.topbar-actions \.topbar-profile::before\s*\{[^}]*top:\s*8px; bottom:\s*8px/);
+    expect(topo).toMatch(/\.mobile-back \{ margin-right:\s*0/);
+    expect(topo).toMatch(/\.mobile-menu-trigger, \.mobile-back\s*\{[^}]*border-radius:\s*999px/);
     expect(previa).toMatch(/class="icon-btn topbar-more" aria-label="Mais ações"/);
   });
 

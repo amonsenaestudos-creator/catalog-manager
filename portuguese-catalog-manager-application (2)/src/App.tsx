@@ -150,6 +150,7 @@ function Application() {
     if (ultimaPagina.current === page) return;
     const anterior = ultimaPagina.current;
     ultimaPagina.current = page;
+    if (page === 'home') { setHistorico([]); return; }
     setHistorico(lista => (anterior === 'home' || anterior === page ? lista : [...lista, anterior]).slice(-12));
   }, [page]);
   const voltando = useRef(false);

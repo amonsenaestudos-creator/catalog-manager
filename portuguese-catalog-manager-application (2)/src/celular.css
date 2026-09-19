@@ -1389,23 +1389,44 @@
      esquerda fica sem borda — o que importa é o título da tela. */
   .topbar-start { gap: 6px; }
   .mobile-menu-trigger, .mobile-back {
-    border-color: transparent;
+    width: var(--toque-p); height: var(--toque-p);
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid transparent; border-radius: 999px;
     background: color-mix(in srgb, var(--surface) 74%, transparent);
+    color: var(--txt);
   }
+  .mobile-menu-trigger > svg, .mobile-back > svg { width: 20px; height: 20px; }
+  .mobile-back { margin-right: 0; }   /* o slot é o mesmo dos dois: o título não pula */
   .mobile-menu-trigger:active, .mobile-back:active { transform: scale(.92); background: var(--surface-3); }
   .topbar-mobile-title { font-size: 16px; letter-spacing: -.35px; padding-left: 1px; }
 
   .topbar-actions {
-    gap: 2px; padding: 2px 3px 2px 2px; border-radius: 999px;
+    gap: 2px; padding: 2px; border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
     background: color-mix(in srgb, var(--surface) 80%, transparent);
   }
-  .topbar-actions .icon-btn { border: 0; background: none; border-radius: 999px; }
+  .topbar-actions { align-items: center; }
+  .topbar-actions .icon-btn { width: var(--toque-p); height: var(--toque-p); border: 0; background: none; border-radius: 999px; line-height: 0; }
+  .topbar-actions .icon-btn > svg { width: 20px; height: 20px; }   /* sino, “⋯” e o resto no mesmo corpo */
   .topbar-actions .icon-btn:active { background: var(--surface-3); transform: scale(.9); }
   /* o estado da gravação mora na folha do “⋯”: aqui ele só empurraria ícone */
   .topbar .save-status { display: none; }
-  .topbar-actions .notification-dot { top: 1px; right: 0; }   /* o badge cabe dentro da pílula */
-  .topbar-actions .topbar-profile { margin-left: 3px; padding-left: 5px; border-left: 1px solid color-mix(in srgb, var(--line) 85%, transparent); }
+  .topbar-actions .notification-anchor { display: flex; }
+  .topbar-actions .notification-dot { top: 3px; right: 3px; }   /* o badge cabe dentro da pílula */
+  /* o retrato do perfil não é `.icon-btn`: sem a caixa igual à dos vizinhos ele
+     entra na pílula com o botão padrão do app e desalinha de todo o resto */
+  .topbar-actions .topbar-profile {
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    width: var(--toque-p); height: var(--toque-p); margin-left: 0; padding: 0;
+    border: 0; border-radius: 999px; background: none; line-height: 0;
+  }
+  .topbar-actions .topbar-profile:active { background: var(--surface-3); }
+  /* o filete que separa ações de perfil é curto e centralizado: borda do botão
+     inteiro atravessava a pílula e parecia um risco errado */
+  .topbar-actions .topbar-profile::before {
+    content: ''; position: absolute; left: -3px; top: 8px; bottom: 8px; width: 1px;
+    background: color-mix(in srgb, var(--line) 92%, transparent);
+  }
   .topbar-actions .topbar-profile .avatar { border: 0; box-shadow: 0 0 0 1px color-mix(in srgb, var(--line) 92%, transparent), 0 8px 16px -12px #000000c0; }
 
   /* no alto da tela o topo derrete no fundo; ao rolar, vira vidro com hairline.
