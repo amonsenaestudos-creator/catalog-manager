@@ -43,21 +43,39 @@ const ICONE: Record<string, string> = {
   estrela: svg('<path d="m12 3 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.4 6.8 19.2l1-5.9L3.5 9.2l5.9-.8z"/>', 15),
   pasta: svg('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', 20),
   camadas: svg('<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 14 9 5 9-5"/>', 18),
+  x: svg('<path d="M6 6l12 12M18 6 6 18"/>', 19),
+  baixar: svg('<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>', 19),
+  filtros: svg('<path d="M4 7h16M7 12h10M10 17h4"/>', 16),
+  mosaico: svg('<rect x="3" y="3" width="8" height="12" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/><rect x="3" y="17" width="8" height="4" rx="2"/>', 16),
+  quadra: svg('<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>', 16),
+  info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>', 16),
+  check: svg('<path d="m5 12 5 5 9-10"/>', 19),
+  lixeira: svg('<path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/>', 17),
+  menos: svg('<path d="M5 12h14"/>', 17),
+  subir: svg('<path d="M12 19V5M5 12l7-7 7 7"/>', 17),
+  cofre: svg('<rect x="4" y="10" width="16" height="10" rx="3"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/><circle cx="12" cy="15" r="1.4"/>', 18),
 };
 
 const avatar = (src: string, tamanho: number, nome: string) =>
   `<span class="avatar" style="width:${tamanho}px;height:${tamanho}px;font-size:${Math.max(14, Math.round(tamanho * 0.3))}px"><img src="${src}" alt="${nome}" draggable="false" /></span>`;
 
-const topbar = (titulo: string) => `
+/**
+ * O topo do aparelho. `voltar` mostra a seta no lugar do menu — é o que acontece
+ * em toda tela que não é raiz, e serve para conferir se os dois ocupam a mesma
+ * caixa (se não ocupassem, o título pularia de lugar entre as telas).
+ */
+const topbar = (titulo: string, voltar = false) => `
   <header class="topbar">
     <div class="topbar-start">
-      <button class="icon-btn mobile-menu-trigger" aria-label="Abrir menu">${ICONE.menu}</button>
+      ${voltar
+        ? `<button class="icon-btn mobile-back" aria-label="Voltar para a tela anterior">${ICONE.voltar}</button>`
+        : `<button class="icon-btn mobile-menu-trigger" aria-label="Abrir menu">${ICONE.menu}</button>`}
       <strong class="topbar-mobile-title">${titulo}</strong>
     </div>
     <div class="topbar-actions">
-      <button class="icon-btn" aria-label="Buscar">${ICONE.busca}</button>
-      <button class="icon-btn" aria-label="Avisos">${ICONE.sino}</button>
-      ${avatar(FOTO.marina, 32, 'Você')}
+      <button class="icon-btn topbar-more" aria-label="Mais ações">⋯</button>
+      <button class="icon-btn" aria-label="Avisos">${ICONE.sino}<i class="notification-dot">3</i></button>
+      <div class="topbar-profile">${avatar(FOTO.marina, 32, 'Você')}</div>
     </div>
   </header>`;
 
@@ -65,7 +83,7 @@ const dock = (ativo: string) => `
   <nav class="mobile-bottom-nav" aria-label="Navegação rápida">
     <button class="${ativo === 'inicio' ? 'active' : ''}">${ICONE.inicio}<span>Início</span></button>
     <button class="${ativo === 'catalogo' ? 'active' : ''}">${ICONE.pessoas}<span>Catálogo</span></button>
-    <button class="mobile-add" aria-label="Adicionar pessoa"><span>${ICONE.mais}</span></button>
+    <button class="mobile-add" aria-label="Adicionar pessoa"><span>${ICONE.mais}</span><small>Adicionar</small></button>
     <button>${ICONE.busca}<span>Buscar</span></button>
     <button>${ICONE.menu}<span>Menu</span></button>
   </nav>`;
@@ -267,27 +285,163 @@ const conversa = () => `
     </div>
   </div>`;
 
+/** Azulejo do mosaico: a altura vem da proporção, como no aplicativo. */
+const azulejo = (foto: string, nome: string, span: number, extra = '') => `
+  <div class="azulejo ${extra}" style="grid-row: span ${span}">
+    <img src="${foto}" alt="${nome}" />
+    ${extra.includes('selecionada') ? '<span class="azulejo-marca">✓</span>' : '<span class="azulejo-marca"></span>'}
+    <button class="azulejo-coracao ${extra.includes('favorita') ? 'aceso' : ''}" aria-label="Favoritar">${ICONE.coracao}</button>
+    <span class="azulejo-legenda">${nome}</span>
+  </div>`;
+
 const galeria = () => `
   <div class="app-shell"><div class="workspace">
     ${topbar('Galeria')}
     <main class="page-content">
-      <header class="page-title"><div><h1>Galeria</h1><p class="page-description">Todas as fotos do catálogo, favoritas primeiro.</p></div></header>
-      <div class="gallery-toolbar">
-        <label class="search-field">${ICONE.busca}<input placeholder="Buscar por nome" /></label>
-        <div><select><option>Recentes</option><option>Favoritas</option></select></div>
+      <header class="page-title"><div><h1>Galeria</h1><p class="page-description">340 fotos · 38 favoritas · 26 dias guardados</p></div></header>
+      <div class="scope-tabs"><button class="active">Fotos<span>340</span></button><button>Álbuns<span>4</span></button><button>Duplicadas<span>2</span></button></div>
+      <div class="gallery-topo">
+        <div class="gallery-barra">
+          <div class="gallery-tipos"><button class="active">Todas</button><button>Normal</button><button>Biquíni</button><button>Sem nada</button></div>
+          <div class="gallery-barra-fim">
+            <span class="gallery-contagem">340 fotos</span>
+            <button class="deusa-toggle">${ICONE.coracao}Favoritas</button>
+            <button class="gallery-ajuste">${ICONE.filtros}Filtros<b>2</b></button>
+            <div class="gallery-modos"><button class="active">${ICONE.mosaico}</button><button>${ICONE.quadra}</button><button>${ICONE.pasta}</button></div>
+            <button class="gallery-topo-volta" aria-label="Voltar ao começo">${ICONE.subir}</button>
+          </div>
+        </div>
+        <div class="gallery-chips-ativos"><button>${ICONE.x}Verão</button><button>${ICONE.x}Só favoritas</button><button class="limpar">Limpar tudo</button></div>
       </div>
-      <div class="gallery-bulk"><span>2 fotos selecionadas</span><button class="btn btn-secondary">Baixar</button><button class="btn btn-danger">Excluir</button></div>
-      <div class="gallery-grid">
-        ${[FOTO.bianca, FOTO.clara, FOTO.marina, FOTO.rafael].map((foto, i) => `
-          <button class="gallery-photo${i === 0 ? ' selected' : ''}">
-            <img class="person-photo" src="${foto}" alt="" />
-            <span class="photo-caption"><strong>${['Bianca', 'Clara', 'Marina', 'Rafael'][i]}</strong><small>${i + 2} fotos</small></span>
-            ${i === 0 ? '<span class="gallery-checkbox">✓</span>' : ''}
-          </button>`).join('')}
+      <p class="gallery-ajuda">Cada foto no seu tamanho, como no álbum de fotos do celular. <span>Segure uma foto para abrir as ações.</span></p>
+      <div class="galeria-caixa"><div class="galeria-grade mosaico" style="--colunas:2;--linha:8px;--espaco:6px">
+        ${azulejo(FOTO.bianca, 'Bianca Moura', 16, 'selecionada favorita')}
+        ${azulejo(FOTO.clara, 'Clara Nunes', 13)}
+        ${azulejo(FOTO.marina, 'Marina Alves', 10, 'favorita')}
+        ${azulejo(FOTO.rafael, 'Rafael Sena', 13)}
+        ${azulejo(FOTO.cena, 'Sem ficha', 16)}
+        ${azulejo(FOTO.bianca, 'Bianca Moura', 13)}
+      </div></div>
+      <div class="gallery-fim"><button class="btn btn-secondary">Mostrar mais 96 de 244</button></div>
+      <button class="gallery-fab">${ICONE.mais}Adicionar fotos</button>
+      <div class="gallery-lote">
+        <strong>2 escolhidas</strong>
+        <div><button>${ICONE.pasta}Pasta</button><button>${ICONE.camadas}Álbum</button><button>${ICONE.coracao}Favoritar</button><button class="perigo">${ICONE.lixeira}Excluir</button><button>Concluir</button></div>
       </div>
     </main>
   </div></div>
   ${dock('catalogo')}`;
+
+/* Cofre do meu espaço: o mesmo mosaico, o mesmo visor, atrás do PIN. */
+const cofre = () => `
+  <div class="app-shell"><div class="workspace">
+    ${topbar('Meu espaço', true)}
+    <main class="page-content">
+      <header class="page-title"><div><h1>Meu espaço</h1><p class="page-description">Um canto só seu: humor, metas, links e um cofre separado do catálogo.</p></div></header>
+      <div class="scope-tabs"><button>Diário<span>12</span></button><button>Metas<span>3</span></button><button>Meus links<span>6</span></button><button class="active">${ICONE.cofre}Cofre<span>4</span></button></div>
+      <div class="journal-toolbar"><p class="muted small">${ICONE.coracao} 4 fotos guardadas no cofre. Elas continuam fora da galeria comum.</p>
+        <span><button class="btn btn-secondary">Trocar PIN</button><button class="btn btn-secondary">Fechar cofre</button></span></div>
+      <div class="gallery-topo">
+        <div class="gallery-barra"><div class="gallery-barra-fim">
+          <span class="gallery-contagem">4 no cofre</span>
+          <button class="gallery-ajuste ligado">${ICONE.check}Sair da seleção</button>
+          <div class="gallery-modos"><button class="active">${ICONE.mosaico}</button><button>${ICONE.quadra}</button><button>${ICONE.pasta}</button></div>
+        </div></div>
+      </div>
+      <div class="galeria-caixa"><div class="galeria-grade mosaico" style="--colunas:2;--linha:8px;--espaco:6px">
+        ${azulejo(FOTO.marina, 'Marina Alves', 16, 'selecionada')}
+        ${azulejo(FOTO.clara, 'Clara Nunes', 13, 'selecionada')}
+        ${azulejo(FOTO.bianca, 'Bianca Moura', 12)}
+        ${azulejo(FOTO.cena, 'Sem ficha', 15)}
+      </div></div>
+      <div class="gallery-lote">
+        <strong>2 escolhidas</strong>
+        <div><button>${ICONE.check}Tudo</button><button>${ICONE.cofre}Tirar do cofre</button><button>Concluir</button></div>
+      </div>
+    </main>
+  </div></div>
+  ${dock('catalogo')}`;
+
+const visor = () => `
+  <div class="visor">
+    <div class="visor-fundo"></div>
+    <header class="visor-topo">
+      <button class="visor-botao" aria-label="Fechar">${ICONE.x}</button>
+      <div class="visor-titulo"><strong>Bianca Moura</strong><small>Hoje · Verão</small></div>
+      <div class="visor-topo-acoes">
+        <button class="visor-botao ativa" aria-label="Escolhida no lote"><span class="visor-marca">✓</span></button>
+        <button class="visor-botao favorita" aria-label="Favorita">${ICONE.coracao}</button>
+        <button class="visor-botao" aria-label="Baixar">${ICONE.baixar}</button>
+        <button class="visor-botao" aria-label="Mais ações"><span class="visor-tres-pontos">⋯</span></button>
+      </div>
+    </header>
+    <div class="visor-cena"><img src="${FOTO.bianca}" alt="Foto de Bianca Moura" /></div>
+    <footer class="visor-base">
+      <div class="visor-controles">
+        <div class="visor-zumbir"><button class="visor-botao">${ICONE.menos}</button><button class="visor-zoom-valor">100%</button><button class="visor-botao">${ICONE.mais}</button></div>
+        <button class="visor-detalhes">${ICONE.info}Detalhes</button>
+      </div>
+      <div class="visor-faixa">
+        ${[FOTO.bianca, FOTO.clara, FOTO.marina, FOTO.rafael, FOTO.cena, FOTO.bianca].map((f, i) => `<button class="visor-miniatura ${i === 0 ? 'ativa' : ''}"><img src="${f}" alt="" /></button>`).join('')}
+      </div>
+    </footer>
+    <p class="visor-dica">Deslize para o lado · puxe para baixo para fechar</p>
+  </div>`;
+
+const acoes = () => `
+  <div class="app-shell"><div class="workspace">
+    ${topbar('Galeria', true)}
+    <main class="page-content">
+      <div class="galeria-caixa"><div class="galeria-grade mosaico" style="--colunas:2;--linha:8px;--espaco:6px">
+        ${azulejo(FOTO.bianca, 'Bianca Moura', 16, 'selecionada')}
+        ${azulejo(FOTO.clara, 'Clara Nunes', 13)}
+      </div></div>
+    </main>
+  </div></div>
+  ${dock('catalogo')}
+  <div class="folha-overlay montada">
+    <div class="folha-veu"></div>
+    <div class="folha folha-acoes" role="dialog" aria-modal="true">
+      <div class="folha-puxador"><span></span></div>
+      <div class="folha-acoes-cabeca"><strong>Bianca Moura</strong><span>Hoje · Normal</span></div>
+      <button class="folha-acao principal">Abrir a foto</button>
+      <div class="folha-acoes-lista">
+        <button class="folha-acao">${ICONE.coracao}<span>Guardar nas favoritas</span></button>
+        <button class="folha-acao">${ICONE.check}<span>Tirar do lote</span></button>
+        <button class="folha-acao">${ICONE.baixar}<span>Baixar a imagem</span></button>
+        <button class="folha-acao">${ICONE.pasta}<span>Vinculada a Bianca Moura<small>abrir os detalhes</small></span></button>
+      </div>
+      <div class="folha-acoes-lista perigo">
+        <button class="folha-acao perigo">${ICONE.lixeira}<span>Excluir foto</span></button>
+      </div>
+    </div>
+  </div>`;
+
+const filtros = () => `
+  <div class="app-shell"><div class="workspace">
+    ${topbar('Galeria', true)}
+    <main class="page-content">
+      <div class="galeria-caixa"><div class="galeria-grade mosaico" style="--colunas:2;--linha:8px;--espaco:6px">
+        ${azulejo(FOTO.marina, 'Marina Alves', 16)}
+        ${azulejo(FOTO.rafael, 'Rafael Sena', 13)}
+      </div></div>
+    </main>
+  </div></div>
+  <div class="folha-overlay montada">
+    <div class="folha-veu"></div>
+    <div class="folha folha-larga" role="dialog" aria-modal="true">
+      <div class="folha-puxador"><span></span></div>
+      <header class="folha-cabecalho"><div><h2>Filtrar a galeria</h2><p>Escolha o que aparece e em que ordem</p></div></header>
+      <div class="folha-corpo">
+        <label class="field"><span class="field-label">Buscar</span><span class="search-field">${ICONE.busca}<input placeholder="Nome do arquivo, anotação ou pessoa" /></span></label>
+        <label class="field"><span class="field-label">Pessoa</span><select><option>Todas as pessoas</option></select></label>
+        <label class="field"><span class="field-label">Pasta</span><select><option>Só as fotos sem pasta</option></select></label>
+        <label class="field"><span class="field-label">Ordem</span><select><option>Mais novas primeiro</option></select></label>
+        <label class="check-label"><input type="checkbox" checked /> Só as favoritas</label>
+      </div>
+      <footer class="folha-rodape"><button class="btn btn-secondary">Limpar</button><button class="btn btn-primary">Ver 128 fotos</button></footer>
+    </div>
+  </div>`;
 
 const folha = () => `
   <div class="app-shell"><div class="workspace">
@@ -328,13 +482,98 @@ const folha = () => `
   </div></div>
   ${dock('catalogo')}`;
 
+const fichaTela = () => `
+  <div class="app-shell"><div class="workspace">
+    ${topbar('Catálogo', true)}
+    <main class="page-content">
+      <header class="page-title"><div><p class="eyebrow">Sua biblioteca pessoal</p><h1>Catálogo</h1><p class="page-description">Cada pessoa tem uma história. Guarde os detalhes.</p></div></header>
+      <div class="people-grid">
+        ${ficha(FOTO.marina, 'Marina Alves', 'Salvador · Bahia', '9,8', ['amiga'])}
+        ${ficha(FOTO.bianca, 'Bianca Moura', 'Salvador · Bahia', '9,6', ['igreja'], 54)}
+      </div>
+    </main>
+  </div></div>
+  <div class="modal-overlay">
+    <div class="modal modal-wide person-drawer" role="dialog" aria-modal="true">
+      <header class="modal-heading"><div><h2>Fichário pessoal</h2></div><button class="icon-btn" aria-label="Fechar">×</button></header>
+      <div class="modal-body">
+        <div class="person-read">
+          <div class="person-cover">
+            <button class="cover-photo"><img class="person-photo" src="${FOTO.marina}" alt="Marina Alves" /></button>
+            <div class="person-intro">
+              <div class="intro-top"><span class="eyebrow">Sua conexão</span><button class="icon-btn" aria-label="Favoritar">♥</button></div>
+              <h2>Marina Alves</h2>
+              <p class="person-location">Salvador · Bahia</p>
+              <p class="friendship-read">Confiança construída<span>Nível de amizade · não afeta a nota</span></p>
+              <p class="person-description">Ri alto, lembra de detalhe pequeno e aparece quando alguém precisa.</p>
+              <div class="tags"><span class="tag">amiga</span><span class="tag">igreja</span><span class="tag">trabalho</span></div>
+              <div class="person-primary-actions">
+                <button class="btn btn-primary">Editar ficha</button>
+                <button class="btn btn-secondary">Adicionar foto</button>
+                <div class="menu-anchor"><button class="icon-btn" aria-label="Mais ações">⋯</button>
+                  <div class="dropdown-menu"><button>Exportar ficha PNG</button><button>Fixar no topo do catálogo</button><button>Arquivar ficha</button></div>
+                </div>
+              </div>
+              <div class="completion-line"><div><span>Ficha 78% completa</span><span>4 detalhes a preencher</span></div><span class="progress-track"><i style="width:78%"></i></span></div>
+            </div>
+          </div>
+          <div class="editor-tabs"><button class="active">Informações</button><button>Avaliações</button><button>Notas <small>3</small></button><button>Fotos <small>12</small></button><button>Linha do tempo</button></div>
+          <dl class="person-facts">
+            <div><dt>Idade</dt><dd>29</dd></div>
+            <div><dt>Contato</dt><dd>@marina.alves</dd></div>
+            <div><dt>Onde mora</dt><dd>Salvador · Bahia</dd></div>
+            <div><dt>Profissão</dt><dd>Fisioterapeuta</dd></div>
+          </dl>
+          <div class="read-text"><h3>Observações gerais</h3><p>Gosta de café da manhã longo e de conversa que não tem pressa. Some quando o assunto é raso.</p></div>
+          <div class="read-text"><h3>Comportamento</h3><p>Responde rápido à noite, demora de manhã.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  ${dock('catalogo')}`;
+
+const ajustes = () => `
+  <div class="app-shell"><div class="workspace">
+    ${topbar('Ajustes')}
+    <main class="page-content">
+      <header class="page-title"><div><p class="eyebrow">Neste aparelho</p><h1>Ajustes</h1><p class="page-description">O que muda só aqui, sem mexer no seu catálogo.</p></div></header>
+      <div class="scope-tabs"><button class="active">Aparência</button><button>Perfil</button><button>Alertas</button><button>Segurança</button></div>
+      <div class="settings-body">
+        <section class="settings-section">
+          <div class="settings-section-intro"><h2>Tema</h2><p>Escuro de noite, claro de dia — ou o que você escolher.</p></div>
+          <div class="settings-section-content">
+            <div class="theme-options"><button class="theme-preview dark-preview">Escuro</button><button class="theme-preview light-preview">Claro</button></div>
+            <label class="field"><span class="field-label">Cor de destaque</span><input value="Ameixa" /></label>
+            <label class="field"><span class="field-label">Tamanho do texto</span><select><option>Normal</option><option>Grande</option></select><span class="field-hint">Muda corpo, lista e rótulos.</span></label>
+          </div>
+        </section>
+        <section class="settings-section">
+          <div class="settings-section-intro"><h2>Notificações</h2><p>O que pode chamar sua atenção.</p></div>
+          <div class="settings-section-content">
+            <div class="permission-line"><span>Lembrete de aniversário</span><input type="checkbox" checked /></div>
+            <div class="permission-line"><span>Meta vencendo</span><input type="checkbox" checked /></div>
+            <div class="permission-line"><span>Sons do app</span><input type="checkbox" /></div>
+            <div class="backup-versions"><div><strong>Backup de ontem</strong><p class="muted small">128 fichas · 24 MB</p></div><button class="btn btn-secondary">Restaurar</button></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div></div>
+  ${dock('inicio')}`;
+
 const TELAS: { id: string; nome: string; nota: string; html: () => string }[] = [
   { id: 'inicio', nome: 'Início', nota: 'painel, cartões e fichas', html: inicio },
   { id: 'catalogo', nome: 'Catálogo', nota: 'título, chips e grade', html: catalogo },
   { id: 'conversas', nome: 'Conversas', nota: 'lista de papos', html: conversas },
   { id: 'conversa', nome: 'Conversa aberta', nota: 'tela cheia com campo fixo', html: conversa },
-  { id: 'galeria', nome: 'Galeria', nota: 'grade de fotos', html: galeria },
+  { id: 'galeria', nome: 'Galeria', nota: 'mosaico, lote e botão flutuante', html: galeria },
+  { id: 'visor', nome: 'Visor de fotos', nota: 'tela inteira, pinça e deslizar', html: visor },
+  { id: 'acoes', nome: 'Foto segurada', nota: 'folha de ações do dedo', html: acoes },
+  { id: 'cofre', nome: 'Cofre', nota: 'mosaico e lote do meu espaço', html: cofre },
+  { id: 'filtros', nome: 'Filtros', nota: 'folha larga com o que vale', html: filtros },
   { id: 'folha', nome: 'Nova ficha', nota: 'folha de baixo', html: () => folha() },
+  { id: 'ficha', nome: 'Ficha em tela cheia', nota: 'capa, fatos e ação no pé', html: fichaTela },
+  { id: 'ajustes', nome: 'Ajustes', nota: 'campo em linha de cartão', html: ajustes },
 ];
 
 const tela = new URLSearchParams(location.search).get('tela');
@@ -344,6 +583,9 @@ if (tela) {
   const encontrada = TELAS.find(t => t.id === tela) || TELAS[0];
   document.title = `Celular · ${encontrada.nome}`;
   document.body.classList.add('quadro');
+  // A galeria da prancha mostra o lote aberto: a doca sai da frente, como no app.
+  if (encontrada.id === 'galeria' || encontrada.id === 'cofre') document.documentElement.classList.add('gallery-escolhendo');
+  if (encontrada.id === 'galeria') document.documentElement.classList.add('topo-compacto');   // mostra o botão de voltar ao começo
   raiz.innerHTML = encontrada.html();
 } else {
   document.body.classList.add('prancha');
@@ -351,12 +593,15 @@ if (tela) {
     <header class="prancha-topo">
       <p class="eyebrow">Catalog · prévia de layout</p>
       <h1>O aplicativo na mão</h1>
-      <p>Cada quadro abaixo tem a largura de um aparelho de verdade (390 × 844) e roda o mesmo CSS do aplicativo — as regras de celular valem de fato. Role a página para ver as caixas todas; se quiser uma tela sozinha e maior, abra <strong>?tela=conversa</strong> (ou inicio, catalogo, conversas, galeria, folha) no fim do endereço.</p>
+      <p>Cada quadro abaixo tem a largura de um aparelho de verdade (390 × 844) e roda o mesmo CSS do aplicativo — as regras de celular valem de fato. Role a página para ver as caixas todas; se quiser uma tela sozinha e maior, abra <strong>?tela=visor</strong> (ou inicio, catalogo, ficha, ajustes, galeria, acoes, cofre, filtros, folha) no fim do endereço.</p>
       <div class="prancha-dicas">
         <span>${ICONE.pessoas} Doca flutuante com o “+” elevado</span>
-        <span>${ICONE.camadas} Abas em chip</span>
+        <span>${ICONE.mosaico} Mosaico com a proporção de cada foto</span>
+        <span>${ICONE.info} Visor em tela inteira: deslize, pinça, puxe para baixo</span>
+        <span>${ICONE.filtros} Filtro e ação viram folhas do pé da tela</span>
+        <span>${ICONE.cofre} Cofre do meu espaço com o mesmo mosaico e o mesmo visor</span>
         <span>${ICONE.emoji} Conversa com sugestões que deslizam</span>
-        <span>${ICONE.pasta} Folha de baixo nos modais</span>
+        <span>${ICONE.camadas} Segurar a foto abre o menu do dedo</span>
       </div>
       <a class="prancha-voltar" href="/">Voltar para o aplicativo</a>
     </header>

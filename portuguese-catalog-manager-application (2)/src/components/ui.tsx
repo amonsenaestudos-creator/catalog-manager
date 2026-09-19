@@ -50,6 +50,8 @@ export function Modal({ title, description, children, onClose, wide = false, foo
     if (openModalCount === 0) originalOverflow = document.body.style.overflow;
     openModalCount += 1;
     document.body.style.overflow = 'hidden';
+    // no aparelho a doca flutua justo onde a folha encosta: enquanto há modal, ela recolhe
+    if (openModalCount === 1) document.documentElement.classList.add('modal-aberto');
     const timer = window.setTimeout(() => {
       const first = ref.current?.querySelector<HTMLElement>('.modal-body input:not([type=hidden]):not([type=file]):not([type=checkbox]), .modal-body textarea')
         || ref.current?.querySelector<HTMLElement>('.modal-body select, .modal-body button')
@@ -71,7 +73,10 @@ export function Modal({ title, description, children, onClose, wide = false, foo
     return () => {
       clearTimeout(timer);
       openModalCount = Math.max(0, openModalCount - 1);
-      if (!openModalCount) document.body.style.overflow = originalOverflow;
+      if (!openModalCount) {
+        document.body.style.overflow = originalOverflow;
+        document.documentElement.classList.remove('modal-aberto');
+      }
       document.removeEventListener('keydown', key, true);
       previous?.focus?.();
     };

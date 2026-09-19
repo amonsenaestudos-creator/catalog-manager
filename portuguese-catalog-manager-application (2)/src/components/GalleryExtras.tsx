@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Check, Heart, Image as ImageIcon, Layers, Plus, Scale, Trash2 } from 'lucide-react';
 import type { Album, Photo } from '../types';
 import { useCatalog } from '../context';
 import { formatDate, generateId, PALETTE } from '../store';
+import { limitar } from '../lib/toque';
 import { Button, Confirm, EmptyState, Field, IconButton, Modal, SectionHeading } from './ui';
 
 /** Álbuns: agrupe fotos por evento, viagem ou fase, sem mover os arquivos. */
@@ -63,26 +64,55 @@ export function DuplicateList({ groups }: { groups: Photo[][] }) {
   </div>;
 }
 
-/** Comparação antes/depois com um divisor deslizante. */
+/**
+ * Comparação antes/depois com um divisor deslizante.
+ *
+ * O divisor é arrastado direto sobre a foto — no celular é o dedo que abre e
+ * fecha a máscara, e a barra de baixo continua lá para quem prefere teclado.
+ */
 export function BeforeAfter({ photos, pair, setPair }: { photos: Photo[]; pair: [string, string]; setPair: (pair: [string, string]) => void }) {
   const left = photos.find(photo => photo.id === pair[0]);
   const right = photos.find(photo => photo.id === pair[1]);
   const [position, setPosition] = useState(50);
+  const palco = useRef<HTMLDivElement>(null);
+  const arrastando = useRef(false);
   const options = useMemo(() => photos.slice(0, 300), [photos]);
+
+  const moverPara = (clientX: number) => {
+    const caixa = palco.current?.getBoundingClientRect();
+    if (!caixa || !caixa.width) return;
+    setPosition(Math.round(limitar(((clientX - caixa.left) / caixa.width) * 100, 0, 100)));
+  };
+  const teclado = (evento: React.KeyboardEvent) => {
+    if (evento.key === 'ArrowLeft' || evento.key === 'ArrowRight') {
+      evento.preventDefault();
+      setPosition(atual => Math.round(limitar(atual + (evento.key === 'ArrowRight' ? 5 : -5), 0, 100)));
+    }
+  };
   return <div className="before-after">
     <div className="form-grid">
       <Field label="Foto A"><select value={pair[0]} onChange={e => setPair([e.target.value, pair[1]])}><option value="">Escolher foto</option>{options.map(photo => <option key={photo.id} value={photo.id}>{photo.name || 'Foto'} · {formatDate(photo.createdAt)}</option>)}</select></Field>
       <Field label="Foto B"><select value={pair[1]} onChange={e => setPair([pair[0], e.target.value])}><option value="">Escolher foto</option>{options.map(photo => <option key={photo.id} value={photo.id}>{photo.name || 'Foto'} · {formatDate(photo.createdAt)}</option>)}</select></Field>
     </div>
     {left && right ? <>
-      <div className="compare-stage">
+      <div className="compare-stage" ref={palco}
+        onPointerDown={evento => {
+          arrastando.current = true;
+          try { (evento.currentTarget as HTMLElement).setPointerCapture(evento.pointerId); } catch { /* sem captura, sem drama */ }
+          moverPara(evento.clientX);
+        }}
+        onPointerMove={evento => { if (arrastando.current) moverPara(evento.clientX); }}
+        onPointerUp={() => { arrastando.current = false; }}
+        onPointerCancel={() => { arrastando.current = false; }}>
         <img src={right.url} alt="Foto B" className="compare-base" />
         <img src={left.url} alt="Foto A" className="compare-top" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }} />
-        <span className="compare-handle" style={{ left: `${position}%` }}><Scale size={15} /></span>
+        <button type="button" className="compare-handle" style={{ left: `${position}%` }} onKeyDown={teclado}
+          aria-label={`Divisor da comparação em ${position}% — setas deslocam`}><Scale size={15} /></button>
         <span className="compare-label left">A</span><span className="compare-label right">B</span>
+        <span className="compare-valor">{position}% A</span>
       </div>
       <input type="range" min={0} max={100} value={position} onChange={e => setPosition(Number(e.target.value))} aria-label="Mover o divisor da comparação" />
-      <p className="muted small">Arraste o divisor ou use a barra para revelar cada foto.</p>
+      <p className="muted small">Arraste o divisor sobre a foto, ou use a barra e as setas.</p>
     </> : <EmptyState icon={Heart} title="Escolha duas fotos" description="Compare um antes e depois lado a lado com o divisor deslizante." />}
   </div>;
 }

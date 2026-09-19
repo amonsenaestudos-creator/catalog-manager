@@ -202,7 +202,23 @@ function photo(value: unknown, personId: string | null): Photo {
     name: text(p.name, 'Foto'), createdAt: text(p.createdAt, new Date().toISOString()), folderId: text(p.folderId) || null,
     description: text(p.description), favorite: !!p.favorite, albumIds: [...new Set(strings(p.albumIds))],
     hash: text(p.hash) || photoHash(text(p.url)), capturedAt: text(p.capturedAt) || null,
+    width: numeric(p.width) || undefined, height: numeric(p.height) || undefined,
   };
+}
+/**
+ * Mede uma imagem já convertida (data URL) para o mosaico saber a proporção
+ * sem ter que esperar ela aparecer na tela. Falhou, devolve zero e a foto
+ * entra no tamanho padrão — medir nunca pode bloquear o cadastro.
+ */
+export function medirImagem(url: string): Promise<{ width: number; height: number }> {
+  if (typeof Image !== 'function') return Promise.resolve({ width: 0, height: 0 });
+  return new Promise(resolve => {
+    const img = new Image();
+    const acabar = (largura: number, altura: number) => resolve({ width: largura, height: altura });
+    img.onload = () => acabar(img.naturalWidth || img.width || 0, img.naturalHeight || img.height || 0);
+    img.onerror = () => acabar(0, 0);
+    img.src = url;
+  });
 }
 export function normalizePerson(value: unknown): Person {
   const p = object(value), base = getDefaultPerson();

@@ -1,3 +1,4 @@
+import { cssDoApp } from "./css-fonte";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -10,7 +11,8 @@ import { resolve } from "node:path";
  * rolando. Agora o painel ocupa a altura da janela, o histórico rola dentro
  * dele e o campo fica preso no rodapé.
  */
-const css = readFileSync(resolve(__dirname, "../src/index.css"), "utf8");
+// o CSS do app como o navegador vê: os três arquivos, na ordem da porta de entrada
+const css = cssDoApp;
 const app = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
 
 /** Só o trecho de um bloco de media query (até o próximo @media de primeiro nível). */

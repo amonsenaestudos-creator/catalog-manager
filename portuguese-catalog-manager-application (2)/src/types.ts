@@ -12,6 +12,9 @@ export interface Photo {
   albumIds?: string[];
   hash?: string;
   capturedAt?: string | null;
+  /** Medidas originais (px): guardadas na entrada para o mosaico não medir de novo. */
+  width?: number;
+  height?: number;
 }
 
 export interface BrokenNote {

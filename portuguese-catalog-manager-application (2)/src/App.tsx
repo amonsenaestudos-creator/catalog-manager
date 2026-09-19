@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { ArrowLeft, ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, Plus, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
+import { ArrowLeft, Check, ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, MoreHorizontal, Plus, Redo2, RotateCcw, ScanEye, Settings as SettingsIcon, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
 import { CatalogProvider, useCatalog } from './context';
 import { formatDate } from './store';
 import { Avatar, Button, IconButton, Toast } from './components/ui';
@@ -34,8 +34,11 @@ import QuickTools from './components/QuickTools';
 import Toolbox from './components/Toolbox';
 import Conversations from './components/Conversations';
 import { AchievementToast, ConfettiBurst, LevelUpBadge, RouletteModal } from './components/Celebrations';
+import { FolhaDeAcoes } from './components/Folha';
+import type { AcaoDeFolha } from './components/Folha';
 import OnboardingTour from './components/OnboardingTour';
 import { playSound } from './lib/sound';
+import { useBordaVoltar } from './lib/toque';
 
 const PAGE_NAMES: Record<string, string> = {
   home: 'Visão geral', conversas: 'Conversas', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
@@ -73,6 +76,40 @@ function PrivacyScreen() {
       <small>{ctx.data.settings.pinEnabled ? 'Use o PIN configurado em Ajustes.' : 'Atalho: Ctrl + Shift + P'}</small>
     </motion.div>
   </div>;
+}
+
+/**
+ * O “mais” do celular.
+ *
+ * No computador o topo tem espaço para sete botões; no aparelho, sete botões de
+ * 40px roubam o título da tela e ficam no limite do polegar. Aqui o topo guarda
+ * só o essencial (voltar, avisos, perfil) e o resto sobe numa folha de ações —
+ * do jeito que qualquer aplicativo faz.
+ */
+function TopbarMais({ onAbrirRapidas }: { onAbrirRapidas: () => void }) {
+  const ctx = useCatalog();
+  const { data } = ctx;
+  const [aberto, setAberto] = useState(false);
+  const claro = data.settings.theme !== 'dark';
+  const itens: AcaoDeFolha[] = [
+    { rotulo: 'Central de ações rápidas', detalhe: 'filtros prontos, surpresa, roleta e mais', icone: Zap, onClick: onAbrirRapidas },
+    { rotulo: ctx.blur ? 'Sair do modo disfarce' : 'Modo disfarce', detalhe: 'desfoca fotos e nomes', icone: ScanEye, onClick: () => ctx.setBlur(!ctx.blur) },
+    { rotulo: 'Modo privacidade', detalhe: 'cobre a tela até você voltar', icone: EyeOff, onClick: () => ctx.setPrivacy(true) },
+    { rotulo: claro ? 'Usar tema escuro' : 'Usar tema claro', icone: claro ? Moon : Sun, onClick: () => ctx.commit(d => ({ ...d, settings: { ...d.settings, theme: d.settings.theme === 'dark' ? 'light' : 'dark' } }), undefined, false) },
+    { rotulo: 'Desfazer última alteração', icone: Undo2, desabilitada: !ctx.canUndo, onClick: ctx.undo },
+    { rotulo: 'Refazer alteração', icone: Redo2, desabilitada: !ctx.canRedo, onClick: ctx.redo },
+    {
+      rotulo: ctx.demo ? 'Você está na demonstração' : ctx.status === 'saved' ? 'Tudo salvo neste aparelho' : ctx.status === 'error' ? 'Gravação falhou' : 'Salvando…',
+      detalhe: ctx.demo ? 'As alterações não são gravadas' : `Última gravação: ${formatDate(ctx.lastSavedAt, true)}`,
+      icone: ctx.demo ? CloudOff : ctx.status === 'saved' ? Check : Loader2,
+      onClick: () => ctx.navigate('settings'),
+    },
+    { rotulo: 'Ajustes e perfil', icone: SettingsIcon, onClick: () => ctx.navigate('settings') },
+  ];
+  return <>
+    <IconButton label="Mais ações" className="topbar-more" onClick={() => { ctx.buzz?.(6); setAberto(true); }}><MoreHorizontal size={20} /></IconButton>
+    {aberto && <FolhaDeAcoes titulo="O que você precisa agora?" subtitulo={PAGE_NAMES[ctx.page] || 'Meu espaço'} aoFechar={() => setAberto(false)} itens={itens} />}
+  </>;
 }
 
 function ActivePage() {
@@ -113,13 +150,53 @@ function Application() {
     if (ultimaPagina.current === page) return;
     const anterior = ultimaPagina.current;
     ultimaPagina.current = page;
+    if (page === 'home') { setHistorico([]); return; }
     setHistorico(lista => (anterior === 'home' || anterior === page ? lista : [...lista, anterior]).slice(-12));
   }, [page]);
+  const voltando = useRef(false);
+  const [direcao, setDirecao] = useState<'frente' | 'tras'>('frente');
   const voltarPagina = () => setHistorico(lista => {
     const copia = [...lista];
     const destino = copia.pop();
-    if (destino) ctx.navigate(destino);
+    if (destino) { voltando.current = true; ctx.navigate(destino); }
     return copia;
+  });
+  /** O mesmo voltar do topo, acionado pelo dedo na borda da tela. */
+  const voltarDaBorda = () => { ctx.buzz?.(10); voltarPagina(); };
+  useEffect(() => { setDirecao(voltando.current ? 'tras' : 'frente'); voltando.current = false; }, [page]);
+
+  // Tela de celular: o dedo que está na largura do aparelho faz o voltar valer.
+  const [celula, setCelula] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const consulta = window.matchMedia('(max-width: 760px)');
+    const atualizar = () => setCelula(!!consulta.matches);
+    atualizar();
+    consulta.addEventListener?.('change', atualizar);
+    return () => consulta.removeEventListener?.('change', atualizar);
+  }, []);
+
+  // Rolei um pouco: o topo assume o título e a tela libera espaço para o conteúdo.
+  useEffect(() => {
+    let compacto = false;
+    const aoRolar = () => {
+      const proximo = (window.scrollY || 0) > 40;
+      if (proximo === compacto) return;
+      compacto = proximo;
+      document.documentElement.classList.toggle('topo-compacto', compacto);
+    };
+    aoRolar();
+    window.addEventListener('scroll', aoRolar, { passive: true });
+    return () => { window.removeEventListener('scroll', aoRolar); document.documentElement.classList.remove('topo-compacto'); };
+  }, []);
+
+  // Deslizar da borda esquerda volta uma tela, como em qualquer aplicativo.
+  // O botão do meio da doca: o mesmo haptic dos vizinhos e o estado aberto no próprio botão.
+  const abrirAdicionar = () => { ctx.buzz?.(12); ctx.setQuickOpen(!ctx.quickOpen); };
+
+  const borda = useBordaVoltar({
+    ativo: celula && historico.length > 0 && !ctx.privacy && !ctx.quickOpen && !ctx.commandOpen && !ctx.rouletteOpen,
+    aoVoltar: voltarDaBorda,
   });
 
   const panicoTimer = useRef<number | null>(null);
@@ -251,7 +328,8 @@ function Application() {
     </div>}
     <div className={`app-shell private-layer ${ctx.blur ? 'blur-mode' : ''}`} aria-hidden={ctx.privacy || undefined} inert={ctx.privacy || undefined}>
       <Sidebar open={mobileMenu} onClose={() => setMobileMenu(false)} />
-      <div className="workspace">
+      <div className={`workspace ${borda.progresso > 0 ? "deslizando" : ""}`} {...borda.props}>
+        {borda.progresso > 0 && <span className="borda-trilha" aria-hidden="true" style={{ transform: `scaleY(${Math.max(.25, borda.progresso)})` }} />}
         <header className="topbar">
           <div className="topbar-start">
             {historico.length > 0
@@ -265,20 +343,21 @@ function Application() {
             <button className="global-search" onClick={() => ctx.setCommandOpen(true)}><Search size={16} /><span>Buscar pessoas, tags e muito mais...</span><kbd>Ctrl K</kbd></button>
           </div>
           <div className="topbar-actions">
-            <IconButton label="Abrir ações rápidas (Q)" className="quick-tools-trigger" onClick={() => setQuickTools(true)} data-tour="quick"><Zap size={17} /></IconButton>
+            <IconButton label="Abrir ações rápidas (Q)" className="quick-tools-trigger desktop-so" onClick={() => setQuickTools(true)} data-tour="quick"><Zap size={17} /></IconButton>
+            <TopbarMais onAbrirRapidas={() => setQuickTools(true)} />
             <div className={`save-status ${ctx.status === 'error' ? 'save-error' : ''}`} title={ctx.demo ? 'As alterações da demonstração não são gravadas.' : `Última gravação: ${formatDate(ctx.lastSavedAt, true)}`}>
               {ctx.demo ? <><CloudOff size={13} /><span>Demonstração</span></> : ctx.status === 'saved' ? <><span className="saved-dot" /><span>Tudo salvo</span></> : ctx.status === 'error' ? <button onClick={ctx.retrySave}><RotateCcw size={13} />Tentar salvar</button> : <><Loader2 size={13} className="spin" /><span>Salvando...</span></>}
             </div>
             <div className="history-buttons"><IconButton label="Desfazer última alteração (Ctrl+Z)" disabled={!ctx.canUndo} onClick={ctx.undo}><Undo2 size={16} /></IconButton><IconButton label="Refazer alteração (Ctrl+Shift+Z)" disabled={!ctx.canRedo} onClick={ctx.redo}><Redo2 size={16} /></IconButton></div>
             <NotificationCenter />
-            <IconButton label={ctx.blur ? 'Desativar modo disfarce (B)' : 'Ativar modo disfarce (B)'} onClick={() => ctx.setBlur(!ctx.blur)}><ScanEye size={17} /></IconButton>
-            <IconButton label="Ativar privacidade (Ctrl+Shift+P)" onClick={() => ctx.setPrivacy(true)}><EyeOff size={17} /></IconButton>
-            <IconButton label={data.settings.theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'} onClick={() => ctx.commit(d => ({ ...d, settings: { ...d.settings, theme: d.settings.theme === 'dark' ? 'light' : 'dark' } }), undefined, false)}>{data.settings.theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</IconButton>
+            <IconButton label={ctx.blur ? 'Desativar modo disfarce (B)' : 'Ativar modo disfarce (B)'} className="desktop-so" onClick={() => ctx.setBlur(!ctx.blur)}><ScanEye size={17} /></IconButton>
+            <IconButton label="Ativar privacidade (Ctrl+Shift+P)" className="desktop-so" onClick={() => ctx.setPrivacy(true)}><EyeOff size={17} /></IconButton>
+            <IconButton label={data.settings.theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'} className="desktop-so" onClick={() => ctx.commit(d => ({ ...d, settings: { ...d.settings, theme: d.settings.theme === 'dark' ? 'light' : 'dark' } }), undefined, false)}>{data.settings.theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</IconButton>
             <button className="topbar-profile" aria-label="Editar meu perfil" onClick={() => ctx.navigate('settings')}><Avatar src={data.settings.avatar} name={data.settings.profileName} size={32} /></button>
           </div>
         </header>
         {ctx.demo && <div className="demo-banner"><span><ShieldCheck size={13} />Você está explorando fichas fictícias. Seus dados reais não são alterados.</span><button onClick={ctx.logout}>Sair da demonstração</button></div>}
-        <main className="page-content"><motion.div key={page} className="page-fade" initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.19 }}><ActivePage /></motion.div></main>
+        <main className="page-content"><motion.div key={page} className="page-fade" initial={direcao === 'tras' ? { opacity: 0, x: -14 } : { opacity: 0, y: 7 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ duration: 0.19 }}><ActivePage /></motion.div></main>
         <div className="workspace-footer">
           <span><LockKeyhole size={11} />Armazenado neste dispositivo</span>
           <span className="footer-level"><button onClick={() => ctx.navigate('dashboard')}><Gauge size={12} />Nível {ctx.level.level} · {ctx.xp.toLocaleString('pt-BR')} XP</button>{ctx.unread > 0 && <button className="footer-alert" onClick={() => ctx.setNotificationsOpen(true)}><Sparkles size={12} />{ctx.unread} {ctx.unread === 1 ? 'aviso' : 'avisos'}</button>}</span>
@@ -286,9 +365,9 @@ function Application() {
         </div>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Navegação rápida">
-        <button className={page === 'home' ? 'active' : ''} onClick={() => ctx.navigate('home')}><HomeIcon size={20} /><span>Início</span></button>
-        <button className={page === 'catalog' ? 'active' : ''} onClick={() => ctx.navigate('catalog')}><Users size={20} /><span>Catálogo</span></button>
-        <button className="mobile-add" onClick={() => ctx.setQuickOpen(true)} aria-label="Adicionar pessoa"><span><Plus size={24} /></span></button>
+        <button className={page === 'home' ? 'active' : ''} onClick={() => { ctx.buzz?.(6); ctx.navigate('home'); }}><HomeIcon size={20} /><span>Início</span></button>
+        <button className={page === 'catalog' ? 'active' : ''} onClick={() => { ctx.buzz?.(6); ctx.navigate('catalog'); }}><Users size={20} /><span>Catálogo</span></button>
+        <button aria-label="Adicionar pessoa" aria-expanded={ctx.quickOpen} onClick={abrirAdicionar} className="mobile-add"><span><Plus size={24} /></span><small>Adicionar</small></button>
         <button onClick={() => ctx.setCommandOpen(true)}><Search size={20} /><span>Buscar</span></button>
         <button onClick={() => setMobileMenu(true)} aria-expanded={mobileMenu}><Menu size={20} /><span>Menu</span></button>
       </nav>
