@@ -1,3 +1,4 @@
+import { cssDoApp } from "./css-fonte";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
@@ -150,7 +151,8 @@ describe("filtros da galeria", () => {
   });
 });
 
-const css = readFileSync(resolve(__dirname, "../src/index.css"), "utf8");
+// o CSS do app como o navegador vê: os três arquivos, na ordem da porta de entrada
+const css = cssDoApp;
 
 describe("casca de celular nova", () => {
 

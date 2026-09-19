@@ -1,3 +1,4 @@
+import { cssDoApp } from "./css-fonte";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -10,7 +11,8 @@ import { resolve } from "node:path";
  * fixa, gaveta de menu, barra de baixo com alvo de dedo, conversa em tela
  * cheia e folga para a barra do sistema (safe area).
  */
-const css = readFileSync(resolve(__dirname, "../src/index.css"), "utf8");
+// o CSS do app como o navegador vê: os três arquivos, na ordem da porta de entrada
+const css = cssDoApp;
 const app = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
 const sidebar = readFileSync(resolve(__dirname, "../src/components/Sidebar.tsx"), "utf8");
 const conversas = readFileSync(resolve(__dirname, "../src/components/Conversations.tsx"), "utf8");

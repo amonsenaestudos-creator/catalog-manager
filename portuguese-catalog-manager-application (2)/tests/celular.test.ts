@@ -1,3 +1,4 @@
+import { cssDoApp } from "./css-fonte";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -10,7 +11,8 @@ import { resolve } from "node:path";
  * que fazem o app parecer aplicativo de celular — e não site espremido — sem
  * precisar de navegador para medir.
  */
-const css = readFileSync(resolve(__dirname, "../src/index.css"), "utf8");
+// o CSS do app como o navegador vê: os três arquivos, na ordem da porta de entrada
+const css = cssDoApp;
 const app = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
 const previa = readFileSync(resolve(__dirname, "../src/preview/celular.ts"), "utf8");
 const ui = readFileSync(resolve(__dirname, "../src/components/ui.tsx"), "utf8");
