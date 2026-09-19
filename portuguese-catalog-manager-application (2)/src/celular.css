@@ -1606,3 +1606,153 @@
   .catalog-toolbar > .search-field { flex: 1 1 100%; }
   .catalog-toolbar > select { flex: 1 1 140px; max-width: none; }
 }
+
+/* ==========================================================================
+   16. A UI do aparelho, refeita no osso
+
+   Com os alvos separados, o celular para de ser o layout do computador
+   amassado. O cartão de pessoa passa a ser a foto com o nome por cima; a doca
+   marca a aba ativa com uma pílula atrás do ícone, não atrás do botão inteiro;
+   o cabeçalho da tela vira capa; e a ficha abre em tela cheia, com a barra de
+   ação colada no polegar. Cada regra aqui está dentro de um `@media` de toque,
+   então nenhuma delas chega ao computador.
+   ========================================================================== */
+
+/* ------------------------------------------------ 16.1 capa e cabeçalho -- */
+@media (max-width: 760px) {
+  .page-title { padding: 6px 0 12px; margin-bottom: 12px; }
+  .page-title .eyebrow { font-size: 9.5px; font-weight: 650; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 5px; }
+  .page-title h1 { font-size: 28px; line-height: 1.08; letter-spacing: -1px; }
+  .page-title .page-description { font-size: 12.5px; line-height: 1.5; margin-top: 7px; max-width: 38ch; color: var(--muted); }
+
+  /* as ações da tela viram uma linha de pílulas que rola na lateral: sem quebra,
+     o polegar acha a próxima sem a tela pular de tamanho no meio do caminho.
+     sangra até a borda para a última pílula encostar no dedo, com respiro. */
+  .page-title .page-actions {
+    gap: 7px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    margin: 12px -14px 0; padding: 0 14px 2px; scroll-snap-type: x proximity;
+  }
+  .page-title .page-actions::-webkit-scrollbar { display: none; }
+  .page-title .page-actions .menu-anchor { flex: 0 0 auto; }
+  .page-title .page-actions .btn, .page-title .page-actions .text-action {
+    flex: 0 0 auto; min-height: 40px; padding: 0 14px; font-size: 12.5px;
+    border-radius: 999px; scroll-snap-align: start;
+  }
+
+  /* enquanto a página está no começo, o cluster do topo também é fundo: sem
+     borda, sem caixa — só os ícones. Ao rolar, a pílula ganha contorno. */
+  .topbar-actions { transition: background .28s ease, border-color .28s ease; }
+  html:not(.topo-compacto) .topbar-actions { border-color: transparent; background: color-mix(in srgb, var(--surface) 56%, transparent); }
+}
+
+/* ------------------------------------------------------- 16.2 doca ativa -- */
+@media (max-width: 760px) {
+  .mobile-bottom-nav { padding: 7px 8px 6px; }
+  .mobile-bottom-nav button { min-height: 52px; gap: 2px; }
+  .mobile-bottom-nav button > svg { width: 30px; height: 30px; padding: 5px; border-radius: 11px; transition: background .18s ease, box-shadow .18s ease; }
+  .mobile-bottom-nav button span { font-size: 9.5px; }
+  /* a aba ativa é a pílula atrás do ícone — o fundo do botão inteiro pesa demais
+     numa doca de cinco casas */
+  .mobile-bottom-nav button.active { background: none; color: var(--accent); }
+  .mobile-bottom-nav button.active > svg { background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+  .mobile-bottom-nav button:active > svg { background: var(--surface-3); }
+  /* o “+” do meio já tem círculo próprio: não leva pílula atrás nem encolhe o ícone */
+  .mobile-bottom-nav .mobile-add > span > svg { width: 24px; height: 24px; padding: 0; border-radius: 0; background: none; box-shadow: none; }
+}
+
+/* ------------------------------------- 16.3 catálogo: a foto é o cartão -- */
+@media (max-width: 760px) {
+  .people-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .people-grid .person-card {
+    position: relative; aspect-ratio: 3 / 4; border: 0; border-radius: 20px;
+    background: var(--surface-2); box-shadow: 0 12px 26px -20px #000000c4;
+    content-visibility: auto; contain-intrinsic-size: auto 268px;
+  }
+  .people-grid .card-photo-button, .people-grid.compact .card-photo-button {
+    position: absolute; inset: 0; height: 100%; aspect-ratio: auto; border-radius: 20px;
+  }
+  .people-grid .person-card-content {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 11px 10px;
+    background: linear-gradient(180deg, #0d0b1000, #0d0b10a6 44%, #0b090ee6); color: #f7f2fb;
+  }
+  .people-grid .card-name-row { align-items: flex-end; gap: 6px; }
+  .people-grid .card-name-row h3 { font-size: 14.5px; font-weight: 620; color: #fff; white-space: normal; }
+  .people-grid .card-location { color: #ded2e8; font-size: 11px; margin-top: 2px; }
+  /* etiqueta e barra de preenchimento ficam para a lista e para a ficha: sobre a
+     foto elas só roubam o rosto da pessoa */
+  .people-grid .card-tags, .people-grid .card-bottom, .people-grid.compact .card-tags { display: none; }
+  .people-grid .star-rating, .people-grid .rating-value { color: #ffd9a5; font-size: 11px; }
+  .people-grid .card-photo-controls { top: 9px; left: auto; right: 9px; }
+  .people-grid .favorite-photo-btn { background: #100d1463; border: 1px solid #ffffff2b; color: #fff; backdrop-filter: blur(7px); }
+  .people-grid .person-card.selected { box-shadow: 0 0 0 2px var(--accent), 0 12px 26px -20px #000000c4; }
+  /* sem moldura no mosaico, o anel do cartão fixado passa a por dentro da foto */
+  .people-grid .person-card.is-pinned { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 72%, transparent), 0 12px 26px -20px #000000c4; }
+  .people-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .people-grid.compact .person-card-content { padding: 20px 8px 7px; }
+  .people-grid.compact .card-name-row h3 { font-size: 12px; }
+  .people-grid.compact .card-location, .people-grid.compact .star-rating { display: none; }
+
+  /* o modo lista é o contrário: linha larga para ler quem é, com o retrato na
+     mão esquerda e o coração na direita, onde o polegar cai */
+  .people-list { gap: 8px; }
+  .people-list .person-card {
+    border-radius: 16px; padding: 9px 11px 9px 9px; gap: 12px; align-items: center;
+    background: var(--surface); border: 1px solid var(--line); box-shadow: none;
+  }
+  .people-list .card-photo-button { flex: 0 0 62px; width: 62px; height: 78px; border-radius: 12px; }
+  .people-list .person-card-content { padding: 0; }
+  .people-list .card-name-row { padding-right: 44px; }
+  .people-list .card-name-row h3 { font-size: 15px; }
+  .people-list .card-tags { min-height: 0; margin-top: 5px; }
+  .people-list .card-bottom { margin-top: 7px; padding-top: 7px; }
+  .people-list .card-photo-controls { top: 50%; left: auto; right: 7px; transform: translateY(-50%); }
+
+  /* a barra de filtros: uma linha para achar, outra para ordenar */
+  .catalog-results-line { gap: 8px; font-size: 11.5px; }
+  .catalog-results-line > div { gap: 8px; }
+  .catalog-results-line select { min-height: 36px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 11.5px; }
+  .catalog-toolbar .view-switch { margin-left: auto; }
+  .catalog-toolbar .btn { border-radius: 999px; }
+}
+
+/* -------------------------------------------------- 16.4 a ficha no bolso */
+@media (max-width: 760px) {
+  /* a ficha é uma tela do aparelho, não uma janela por cima dela: tela cheia,
+     sem moldura, sem alça — e sem a animação que transformaria o pai do pé fixo */
+  .person-drawer { max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; box-shadow: none; animation: none; }
+  .person-drawer::before { display: none; }
+  .person-drawer .modal-heading { padding: 6px 12px 8px; border-bottom: 0; }
+  .person-drawer .modal-heading h2 { font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--muted); }
+  .person-drawer .modal-body { padding: 0 14px 84px; }   /* 84 = a altura do pé fixo, para nada ficar atrás dele */
+
+  /* a foto sangra de ponta a ponta e o nome sobe por cima dela: capa, não moldura */
+  .person-drawer .person-cover { display: block; margin: 0 -14px; }
+  .person-drawer .cover-photo { width: 100%; height: auto; aspect-ratio: 1 / 1; max-height: 44dvh; overflow: hidden; }
+  .person-drawer .cover-photo .person-photo { object-position: 50% 22%; }
+  .person-drawer .person-intro {
+    position: relative; margin: -30px 0 0; padding: 32px 14px 0;
+    border-radius: var(--raio-g) var(--raio-g) 0 0; background: var(--surface);
+  }
+  .person-drawer .person-intro > h2 { font-size: 26px; letter-spacing: -.7px; }
+  .person-drawer .person-location { font-size: 12px; }
+  .person-drawer .completion-line { margin-top: 12px; }
+
+  /* as abas colam no alto da folha: trocar de aba não exige rolar de volta */
+  .person-drawer .editor-tabs {
+    position: sticky; top: 0; z-index: 4; margin: 14px -14px 12px; padding: 9px 14px;
+    background: var(--vidro); backdrop-filter: blur(12px) saturate(1.3);
+    border-bottom: 1px solid var(--line); border-top: 1px solid var(--line);
+  }
+
+  /* e a ação principal mora no pé da tela, onde o polegar alcança sem esticar
+     a mão. o menu “⋯” abre para cima, porque embaixo dele só a borda do vidro. */
+  .person-primary-actions {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+    display: flex; align-items: center; gap: 8px;
+    margin: 0; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--vidro); backdrop-filter: blur(16px) saturate(1.4);
+    border-top: 1px solid var(--line);
+  }
+  .person-primary-actions .btn { flex: 1 1 auto; min-height: 46px; justify-content: center; }
+  .person-primary-actions .menu-anchor .dropdown-menu { top: auto; bottom: calc(100% + 8px); }
+}

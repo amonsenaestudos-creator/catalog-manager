@@ -234,4 +234,48 @@ describe("sistema visual do celular", () => {
     expect(topo).toMatch(/\.topbar-actions \.topbar-profile\s*\{[^}]*border-left:/);
     expect(previa).toMatch(/class="icon-btn topbar-more" aria-label="Mais ações"/);
   });
+
+  it("o cartão de pessoa no celular é a foto com o nome por cima", () => {
+    const catalogo = daqui("16.3 catálogo", "16.4 a ficha");
+    expect(catalogo).toMatch(/\.people-grid \.person-card\s*\{[^}]*aspect-ratio:\s*3 \/ 4/);
+    expect(catalogo).toMatch(/\.people-grid \.card-photo-button[^{]*\{\s*position:\s*absolute;\s*inset:\s*0/);
+    expect(catalogo).toMatch(/\.people-grid \.person-card-content\s*\{[^}]*linear-gradient/);
+    expect(catalogo).toMatch(/\.people-grid \.card-tags,\s*\.people-grid \.card-bottom[^{]*\{\s*display:\s*none/);
+    expect(catalogo).toMatch(/\.people-grid \.person-card\.is-pinned\s*\{[^}]*inset 0 0 0 2px/);   /* fixado continua visível sem moldura */
+    // e o modo lista é o contrário: retrato na mão esquerda, coração na direita
+    expect(catalogo).toMatch(/\.people-list \.card-photo-button\s*\{\s*flex:\s*0 0 62px/);
+    expect(catalogo).toMatch(/\.people-list \.card-photo-controls\s*\{\s*top:\s*50%/);
+    expect(catalogo).toMatch(/\.people-list \.card-name-row\s*\{\s*padding-right:\s*44px/);
+  });
+
+  it("a aba ativa da doca é uma pílula atrás do ícone, não atrás do botão", () => {
+    const doca = daqui("16.2 doca ativa", "16.3 catálogo");
+    expect(doca).toMatch(/\.mobile-bottom-nav button\.active\s*\{\s*background:\s*none/);
+    expect(doca).toMatch(/\.mobile-bottom-nav button\.active > svg\s*\{\s*background:\s*var\(--accent-soft\)/);
+    expect(doca).toMatch(/\.mobile-bottom-nav button > svg\s*\{\s*width:\s*30px/);
+    // o “+” do meio já tem círculo próprio: nada de pílula por baixo dele
+    expect(doca).toMatch(/\.mobile-bottom-nav \.mobile-add > span > svg\s*\{\s*width:\s*24px/);
+  });
+
+  it("a ficha abre em tela cheia com a ação onde o polegar alcança", () => {
+    const ficha = daqui("16.4 a ficha no bolso");
+    expect(ficha).toMatch(/\.person-drawer\s*\{[^}]*height:\s*100dvh/);
+    expect(ficha).toMatch(/\.person-drawer::before\s*\{\s*display:\s*none/);        /* a alça não serve para nada aqui */
+    expect(ficha).toMatch(/\.person-drawer \.cover-photo\s*\{[^}]*max-height:\s*44dvh/);
+    expect(ficha).toMatch(/\.person-drawer \.person-intro\s*\{[^}]*margin:\s*-30px 0 0/);
+    expect(ficha).toMatch(/\.person-drawer \.editor-tabs\s*\{[^}]*position:\s*sticky/);
+    expect(ficha).toMatch(/\.person-primary-actions\s*\{[^}]*position:\s*fixed/);
+    expect(ficha).toMatch(/\.person-primary-actions \.menu-anchor \.dropdown-menu\s*\{\s*top:\s*auto; bottom: calc\(100% \+ 8px\)/);
+    expect(ficha).toMatch(/\.person-drawer \.modal-body\s*\{\s*padding:\s*0 14px 84px/);
+  });
+
+  it("o cabeçalho da tela vira capa e as ações rolam na lateral", () => {
+    const capa = daqui("16.1 capa", "16.2 doca");
+    expect(capa).toMatch(/\.page-title h1\s*\{\s*font-size:\s*28px/);
+    expect(capa).toMatch(/\.page-title \.eyebrow\s*\{[^}]*text-transform:\s*uppercase/);
+    expect(capa).toMatch(/\.page-title \.page-actions\s*\{[^}]*flex-wrap:\s*nowrap/);
+    expect(capa).toMatch(/\.page-title \.page-actions \.btn,\s*\.page-title \.page-actions \.text-action\s*\{\s*flex:\s*0 0 auto/);   /* uma linha só, sem quebrar */
+    // e o cluster do topo só ganha contorno quando a página já rolou
+    expect(capa).toMatch(/html:not\(\.topo-compacto\) \.topbar-actions\s*\{[^}]*border-color:\s*transparent/);
+  });
 });
