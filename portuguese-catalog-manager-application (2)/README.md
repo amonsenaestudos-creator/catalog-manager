@@ -137,6 +137,20 @@ Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não
 - `src/computador.css`: só bloco `@media (min-width: 1101px)` — conversa em tela cheia, janela média e os rótulos dos modos na galeria.
 - `src/assets.ts`: imagens locais embutidas no build. A fonte Inter também é incluída localmente.
 
+### O estilo por alvo do aparelho
+
+`src/index.css` é só a porta: `base.css`, `celular.css`, `computador.css`, nessa ordem. A regra
+do bolso não nasce fora de um `@media` no arquivo do celular, e a de janela larga não nasce na
+base — é o que trava `tests/isolamento.test.ts`. Assim o `mobile.css` legado pôde ser aposentado
+sem deixar buraco: as quatro coisas úteis que só ele fazia foram movidas e documentadas no lugar
+certo (seção 16 “Peças sem dono” da base, seção 15.10 do celular), e o resto caiu junto com ele.
+O que foi deixado de propósito, com o motivo: as regras para `.level-card`, `.gallery-photo` e o
+`!important` do `.tier-bank` — nenhuma das três classes é usada por nenhum componente hoje, e o
+`!important` só existia para brigar com o próprio arquivo aposentado; e o `display: none` do
+`.topbar-profile`, porque no celular o retrato é justamente um dos três controles da pílula do
+topo. A separação foi conferida como multiconjunto de declarações (9738 antes, 9738 depois):
+nada foi perdido e nada foi inventado por engano no caminho.
+
 ## Validação
 
 O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos. Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira, além de:
