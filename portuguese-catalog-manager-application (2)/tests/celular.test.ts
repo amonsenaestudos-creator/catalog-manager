@@ -278,4 +278,39 @@ describe("sistema visual do celular", () => {
     // e o cluster do topo só ganha contorno quando a página já rolou
     expect(capa).toMatch(/html:not\(\.topo-compacto\) \.topbar-actions\s*\{[^}]*border-color:\s*transparent/);
   });
+
+  it("a ficha por dentro é lista do tamanho do polegar", () => {
+    const dentro = daqui("17.1 a ficha por dentro", "17.2 painel");
+    expect(dentro).toMatch(/\.person-facts\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*minmax\(0, 1fr\)/);
+    expect(dentro).toMatch(/\.person-facts dt\s*\{\s*flex:\s*0 0 104px/);
+    expect(dentro).toMatch(/\.person-drawer \.read-text\s*\{\s*margin-top:\s*8px; padding: 12px 13px; border-radius:\s*var\(--raio\)/);
+    expect(dentro).toMatch(/\.person-drawer \.collection-picker button\s*\{\s*min-height:\s*42px/);
+    expect(dentro).toMatch(/\.rating-field\s*\{\s*display:\s*flex;[^}]*min-height:\s*54px/);
+    expect(dentro).toMatch(/\.rating-field svg\s*\{\s*width:\s*27px/);
+    expect(dentro).toMatch(/\.goal-checklist \.complete-reminder\s*\{\s*width:\s*30px/);
+    expect(dentro).toMatch(/\.timeline-dot\s*\{\s*width:\s*30px;\s*height:\s*30px/);
+    expect(dentro).toMatch(/\.person-timeline::before\s*\{\s*left:\s*20px/);   /* a trilha segue o centro do ponto */
+    expect(dentro).toMatch(/\.drawer-gallery\s*\{\s*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
+  });
+
+  it("painel, ajustes e gaveta entram na mesma linguagem do toque", () => {
+    const painel = daqui("17.2 painel", "17.3 os ajustes");
+    expect(painel).toMatch(/\.home-banner\s*\{\s*border-radius:\s*22px/);
+    expect(painel).toMatch(/\.banner-copy h2\s*\{\s*font-size:\s*24px/);
+    expect(painel).toMatch(/\.home-rank-list > button\s*\{\s*min-height:\s*62px/);
+    expect(painel).toMatch(/\.section-heading\s*\{\s*margin:\s*20px 2px 10px/);
+
+    const ajustes = daqui("17.3 os ajustes", "17.4 a gaveta");
+    expect(ajustes).toMatch(/\.settings-section \.field\s*\{\s*padding:\s*10px 12px/);
+    expect(ajustes).toMatch(/\.settings-section \.field-label\s*\{\s*font-size:\s*10px;[^}]*text-transform:\s*uppercase/);
+    // caixa de seleção não vira linha de 42px: só os campos de texto crescem
+    expect(ajustes).toMatch(/input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=color\]\)\s*\{\s*min-height:\s*42px/);
+    expect(ajustes).toMatch(/\.settings-section \.field input\[type=checkbox\][^{]*\{\s*width:\s*26px;\s*height:\s*26px/);
+
+    const gaveta = daqui("17.4 a gaveta");
+    expect(gaveta).toMatch(/\.nav-item\s*\{\s*min-height:\s*54px/);
+    expect(gaveta).toMatch(/\.nav-item > svg:first-of-type\s*\{\s*width:\s*34px;\s*height:\s*34px;\s*padding:\s*7px/);
+    expect(gaveta).toMatch(/\.nav-item\.active > svg:first-of-type\s*\{\s*background:\s*color-mix/);
+    expect(gaveta).toMatch(/\.sidebar-bottom\s*\{[^}]*env\(safe-area-inset-bottom/);
+  });
 });

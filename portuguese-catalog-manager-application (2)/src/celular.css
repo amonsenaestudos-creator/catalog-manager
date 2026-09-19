@@ -1756,3 +1756,126 @@
   .person-primary-actions .btn { flex: 1 1 auto; min-height: 46px; justify-content: center; }
   .person-primary-actions .menu-anchor .dropdown-menu { top: auto; bottom: calc(100% + 8px); }
 }
+
+/* ==========================================================================
+   17. O resto do aparelho — a ficha por dentro, o painel, os ajustes e a gaveta
+
+   O conversa e a galeria já tinham sido refeitas (14.11, 15.6 a 15.9); o que
+   ainda era tela de computador espremida era isto aqui. Cada regra dentro de um
+   `@media` de toque, nenhuma delas alcança o computador.
+   ========================================================================== */
+
+/* -------------------------------------------- 17.1 a ficha por dentro -- */
+@media (max-width: 760px) {
+  /* os fatos são uma lista de definição do tamanho do polegar: rótulo miúdo em
+     caixa alta à esquerda, valor encostado na direita, hairline entre um e outro
+     — coluna única, porque valor longo em duas colunas quebra em três linhas */
+  .person-facts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 12px 0 0; border-top: 1px solid var(--line); }
+  .person-facts > div { display: flex; align-items: baseline; gap: 12px; min-width: 0; padding: 11px 2px; border-bottom: 1px solid var(--line); }
+  .person-facts dt { flex: 0 0 104px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+  .person-facts dd { margin: 0 0 0 auto; text-align: right; font-size: 13.5px; overflow-wrap: anywhere; }
+
+  /* o texto longo vira cartão empilhado com título de seção miúdo */
+  .person-drawer .read-text { margin-top: 8px; padding: 12px 13px; border-radius: var(--raio); border: 1px solid var(--line); background: var(--surface); }
+  .person-drawer .read-text h3 { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+  .person-drawer .read-text p { margin-top: 7px; font-size: 13.5px; line-height: 1.62; }
+
+  /* pastas: linha tocável de 42px, não o chip de 24px do computador */
+  .person-drawer .collection-picker { gap: 6px; }
+  .person-drawer .collection-picker button { min-height: 42px; padding: 0 13px; border-radius: 999px; font-size: 12.5px; }
+
+  /* avaliações: o número grande manda no cartão e cada atributo tem linha de
+     54px com estrela de 27px — a de 21px do computador é alvo menor que o dedo */
+  .person-drawer .rating-summary { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: var(--raio); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); }
+  .person-drawer .rating-summary h3 { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .person-drawer .rating-summary p { font-size: 11.5px; line-height: 1.5; margin-top: 4px; }
+  .person-drawer .rating-summary > strong { margin-left: auto; font-size: 30px; letter-spacing: -1px; }
+  .rating-fields { gap: 6px; }
+  .rating-field { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 10px 12px; border-radius: var(--raio-p); background: var(--surface-2); }
+  .rating-field > span { flex: 1; min-width: 0; font-size: 13px; }
+  .rating-field svg { width: 27px; height: 27px; }
+  .rating-radar, .rating-history-block { margin-top: 8px; padding: 12px 13px; border-radius: var(--raio); border: 1px solid var(--line); background: var(--surface); }
+
+  /* metas: a linha de toque com o quadradinho de check de 30px e os dois botões
+     de 38px à direita — nada de acertar alvo de 24px com o polegar */
+  .person-goals .goal-add { gap: 7px; }
+  .person-goals .goal-add input { min-height: 46px; padding: 0 15px; border-radius: 999px; font-size: 15px; }
+  .goal-checklist { gap: 6px; }
+  .goal-checklist li { min-height: 56px; gap: 10px; padding: 9px 10px; border-radius: var(--raio-p); background: var(--surface); }
+  .goal-checklist .complete-reminder { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 10px; }
+  .goal-checklist li > span { font-size: 12.5px; }
+  .goal-checklist li strong { font-size: 13.5px; }
+  .goal-checklist .icon-btn { width: 38px; height: 38px; }
+
+  /* linha do tempo: a trilha fina com o ponto de 30px e o registro ao lado em
+     cartão — data em caixa alta miúda, o resto em corpo de leitura */
+  .person-timeline { gap: 8px; }
+  .person-timeline::before { left: 20px; }   /* centro do ponto de 30px: 6 do passo + 15 do raio - 1 da linha */
+  .timeline-dot { width: 30px; height: 30px; flex: 0 0 30px; }
+  .person-timeline li > div { min-width: 0; padding: 10px 12px; border-radius: var(--raio-p); background: var(--surface-2); }
+  .person-timeline strong { font-size: 13.5px; }
+  .person-timeline p { margin-top: 3px; font-size: 12px; line-height: 1.55; }
+
+  /* as fotos da ficha entram em três colunas quadradas, do mesmo tamanho do
+     mosaico do álbum — aprender uma grade só serve para as duas telas */
+  .drawer-gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .drawer-gallery > button { aspect-ratio: 1; border-radius: 12px; }
+  .drawer-gallery .photo-caption { padding: 18px 8px 6px; font-size: 9.5px; }
+}
+
+/* -------------------------------------------------- 17.2 painel e início */
+@media (max-width: 760px) {
+  .home-banner { border-radius: 22px; }
+  .banner-copy { padding: 16px 16px 15px; }
+  .banner-copy h2 { font-size: 24px; letter-spacing: -.8px; line-height: 1.12; }
+  .banner-copy p { font-size: 12px; line-height: 1.5; }
+  .banner-controls { top: 12px; }
+  .recent-person { height: 200px; border-radius: 18px; }
+  .recent-person-copy > small { font-size: 8.5px; }
+  /* o ranking do painel é lista de gente, não tabela: retrato, nome, número */
+  .home-rank-list > button { min-height: 62px; gap: 11px; border-radius: var(--raio-p); }
+  .home-rank-name strong { font-size: 14px; }
+  .home-rank-score strong { font-size: 15px; }
+  /* ritmo igual entre as seções: um título, um respiro, uma lista */
+  .section-heading { margin: 20px 2px 10px; }
+  .section-heading h2 { font-size: 16px; letter-spacing: -.3px; }
+  .dashboard-grid, .home-main-grid, .stat-grid { gap: 10px; }
+  .panel { padding: 14px; }
+  .panel-subtitle { font-size: 11.5px; }
+}
+
+/* -------------------------------------------------------- 17.3 os ajustes */
+@media (max-width: 760px) {
+  /* cada campo é uma linha de cartão: rótulo em cima, controle inteiro embaixo,
+     e o texto do campo em 15px — abaixo disso o navegador dá zoom no foco */
+  .settings-section { gap: 9px; padding: 18px 0; }
+  .settings-section-intro h2 { display: flex; align-items: center; gap: 8px; font-size: 16.5px; letter-spacing: -.3px; }
+  .settings-section-intro p { font-size: 12.5px; line-height: 1.55; }
+  .settings-section-content { display: grid; gap: 8px; }
+  .settings-section .field { padding: 10px 12px; border-radius: var(--raio-p); border: 1px solid var(--line); background: var(--surface); }
+  .settings-section .field-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+  .settings-section .field select, .settings-section .field textarea { min-height: 42px; font-size: 15px; border-radius: 11px; }
+  .settings-section .field input:not([type=checkbox]):not([type=radio]):not([type=color]) { min-height: 42px; font-size: 15px; border-radius: 11px; }
+  .settings-section .field input[type=checkbox], .settings-section .field input[type=radio] { width: 26px; height: 26px; }
+  .settings-section .field-hint { font-size: 11px; line-height: 1.5; }
+  .permission-line, .backup-versions > div, .import-summary { min-height: 52px; padding: 11px 12px; border-radius: var(--raio-p); background: var(--surface-2); }
+  .sound-previews button, .theme-options button, .danger-section .btn { min-height: 46px; }
+  .color-picker { gap: 8px; }
+  .color-picker button { width: 34px; height: 34px; }
+}
+
+/* ------------------------------------------------------------ 17.4 a gaveta */
+@media (max-width: 760px) {
+  /* item de 54px com pílula atrás do ícone: a mesma linguagem da doca, para a
+     gaveta e a barra de baixo parecerem o mesmo aplicativo */
+  .sidebar nav { padding: 0 10px 14px; }
+  .nav-item { min-height: 54px; gap: 12px; padding: 0 12px; border-radius: 15px; font-size: 15px; }
+  .nav-item > svg:first-of-type { width: 34px; height: 34px; padding: 7px; border-radius: 11px; background: var(--surface-2); opacity: 1; transition: background .18s ease; }
+  .nav-item.active > svg:first-of-type { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+  .nav-item:active { background: var(--surface-3); }
+  .nav-item small { font-size: 10.5px; }
+  .nav-label { padding: 16px 12px 7px; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; }
+  .sidebar-bottom { gap: 6px; padding: 10px 10px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); }
+  .new-features-link { min-height: 48px; padding: 0 12px; border-radius: var(--raio-p); }
+  .new-features-link small { font-size: 10.5px; }
+}

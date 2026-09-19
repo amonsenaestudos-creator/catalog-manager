@@ -475,6 +475,85 @@ const folha = () => `
   </div></div>
   ${dock('catalogo')}`;
 
+const fichaTela = () => `
+  <div class="app-shell"><div class="workspace">
+    ${topbar('Catálogo')}
+    <main class="page-content">
+      <header class="page-title"><div><p class="eyebrow">Sua biblioteca pessoal</p><h1>Catálogo</h1><p class="page-description">Cada pessoa tem uma história. Guarde os detalhes.</p></div></header>
+      <div class="people-grid">
+        ${ficha(FOTO.marina, 'Marina Alves', 'Salvador · Bahia', '9,8', ['amiga'])}
+        ${ficha(FOTO.bianca, 'Bianca Moura', 'Salvador · Bahia', '9,6', ['igreja'], 54)}
+      </div>
+    </main>
+  </div></div>
+  <div class="modal-overlay">
+    <div class="modal modal-wide person-drawer" role="dialog" aria-modal="true">
+      <header class="modal-heading"><div><h2>Fichário pessoal</h2></div><button class="icon-btn" aria-label="Fechar">×</button></header>
+      <div class="modal-body">
+        <div class="person-read">
+          <div class="person-cover">
+            <button class="cover-photo"><img class="person-photo" src="${FOTO.marina}" alt="Marina Alves" /></button>
+            <div class="person-intro">
+              <div class="intro-top"><span class="eyebrow">Sua conexão</span><button class="icon-btn" aria-label="Favoritar">♥</button></div>
+              <h2>Marina Alves</h2>
+              <p class="person-location">Salvador · Bahia</p>
+              <p class="friendship-read">Confiança construída<span>Nível de amizade · não afeta a nota</span></p>
+              <p class="person-description">Ri alto, lembra de detalhe pequeno e aparece quando alguém precisa.</p>
+              <div class="tags"><span class="tag">amiga</span><span class="tag">igreja</span><span class="tag">trabalho</span></div>
+              <div class="person-primary-actions">
+                <button class="btn btn-primary">Editar ficha</button>
+                <button class="btn btn-secondary">Adicionar foto</button>
+                <div class="menu-anchor"><button class="icon-btn" aria-label="Mais ações">⋯</button>
+                  <div class="dropdown-menu"><button>Exportar ficha PNG</button><button>Fixar no topo do catálogo</button><button>Arquivar ficha</button></div>
+                </div>
+              </div>
+              <div class="completion-line"><div><span>Ficha 78% completa</span><span>4 detalhes a preencher</span></div><span class="progress-track"><i style="width:78%"></i></span></div>
+            </div>
+          </div>
+          <div class="editor-tabs"><button class="active">Informações</button><button>Avaliações</button><button>Notas <small>3</small></button><button>Fotos <small>12</small></button><button>Linha do tempo</button></div>
+          <dl class="person-facts">
+            <div><dt>Idade</dt><dd>29</dd></div>
+            <div><dt>Contato</dt><dd>@marina.alves</dd></div>
+            <div><dt>Onde mora</dt><dd>Salvador · Bahia</dd></div>
+            <div><dt>Profissão</dt><dd>Fisioterapeuta</dd></div>
+          </dl>
+          <div class="read-text"><h3>Observações gerais</h3><p>Gosta de café da manhã longo e de conversa que não tem pressa. Some quando o assunto é raso.</p></div>
+          <div class="read-text"><h3>Comportamento</h3><p>Responde rápido à noite, demora de manhã.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  ${dock('catalogo')}`;
+
+const ajustes = () => `
+  <div class="app-shell"><div class="workspace">
+    ${topbar('Ajustes')}
+    <main class="page-content">
+      <header class="page-title"><div><p class="eyebrow">Neste aparelho</p><h1>Ajustes</h1><p class="page-description">O que muda só aqui, sem mexer no seu catálogo.</p></div></header>
+      <div class="scope-tabs"><button class="active">Aparência</button><button>Perfil</button><button>Alertas</button><button>Segurança</button></div>
+      <div class="settings-body">
+        <section class="settings-section">
+          <div class="settings-section-intro"><h2>Tema</h2><p>Escuro de noite, claro de dia — ou o que você escolher.</p></div>
+          <div class="settings-section-content">
+            <div class="theme-options"><button class="theme-preview dark-preview">Escuro</button><button class="theme-preview light-preview">Claro</button></div>
+            <label class="field"><span class="field-label">Cor de destaque</span><input value="Ameixa" /></label>
+            <label class="field"><span class="field-label">Tamanho do texto</span><select><option>Normal</option><option>Grande</option></select><span class="field-hint">Muda corpo, lista e rótulos.</span></label>
+          </div>
+        </section>
+        <section class="settings-section">
+          <div class="settings-section-intro"><h2>Notificações</h2><p>O que pode chamar sua atenção.</p></div>
+          <div class="settings-section-content">
+            <div class="permission-line"><span>Lembrete de aniversário</span><input type="checkbox" checked /></div>
+            <div class="permission-line"><span>Meta vencendo</span><input type="checkbox" checked /></div>
+            <div class="permission-line"><span>Sons do app</span><input type="checkbox" /></div>
+            <div class="backup-versions"><div><strong>Backup de ontem</strong><p class="muted small">128 fichas · 24 MB</p></div><button class="btn btn-secondary">Restaurar</button></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div></div>
+  ${dock('inicio')}`;
+
 const TELAS: { id: string; nome: string; nota: string; html: () => string }[] = [
   { id: 'inicio', nome: 'Início', nota: 'painel, cartões e fichas', html: inicio },
   { id: 'catalogo', nome: 'Catálogo', nota: 'título, chips e grade', html: catalogo },
@@ -486,6 +565,8 @@ const TELAS: { id: string; nome: string; nota: string; html: () => string }[] = 
   { id: 'cofre', nome: 'Cofre', nota: 'mosaico e lote do meu espaço', html: cofre },
   { id: 'filtros', nome: 'Filtros', nota: 'folha larga com o que vale', html: filtros },
   { id: 'folha', nome: 'Nova ficha', nota: 'folha de baixo', html: () => folha() },
+  { id: 'ficha', nome: 'Ficha em tela cheia', nota: 'capa, fatos e ação no pé', html: fichaTela },
+  { id: 'ajustes', nome: 'Ajustes', nota: 'campo em linha de cartão', html: ajustes },
 ];
 
 const tela = new URLSearchParams(location.search).get('tela');
@@ -505,7 +586,7 @@ if (tela) {
     <header class="prancha-topo">
       <p class="eyebrow">Catalog · prévia de layout</p>
       <h1>O aplicativo na mão</h1>
-      <p>Cada quadro abaixo tem a largura de um aparelho de verdade (390 × 844) e roda o mesmo CSS do aplicativo — as regras de celular valem de fato. Role a página para ver as caixas todas; se quiser uma tela sozinha e maior, abra <strong>?tela=visor</strong> (ou inicio, catalogo, conversas, conversa, galeria, acoes, cofre, filtros, folha) no fim do endereço.</p>
+      <p>Cada quadro abaixo tem a largura de um aparelho de verdade (390 × 844) e roda o mesmo CSS do aplicativo — as regras de celular valem de fato. Role a página para ver as caixas todas; se quiser uma tela sozinha e maior, abra <strong>?tela=visor</strong> (ou inicio, catalogo, ficha, ajustes, galeria, acoes, cofre, filtros, folha) no fim do endereço.</p>
       <div class="prancha-dicas">
         <span>${ICONE.pessoas} Doca flutuante com o “+” elevado</span>
         <span>${ICONE.mosaico} Mosaico com a proporção de cada foto</span>
