@@ -59,15 +59,22 @@ const ICONE: Record<string, string> = {
 const avatar = (src: string, tamanho: number, nome: string) =>
   `<span class="avatar" style="width:${tamanho}px;height:${tamanho}px;font-size:${Math.max(14, Math.round(tamanho * 0.3))}px"><img src="${src}" alt="${nome}" draggable="false" /></span>`;
 
-const topbar = (titulo: string) => `
+/**
+ * O topo do aparelho. `voltar` mostra a seta no lugar do menu — é o que acontece
+ * em toda tela que não é raiz, e serve para conferir se os dois ocupam a mesma
+ * caixa (se não ocupassem, o título pularia de lugar entre as telas).
+ */
+const topbar = (titulo: string, voltar = false) => `
   <header class="topbar">
     <div class="topbar-start">
-      <button class="icon-btn mobile-menu-trigger" aria-label="Abrir menu">${ICONE.menu}</button>
+      ${voltar
+        ? `<button class="icon-btn mobile-back" aria-label="Voltar para a tela anterior">${ICONE.voltar}</button>`
+        : `<button class="icon-btn mobile-menu-trigger" aria-label="Abrir menu">${ICONE.menu}</button>`}
       <strong class="topbar-mobile-title">${titulo}</strong>
     </div>
     <div class="topbar-actions">
-      <button class="icon-btn" aria-label="Avisos">${ICONE.sino}<i class="notification-dot">3</i></button>
       <button class="icon-btn topbar-more" aria-label="Mais ações">⋯</button>
+      <button class="icon-btn" aria-label="Avisos">${ICONE.sino}<i class="notification-dot">3</i></button>
       <div class="topbar-profile">${avatar(FOTO.marina, 32, 'Você')}</div>
     </div>
   </header>`;
@@ -328,7 +335,7 @@ const galeria = () => `
 /* Cofre do meu espaço: o mesmo mosaico, o mesmo visor, atrás do PIN. */
 const cofre = () => `
   <div class="app-shell"><div class="workspace">
-    ${topbar('Meu espaço')}
+    ${topbar('Meu espaço', true)}
     <main class="page-content">
       <header class="page-title"><div><h1>Meu espaço</h1><p class="page-description">Um canto só seu: humor, metas, links e um cofre separado do catálogo.</p></div></header>
       <div class="scope-tabs"><button>Diário<span>12</span></button><button>Metas<span>3</span></button><button>Meus links<span>6</span></button><button class="active">${ICONE.cofre}Cofre<span>4</span></button></div>
@@ -383,7 +390,7 @@ const visor = () => `
 
 const acoes = () => `
   <div class="app-shell"><div class="workspace">
-    ${topbar('Galeria')}
+    ${topbar('Galeria', true)}
     <main class="page-content">
       <div class="galeria-caixa"><div class="galeria-grade mosaico" style="--colunas:2;--linha:8px;--espaco:6px">
         ${azulejo(FOTO.bianca, 'Bianca Moura', 16, 'selecionada')}
@@ -412,7 +419,7 @@ const acoes = () => `
 
 const filtros = () => `
   <div class="app-shell"><div class="workspace">
-    ${topbar('Galeria')}
+    ${topbar('Galeria', true)}
     <main class="page-content">
       <div class="galeria-caixa"><div class="galeria-grade mosaico" style="--colunas:2;--linha:8px;--espaco:6px">
         ${azulejo(FOTO.marina, 'Marina Alves', 16)}
@@ -477,7 +484,7 @@ const folha = () => `
 
 const fichaTela = () => `
   <div class="app-shell"><div class="workspace">
-    ${topbar('Catálogo')}
+    ${topbar('Catálogo', true)}
     <main class="page-content">
       <header class="page-title"><div><p class="eyebrow">Sua biblioteca pessoal</p><h1>Catálogo</h1><p class="page-description">Cada pessoa tem uma história. Guarde os detalhes.</p></div></header>
       <div class="people-grid">
