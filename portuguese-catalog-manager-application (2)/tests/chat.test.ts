@@ -6,6 +6,7 @@ import {
   analisarConversa, conversaParaMarkdown, detectarIntencao, estadoDe, estagioAtual, extrairMemorias, HUMORES, novoChatState,
   planOpening, planReply, planSpontaneous, sugerirAberturas, sugerirRespostas, tomEfetivo, TONS, tonsDisponiveis,
 } from "../src/lib/dialogue";
+import { textoParaBolhas } from "../src/lib/ia";
 import { emptyData } from "../src/store";
 
 function ficha(ajustes: Partial<Person> = {}): Person {
@@ -228,5 +229,165 @@ describe("sugestões, análise e exportação", () => {
     data.people = [person];
     data.chatStates = { [person.id]: { ...novoChatState(person), afinidade: 66 } };
     expect(estadoDe(data, person).afinidade).toBe(66);
+  });
+});
+
+describe("realismo do direct (palavras inteiras, risada, textão e citação)", () => {
+  const person = ficha();
+
+  it("escreve as palavras por inteiro: sem vc, tá, tô, hj, tbm ou entt", () => {
+    let comAbrev = 0;
+    const mensagens = ["Oi, tudo bem?", "Você tá me evitando, demora pra responder", "Tô muito cansada hoje", "Vamos marcar algo tbm?", "Entt eu vou dormir hj cedo"];
+    for (let i = 0; i < 50; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i + 2), message: mensagens[i % mensagens.length], adulto: false });
+      const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+      if (/\b(vc|tá|tô|hj|tbm|entt|pq|blz|dps)\b/i.test(texto)) comAbrev++;
+    }
+    expect(comAbrev).toBe(0);
+  });
+
+  it("ri de verdade quando você manda uma piada", () => {
+    let riu = 0;
+    for (let i = 0; i < 20; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i + 5), message: "kkkkk olha essa piada sem graça", adulto: false });
+      if (/kk|kakaka|haha|rs/i.test(plano.bolhas.map(bolha => bolha.texto).join(" "))) riu++;
+    }
+    expect(riu).toBeGreaterThan(14);
+  });
+
+  it("manda textão às vezes: bolha longa dividida em pedaços", () => {
+    let longos = 0;
+    for (let i = 0; i < 60; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i + 9), message: "Tô com aquele tédio de domingo à noite, sem fazer nada", adulto: false });
+      if (plano.bolhas.some(bolha => bolha.texto.length > 110)) longos++;
+    }
+    expect(longos).toBeGreaterThan(3);
+  });
+
+  it("lê a citação ao responder uma mensagem antiga", () => {
+    const plano = planReply({ person, state: novoChatState(person), rand: randFixo(11), message: "kkkkkk", citacao: "Bora sair hoje? Vamos no cinema?", adulto: false });
+    expect(plano.intencao).toBe("convite");
+  });
+
+  it("lote de mensagens seguidas é lido como uma coisa só", () => {
+    const plano = planReply({ person, state: novoChatState(person), rand: randFixo(13), message: "Oi!\nTudo bem por aí?\nAdoro pizza de calabresa, é meu vício", adulto: false });
+    expect(plano.state.lembrancas.some(item => /pizza/i.test(item.valor))).toBe(true);
+    expect(plano.bolhas.length).toBeGreaterThan(0);
+  });
+});
+
+describe("IA opcional", () => {
+  it("quebra a resposta do modelo em bolhas de direct", () => {
+    const bolhas = textoParaBolhas("Oi, tudo bem?\n\nEu estava mesmo pensando em você agora.\n\"Que bom que apareceu\"");
+    expect(bolhas).toEqual(["Oi, tudo bem?", "Eu estava mesmo pensando em você agora.", "Que bom que apareceu"]);
+  });
+
+  it("quebra mensagem gigante do modelo em pedaços curtinhos", () => {
+    const longa = `${"Uma frase comprida de teste. ".repeat(30)}Fim.`;
+    const bolhas = textoParaBolhas(longa);
+    expect(bolhas.length).toBeGreaterThan(1);
+    expect(bolhas.every(bolha => bolha.length <= 360)).toBe(true);
+  });
+});
+
+describe("pergunta em aberto: a resposta nasce do assunto dela", () => {
+  const person = ficha();
+
+  it("nao responde 'nada a ver' quando voce responde a pergunta que ela fez", () => {
+    for (let i = 1; i <= 12; i++) {
+      const estado = { ...novoChatState(person), perguntaAberta: { tema: "comida", texto: "Voce ja jantou?" } };
+      const plano = planReply({ person, state: estado, rand: randFixo(i), message: "ja sim", adulto: false });
+      const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+      expect(plano.eventos, texto).toContain("respondeu-aberta:comida");
+      expect(texto).not.toMatch(/econ[ôo]mic|só isso|resposta seca|desembucha/i);
+    }
+  });
+
+  it("perguntas de assunto diferente levam a respostas daquele assunto", () => {
+    let tema = false;
+    for (let i = 1; i <= 10; i++) {
+      const estado = { ...novoChatState(person), perguntaAberta: { tema: "musica", texto: "Qual musica voce esta ouvindo?" } };
+      const plano = planReply({ person, state: estado, rand: randFixo(i), message: "um pagode antigo aqui", adulto: false });
+      expect(plano.eventos).toContain("respondeu-aberta:musica");
+      const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+      if (/música|musica|playlist|fone|tocando|canta|ouvir|humor|gosto/i.test(texto)) tema = true;
+    }
+    expect(tema).toBe(true);
+  });
+
+  it("'e o seu?' faz ela responder por si, no assunto da pergunta", () => {
+    const estado = { ...novoChatState(person), perguntaAberta: { tema: "dia", texto: "Como foi seu dia?" } };
+    const plano = planReply({ person, state: estado, rand: randFixo(5), message: "foi bom, e o seu?", adulto: false });
+    const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+    expect(plano.eventos).toContain("respondeu-aberta:dia");
+    expect(texto).toMatch(/corrido|valendo|tranquil|de boa|andando bem|vida|rápido|coisa grande/i);
+  });
+
+  it("a pergunta que ela faz fica pendente no estado da conversa", () => {
+    const estado = novoChatState(person);
+    let pendente: { tema: string; texto: string } | null = null;
+    for (let i = 0; i < 30 && !pendente; i++) {
+      const plano = planReply({ person, state: estado, rand: randFixo(i + 2), message: "Boa, e voce? Me conta uma novidade", adulto: false });
+      pendente = plano.state.perguntaAberta || null;
+    }
+    expect(pendente).toBeTruthy();
+    expect(pendente!.texto.endsWith("?")).toBe(true);
+  });
+
+  it("assunto novo limpa a pergunta pendente", () => {
+    const estado = { ...novoChatState(person), perguntaAberta: { tema: "comida", texto: "Voce ja jantou?" } };
+    const plano = planReply({ person, state: estado, rand: randFixo(4), message: "Vamos sair hoje? Bora no cinema", adulto: false });
+    expect(plano.state.perguntaAberta?.texto).not.toBe("Voce ja jantou?");
+  });
+});
+
+describe("interpretação das mensagens: pergunta recebe resposta do assunto", () => {
+  const person = ficha({ localizacaoMora: "Pinheiros, São Paulo", signo: "Escorpião" });
+
+  it("frase negada não vira intenção romântica", () => {
+    expect(detectarIntencao("não te amo mais").id).toBe("desconhecido");
+    expect(detectarIntencao("eu não mando esse tipo de foto").id).not.toBe("pedido_foto");
+  });
+
+  it("pergunta sobre relacionamento tem resposta direta", () => {
+    for (let i = 1; i <= 8; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i), message: "você tem namorado?", adulto: false });
+      const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+      expect(plano.intencao, texto).toBe("pergunta_relacionamento");
+      expect(texto).toMatch(/solteira|ninguém|portas/i);
+    }
+  });
+
+  it("onde você mora / qual seu signo usa os dados da ficha", () => {
+    const mora = planReply({ person, state: novoChatState(person), rand: randFixo(3), message: "onde você mora?", adulto: false });
+    expect(mora.bolhas.map(bolha => bolha.texto).join(" ")).toMatch(/Pinheiros/i);
+    const signo = planReply({ person, state: novoChatState(person), rand: randFixo(4), message: "qual seu signo?", adulto: false });
+    expect(signo.bolhas.map(bolha => bolha.texto).join(" ")).toMatch(/Escorpi/i);
+  });
+
+  it("pergunta factual de horário ganha resposta de horário, não textão", () => {
+    const plano = planReply({ person, state: novoChatState(person), rand: randFixo(6), message: "que horas você vai almoçar?", adulto: false });
+    const texto = plano.bolhas.map(bolha => bolha.texto).join(" ");
+    expect(plano.intencao).toBe("pergunta_fato");
+    expect(texto).toMatch(/almoço|hora|amanh[ãa]|tarde|hoje|semana|aviso/i);
+    expect(texto).not.toMatch(/me pegou de verdade|perdi tempo demais/i);
+  });
+
+  it("notícia de plano ganha reação de plano", () => {
+    const plano = planReply({ person, state: novoChatState(person), rand: randFixo(7), message: "vou viajar pra praia sábado", adulto: false });
+    expect(plano.intencao).toBe("plano");
+    expect(plano.bolhas.map(bolha => bolha.texto).join(" ")).toMatch(/plano|conta|Boa|gostei|força|torcendo/i);
+  });
+
+  it("risada no fim da pergunta não come o '?'", () => {
+    for (let i = 1; i <= 20; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i), message: "kkkk faz uma piada aí", adulto: false });
+      const pergunta = plano.bolhas.map(bolha => bolha.texto).find(texto => /kk|kakaka|haha|rs/i.test(texto) && texto.includes("?"));
+      if (pergunta) {
+        // Bolha com risada e pergunta: o "?" sobrevive (não vira "jantou kkk" sem sinal).
+        expect(pergunta.trim(), pergunta).toMatch(/\?$/);
+      }
+    }
+    expect(true).toBe(true);
   });
 });

@@ -158,7 +158,8 @@ describe("aba Conversas", () => {
     await clicar(screen.getByLabelText("Mais opções"));
     await clicar(await screen.findByRole("button", { name: /Retrato do momento/i }));
     await waitFor(() => expect(document.querySelector(".chat-estado")).toBeTruthy());
-    expect(document.querySelector(".chat-estado-humor")?.textContent).toMatch(/fechada/i);
+    // Ela tem um tempo de leitura antes de responder — o retrato atualiza depois dela ler tudo.
+    await waitFor(() => expect(document.querySelector(".chat-estado-humor")?.textContent).toMatch(/fechada/i), { timeout: 15000 });
     expect(document.querySelector(".chat-estado-rodape")?.textContent).toMatch(/tom agressivo|paciência baixa/);
   }, 30000);
 

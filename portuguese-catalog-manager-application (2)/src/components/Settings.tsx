@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArchiveRestore, ArrowDownToLine, Bell, BellRing, CalendarHeart, Camera, Check, ChevronRight, Database, Download, Eye, EyeOff, Gauge, HardDrive, KeyRound, LockKeyhole, LogOut, MessageCircle, Moon, Palette, RotateCcw, ScanEye, Share2, ShieldCheck, Sparkles, Sun, Trash2, Upload, User, UserPlus, Users, Volume2 } from 'lucide-react';
+import { ArchiveRestore, ArrowDownToLine, Bell, BellRing, Bot, CalendarHeart, Camera, Check, ChevronRight, Database, Download, Eye, EyeOff, Gauge, HardDrive, KeyRound, LockKeyhole, LogOut, MessageCircle, Moon, Palette, RotateCcw, ScanEye, Share2, ShieldCheck, Sparkles, Sun, Trash2, Upload, User, UserPlus, Users, Volume2 } from 'lucide-react';
 import type { AppData, BackupVersion } from '../types';
 import { useCatalog } from '../context';
 import { ageFromBirthday, downloadJson, emptyData, formatDate, normalizeData, normalizeText, readImage, today } from '../store';
@@ -8,6 +8,7 @@ import { notificationPermission, requestNotificationPermission } from '../lib/no
 import { playSound, SOUND_PREVIEWS, soundAvailable } from '../lib/sound';
 import { importarPacote, lerPacote, montarPacote, nomeDoArquivo, resumoDoPacote, type PacoteCategoria } from '../lib/pack';
 import { collectAlerts } from '../lib/notifications';
+import { URL_PADRAO_IA } from '../lib/ia';
 import { PALETTE } from '../store';
 import { Avatar, Button, CheckBox, Confirm, Field, IconButton, Modal, PageTitle } from './ui';
 
@@ -125,7 +126,7 @@ export default function Settings() {
         <div className="settings-section-intro"><h2><MessageCircle size={19} />Como a conversa simulada se comporta</h2><p>O chat lê a ficha (idade, comportamento, categoria, etiquetas, signo e música) e monta respostas com personalidade. O clima — do papo leve ao flerte — e o humor dela mudam sozinhos conforme a intimidade de vocês. Nada sai do seu aparelho.</p></div>
         <div className="settings-section-content">
           <CheckBox checked={s.chatMeter !== false} onChange={() => setting('chatMeter', s.chatMeter === false)} label="Mostrar o medidor de química e o estágio da relação" />
-          <CheckBox checked={s.chatSlang !== false} onChange={() => setting('chatSlang', s.chatSlang === false)} label="Usar gírias e risadas escritas conforme a personalidade da ficha" />
+          <CheckBox checked={!!s.chatSlang} onChange={() => setting('chatSlang', !s.chatSlang)} label="Abreviações de celular (vc, hj, tá, tbm) — vem desligado: ela escreve as palavras por inteiro e ri com kkkk conforme a personalidade da ficha" />
           <CheckBox checked={s.chatEmojis !== false} onChange={() => setting('chatEmojis', s.chatEmojis === false)} label="Usar emojis no ritmo da ficha (quem escreve seco continua seco)" />
           <Field label="Ritmo das respostas"><select value={s.chatSpeed || 'realista'} onChange={e => setting('chatSpeed', e.target.value as 'pausado' | 'realista' | 'rapido')} aria-label="Ritmo das respostas"><option value="pausado">Pausado — ela digita devagar, dá tempo de ler</option><option value="realista">Realista — tempo de digitação de verdade</option><option value="rapido">Rápido — responde na hora, sem simular digitação</option></select></Field>
           <CheckBox checked={!!s.chatAuto} onChange={() => setting('chatAuto', !s.chatAuto)} label="Modo automático: ela puxa assunto sozinha quando a conversa para" />
@@ -134,10 +135,22 @@ export default function Settings() {
         </div>
       </section>
       <section className="settings-section">
-        <div className="settings-section-intro"><h2><Sparkles size={19} />Conteúdo adulto</h2><p>Opcional, desligado por padrão e exclusivo para fichas com 18 anos ou mais. Mesmo ligado, o conteúdo é sugestivo — não há descrição explícita e nada acontece fora do seu aparelho.</p></div>
+        <div className="settings-section-intro"><h2><Sparkles size={19} />Conteúdo adulto</h2><p>Opcional, desligado por padrão e exclusivo para fichas com 18 anos ou mais. Com a química construída, o clima fica quente de verdade: desejo, tensão e insinuação forte — mas sempre sugestivo, sem descrição explícita de atos. Nada sai do seu aparelho.</p></div>
         <div className="settings-section-content">
-          <CheckBox checked={!!s.adultMode} onChange={() => { setting('adultMode', !s.adultMode); ctx.notify(s.adultMode ? 'Modo adulto desligado.' : 'Modo adulto ligado: só vale para fichas com 18+ e respeita a química de cada conversa.'); }} label="Ligar o modo adulto (fichas 18+, só flerte e insinuação)" />
+          <CheckBox checked={!!s.adultMode} onChange={() => { setting('adultMode', !s.adultMode); ctx.notify(s.adultMode ? 'Modo adulto desligado.' : 'Modo adulto ligado: só vale para fichas com 18+ e respeita a química de cada conversa.'); }} label="Ligar o modo adulto (fichas 18+, clima quente e insinuação forte)" />
           <p className="muted small">Fichas com menos de 18 anos nunca entram no flerte nem em conteúdo adulto, mesmo com a opção ligada. A conversa é sempre por mensagem e ela desconversa quando o assunto passa do que a relação já construiu.</p>
+        </div>
+      </section>
+      <section className="settings-section">
+        <div className="settings-section-intro"><h2><Bot size={19} />IA de verdade (opcional)</h2><p>Conecte um modelo de linguagem para ela escrever as respostas na hora, com textão, risada e personalidade. Funciona com qualquer endpoint compatível com a API da OpenAI (OpenAI, OpenRouter, Groq, LM Studio, Ollama...). Se a IA falhar ou demorar, o motor local responde sozinho — a conversa nunca para.</p></div>
+        <div className="settings-section-content">
+          <div className="form-grid">
+            <Field label="Endereço da API"><input value={s.chatAI?.url || ''} onChange={e => setting('chatAI', { ...s.chatAI, url: e.target.value })} placeholder={URL_PADRAO_IA} aria-label="Endereço da API" autoComplete="off" /></Field>
+            <Field label="Modelo"><input value={s.chatAI?.modelo || ''} onChange={e => setting('chatAI', { ...s.chatAI, modelo: e.target.value })} placeholder="gpt-4o-mini, llama-3.1-8b..." aria-label="Modelo" autoComplete="off" /></Field>
+          </div>
+          <Field label="Chave da API"><input type="password" value={s.chatAI?.chave || ''} onChange={e => setting('chatAI', { ...s.chatAI, chave: e.target.value })} placeholder="sk-..." aria-label="Chave da API" autoComplete="off" /></Field>
+          <CheckBox checked={!!s.chatAI?.ligado} onChange={() => setting('chatAI', { ...s.chatAI, ligado: !s.chatAI?.ligado })} disabled={!s.chatAI?.url?.trim() || !s.chatAI?.chave?.trim() || !s.chatAI?.modelo?.trim()} label="Usar a IA nas respostas dela (só para fichas 18+ sem vínculo de família)" />
+          <p className="form-help">A chave fica guardada somente neste aparelho, junto do resto do catálogo — nada é enviado para os servidores do aplicativo. Prefira modelos com bom português. As mensagens da conversa passam pelo serviço de IA que você escolher, então use uma API de confiança.</p>
         </div>
       </section>
     </div>}

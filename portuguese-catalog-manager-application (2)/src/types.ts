@@ -311,6 +311,8 @@ export interface ChatMessage {
   tom?: ChatTone;
   /** Foto trocada na conversa (data URL ou caminho local do catálogo). */
   foto?: string;
+  /** Mensagem citada ao responder (como no direct do Instagram). */
+  replyTo?: { id: string; autor: string; texto: string };
 }
 
 /**
@@ -333,6 +335,11 @@ export interface ChatState {
   usados: string[];
   /** Nomes de pessoas que você mencionou e ela passou a conhecer. */
   pessoas?: string[];
+  /**
+   * Pergunta que ela fez e que ainda não foi respondida. É o que faz a resposta
+   * seguinte nascer do assunto dela, e não de um sorteio genérico.
+   */
+  perguntaAberta?: { tema: string; texto: string };
   ultimaMensagem: string;
   visitas: number;
   ofensas: number;
@@ -437,6 +444,11 @@ export interface AppData {
     chatMeter?: boolean;
     chatAuto?: boolean;
     chatDoNada?: boolean;
+    /**
+     * IA real (opcional): qualquer endpoint compatível com a API da OpenAI.
+     * A chave fica só neste aparelho, junto do resto do catálogo.
+     */
+    chatAI?: { ligado?: boolean; url?: string; chave?: string; modelo?: string };
     // Quem está usando o catálogo: a idade muda o jeito que ela fala com você.
     ownerAge?: number | null;
     ownerBirthday?: string | null;

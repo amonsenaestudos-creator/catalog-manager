@@ -371,12 +371,13 @@ export function buildPersona(person: Person, catalogo: PersonaContexto = {}): Pe
       : traits.emojis > 0.45 ? ['😊', '😅', '🙂', '💛', '😄', '😏', '🙃', '😉']
         : ['🙂', '😅', '😉', ''];
   // Risada escrita é obrigatória nesse tipo de conversa: todo mundo ri por mensagem.
+  // Gente adulta ri com menos "kkkk" empilhado, mas ninguém deixa de rir.
   const risadas = traits.maturidade >= 0.72
-    ? (traits.girias > 0.55 ? ['rs', 'haha', 'kkk', 'hahaha'] : ['rs', 'haha', 'hahaha'])
-    : estilo === 'adolescente' ? (faixa === 'jovem' ? ['kkk', 'kkkk', 'hahaha', 'risos'] : ['kkk', 'kkkk', 'kkkkk', 'sksksk', 'hahaha', 'risos'])
-      : estilo === 'tia' ? ['kkk', 'rs', 'hahaha', 'risos']
-        : traits.girias > 0.66 ? ['kkkk', 'kkkkk', 'kk', 'hahaha']
-          : traits.girias > 0.4 ? ['kkk', 'haha', 'rs'] : ['haha', 'rs'];
+    ? (traits.girias > 0.55 ? ['kkk', 'kkkk', 'rs', 'haha', 'hahaha', 'kk'] : ['rs', 'haha', 'hahaha', 'kkk'])
+    : estilo === 'adolescente' ? (faixa === 'jovem' ? ['kkk', 'kkkk', 'kakaka', 'hahaha', 'risos', 'kkkkk'] : ['kkk', 'kkkk', 'kkkkk', 'kakakaka', 'sksksk', 'hahaha', 'risos'])
+      : estilo === 'tia' ? ['kkk', 'kkkk', 'rs', 'hahaha', 'risos']
+        : traits.girias > 0.66 ? ['kkkk', 'kkkkk', 'kk', 'kakakaka', 'hahaha']
+          : traits.girias > 0.4 ? ['kkk', 'kkkk', 'kakaka', 'haha', 'rs'] : ['haha', 'kkk', 'rs'];
   const girias = traits.maturidade >= 0.72
     ? ['né', 'pois é', 'imagina', 'nossa', 'sério?', 'sem dúvida', 'olha só', 'complicado', 'valeu']
     : estilo === 'adolescente'

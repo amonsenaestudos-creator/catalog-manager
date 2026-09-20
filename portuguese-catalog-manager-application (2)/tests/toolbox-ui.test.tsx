@@ -161,6 +161,6 @@ describe("Ajustes → Conversas", () => {
     const ritmo = screen.getByLabelText(/Ritmo das respostas/i) as HTMLSelectElement;
     expect(ritmo).toBeInTheDocument();
     expect([...ritmo.options].map(opcao => opcao.value)).toEqual(['pausado', 'realista', 'rapido']);
-    expect(screen.getByLabelText(/Usar gírias e risadas escritas/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Abreviações de celular/i)).toBeInTheDocument();
   });
 });

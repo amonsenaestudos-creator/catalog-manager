@@ -112,9 +112,9 @@ export interface TomDisponivel { id: Tone; ok: boolean; motivo: string }
 export function tonsDisponiveis(persona: Persona, state: ChatState, adulto: boolean, relacao?: Relacao): TomDisponivel[] {
   const estagio = estagioAtual(state).id;
   const ajuste = ajusteDeLimite(persona);
-  const limiteFlerte = 24 + ajuste;
-  const limiteProvocante = 50 + ajuste;
-  const limiteIntenso = 72 + ajuste;
+  const limiteFlerte = 22 + ajuste;
+  const limiteProvocante = 44 + ajuste;
+  const limiteIntenso = 62 + ajuste;
   const motivoAdulto = 'Só para fichas com 18 anos ou mais.';
   const bloqueioRelacao = relacao && !relacao.flertePermitido ? motivoDoLimite(relacao) : '';
   return TONS.map(tom => {
@@ -153,6 +153,7 @@ export type IntentId =
   | 'cotidiano_comida' | 'foto' | 'desconhecido'
   // Novos: família, idade, igreja, vida adulta e as mensagens que chegam do nada.
   | 'pergunta_familiar' | 'pergunta_idade' | 'igreja' | 'vida_adulta' | 'confusao' | 'conselho'
+  | 'pergunta_relacionamento' | 'pergunta_factual' | 'plano'
   | 'pergunta_rotina' | 'mensagem_enviada' | 'pedido_historia' | 'reclamacao_sem_dormir' | 'gratidao_recebida' | 'pedido_audio'
   | 'grosseria';
 
@@ -164,6 +165,11 @@ const REGRAS_INTENCAO: RegraIntencao[] = [
   { id: 'confusao', padrao: rx("\\b(não fui eu|nao fui eu|não deixei|nao deixei|não fui|nao fui|não fiz|nao fiz|não é meu|nao e meu|confundiu|não lembro disso|nao lembro disso|deve ser outra pessoa|troquei de igreja|nunca te pedi|não sou eu|nao sou eu|foi outra pessoa|você me confundiu)\\b", "i"), peso: 2.9, sentimento: 'neutro' },
   { id: 'pergunta_familiar', padrao: rx("\\b(sua mãe|sua mae|sua mãezinha|seu pai|sua filha|seu filho|seus filhos|tem filhos|tem filho|filhos pequenos|sua irmã|sua irma|seu irmão|seu irmao|sua vó|sua avó|sua avo|sua tia|seu tio|sua prima|seu primo|sua família|sua familia|a família tá|como tá sua|como ta sua|fala da sua|manda um abraço pra|manda um abraco pra)\\b", "i"), peso: 2.8, sentimento: 'positivo' },
   { id: 'pergunta_idade', padrao: rx("\\b(quantos anos|que idade|sua idade|idade você tem|idade voce tem|mais velha que eu|mais nova que eu|mais novo que você|mais velho que você|diferença de idade|diferenca de idade|já é adulta|ja e adulta)\\b", "i"), peso: 2.5, sentimento: 'neutro' },
+  // Perguntas diretas sobre ela merecem resposta direta — não textão genérico.
+  { id: 'pergunta_relacionamento', padrao: rx("\\b(você tem namorado|voce tem namorado|você tem namorada|voce tem namorada|tem namorad[oa]|está com alguém|esta com alguem|está com alguem|tá com alguém|ta com alguem|ta com alguém|você tem alguém|voce tem alguem|você é solteir|voce e solteir|tá solteir|ta solteir|está solteir|solteira\\?|solteiro\\?|é comprometid|e comprometid|está namorando|esta namorando|tá namorando|ta namorando|tem compromisso)\\b", "i"), peso: 2.4, sentimento: 'neutro' },
+  { id: 'pergunta_factual', padrao: rx("\\b(onde você mora|onde voce mora|onde vocês moram|onde mora|em que cidade você|em que cidade voce|qual seu signo|qual o seu signo|qual é o seu signo|qual e o seu signo|seu signo)\\b", "i"), peso: 2.7, sentimento: 'neutro' },
+  // Notícia de plano pessoal: ela reage ao plano, não muda de assunto.
+  { id: 'plano', padrao: rx("\\b(vou|vamos|pretendo|estou pensando em|penso em|decid[ií] que)\\s+(viajar|sair|ir|começar|comecar|fazer|marcar|comprar|mudar|trocar|aprender|entrar|largar|parar de)\\b", "i"), peso: 1.9, sentimento: 'positivo' },
   { id: 'igreja', padrao: rx("\\b(igreja|capela|culto|reunião de domingo|reuniao de domingo|ala|bispo|bispa|presidente de estaca|chamado|missão|missao|templo|sacramento|soc soc|sociedade de socorro|moças|mocas|rapazes|semana do jovem|mutirão|mutirao|limpeza da capela|escalei|escala do mês|escala do mes|reunião geral|reuniao geral|primaria|primária|escola dominical|obra missionária|obra missionaria|domingo na igreja|fui no templo)\\b", "i"), peso: 1.7, sentimento: 'neutro' },
   { id: 'vida_adulta', padrao: rx("\\b(vinho|jantar|cama|massagem|hotel|banho|final de semana fora|fim de semana fora|noite sozinha|noite sozinho|depois do trabalho|chegando em casa cansada|checklist|mercado|boleto|aluguel|terapia|remédio|remedio|escola das crianças|escola das criancas|filhos|marido|ex-marido|namorado)\b", "i"), peso: 1.6, sentimento: 'neutro' },
   { id: 'conselho', padrao: rx("\\b(o que você acha disso|que que você acha disso|você me aconselha|voce me aconselha|devo fazer|devo mudar|devo aceitar|devo continuar|devo terminar|devo sair|vale a pena|você acha que eu devo|voce acha que eu devo|me dá um conselho|me da um conselho|tô na dúvida|to na duvida|preciso de opinião|preciso de opiniao|o que eu faço|o que eu faco|me dá uma ideia|me da uma ideia|não sei o que fazer|nao sei o que fazer|me ajuda a decidir)\\b", "i"), peso: 2.0, sentimento: 'neutro' },
@@ -181,9 +187,9 @@ const REGRAS_INTENCAO: RegraIntencao[] = [
   // Pedido de história: ela conta um caso dela em vez de responder "anotado".
   { id: 'pedido_historia', padrao: rx("\\b(me conta uma coisa boa|conta uma coisa boa|me conta algo bom|conta algo bom|fala uma coisa boa|me conta uma novidade|conta uma novidade|me conta uma curiosidade|conta uma curiosidade|me conta um caso|conta um caso|me conta uma história|conta uma história|me conta um segredo|conta um segredo|me conta uma fofoca|conta uma fofoca|conta uma coisa interessante|me conta uma coisa interessante)\\b", "i"), peso: 1.7, sentimento: 'neutro' },
   // Noite sem dormir: ela cuida, não puxa assunto aleatório.
-  { id: 'reclamacao_sem_dormir', padrao: rx("\\b(não consigo dormir|nao consigo dormir|não dormi|só dormi|insônia|insonia|de madrugada acordado|acordei no meio da noite|não peguei no sono|nao peguei no sono|a cabeça não para|a cabeca nao para|mente acelerada|sem sono)\\b", "i"), peso: 1.8, sentimento: 'negativo' },
+  { id: 'reclamacao_sem_dormir', padrao: rx("\\b(não consigo dormir|nao consigo dormir|não dormi|só dormi|insônia|insonia|de madrugada acordado|acordei no meio da noite|não peguei no sono|nao peguei no sono|a cabeça não para|a cabeca nao para|mente acelerada|sem sono)\\b", "i"), peso: 2.3, sentimento: 'negativo' },
   // Gratidão pela conversa: ela recebe o obrigado e devolve com cuidado.
-  { id: 'gratidao_recebida', padrao: rx("\\b(agradecer a conversa|obrigado pela conversa|obrigada pela conversa|valeu pela conversa|obrigado pelo papo|obrigada pelo papo|valeu pelo papo|obrigado por ouvir|obrigada por ouvir|obrigado pela paciência|obrigado pela ajuda|obrigada pela ajuda|obrigado pelo conselho|obrigada pelo conselho|obrigado pelo carinho|obrigada pelo carinho)\\b", "i"), peso: 1.5, sentimento: 'positivo' },
+  { id: 'gratidao_recebida', padrao: rx("\\b(agradecer a conversa|obrigado pela conversa|obrigada pela conversa|valeu pela conversa|obrigado pelo papo|obrigada pelo papo|valeu pelo papo|obrigado por ouvir|obrigada por ouvir|obrigado pela paciência|obrigado pela ajuda|obrigada pela ajuda|obrigado pelo conselho|obrigada pelo conselho|obrigado pelo carinho|obrigada pelo carinho)\\b", "i"), peso: 1.8, sentimento: 'positivo' },
   { id: 'apoio', padrao: rx("\\b(triste|muito triste|pra baixo|para baixo|deprimid[oa]s?|cansad[oa]s?|exaust[oa]s?|estressad[oa]s?|ansios[oa]s?|chorando|chorei|difícil|problema|briga|briguei|perdi (o |meu )?emprego|fui demitid[oa]|me demitiram|demitid[oa]s?|doente|com medo|preocupad[oa]s?|sozinh[oa]s?|desanimad[oa]s?|chatead[oa]s?|magoad[oa]s?|no fundo do poço|acabou o namoro|terminamos|me separei|separação|meu dia foi horrível|dia horrivel|perdi a paciência|perdi a paciencia|t[ôo] (muito )?mal|estou mal|me sinto mal|não tô bem|nao to bem|não estou bem|nao estou bem|tô exausto|to exausto|tô acabado|to acabado|sem forças|sem forcas|sem ânimo|sem animo|sobrecarregad[oa]s?|sem sono|não consigo dormir|nao consigo dormir|não dormi|nao dormi|dormi mal|acordei de madrugada|sem energia)\\b", "i"), peso: 2.1, sentimento: 'negativo' },
   { id: 'alegria', padrao: rx("\\b(passei na prova|passei de ano|passei no concurso|passei no vestibular|passei de fase|aprovei|consegui|ganhei|promoção|aumento|fui aprovad[oa]|deu certo|melhor dia|feliz|felizona|notícia boa|formei|conquistei|mudança|novo emprego|deu tudo certo|recebi a notícia|recebi a noticia|me elogiaram|fui elogiado)\\b", "i"), peso: 2.0, sentimento: 'positivo' },
   { id: 'desculpa', padrao: rx("\\b(desculpa|desculpe|foi mal|perdão|me perdoa|não quis|nao quis|vacilei|errei|demorei pra responder|sumi)\\b", "i"), peso: 1.9, sentimento: 'negativo' },
@@ -249,17 +255,32 @@ export function familiarDaMensagem(texto: string, familiares: { nome: string; pa
   return familiares[0] || null;
 }
 
+/** Intenções românticas/ousadas: se a frase nega o trecho, não contam. */
+const SENSIVEIS_A_NEGACAO = new Set<IntentId>(['flerte_forte', 'pedido_foto', 'elogio_corpo', 'cantada', 'declaracao']);
+
+/** O padrão casou de verdade? Em intenção sensível, o trecho não pode estar negado. */
+function casarRegra(regra: RegraIntencao, texto: string): boolean {
+  const encontro = regra.padrao.exec(texto);
+  if (!encontro) return false;
+  if (!SENSIVEIS_A_NEGACAO.has(regra.id)) return true;
+  const antes = texto.slice(Math.max(0, encontro.index - 26), encontro.index);
+  return !/\b(não|nao|nunca|nem|sem|jamais)\b/i.test(antes);
+}
+
 export function detectarIntencao(texto: string): { id: IntentId; sentimento: Sentimento } {
   // Duas leituras da mesma mensagem: do jeito que veio e com as abreviações
-  // abertas ("vc viu hj?"). A frase crua continua valendo para os padrões que já
-  // contam com o jeito falado ("tá me evitando", "tô mal", "blz").
+  // abertas ("vc viu hj?"). Vence a regra de MAIOR peso (prioridade), e o
+  // empate cai para a ordem da lista. É o que evita "não te amo mais" virar
+  // declaração e "que horas você almoça?" ganhar resposta de outro assunto.
   const cru = normalizeText(texto);
   const expandido = normalizeText(expandirAbreviacoes(texto));
+  let melhor: RegraIntencao | null = null;
   for (const regra of REGRAS_INTENCAO) {
-    if (regra.padrao.test(cru) || (expandido !== cru && regra.padrao.test(expandido))) {
-      return { id: regra.id, sentimento: regra.sentimento || sentimentoDe(texto) };
-    }
+    const casou = casarRegra(regra, cru) || (expandido !== cru && casarRegra(regra, expandido));
+    if (!casou) continue;
+    if (!melhor || regra.peso > melhor.peso) melhor = regra;
   }
+  if (melhor) return { id: melhor.id, sentimento: melhor.sentimento || sentimentoDe(texto) };
   if (!texto.trim()) return { id: 'resposta_curta', sentimento: 'neutro' };
   return { id: texto.trim().split(/\s+/).length <= 3 ? 'resposta_curta' : 'desconhecido', sentimento: sentimentoDe(texto) };
 }
@@ -478,6 +499,33 @@ const RESPOSTAS: Record<IntentId, Banco> = {
     [A]: ['Nossa, agora me deu fome 😅', 'Amo comida boa. Você cozinha ou pede?', 'Isso sim é papo. Me fala o lugar, quero conhecer'],
     [F]: ['Se você cozinha assim, me chama pro jantar 😏', 'Comida boa e companhia boa é o combo perfeito 😉'],
     [P]: ['Jantar e depois? 😏 você escolhe a sobremesa'],
+  },
+  pergunta_relacionamento: {
+    [A]: [
+      'Não, estou solteira 😊 por que a pergunta?',
+      'Solteira sim! Curioso você, hein 😄',
+      'Não tenho ninguém não, pode ficar tranquilo',
+      'Estou de portas fechadas pro resto do mundo, mas aberta pra boa conversa 😄',
+      'Solteira. Mas não estou dando facilidade não, viu 😏',
+    ],
+    [F]: ['Solteira 😏 por que você quer saber?', 'Não tenho ninguém... ainda 😏', 'Solteira sim. Por que a pergunta toda? 😄'],
+    [P]: ['Solteira, e muito bem acompanhada quando eu quero 😏'],
+  },
+  pergunta_factual: {
+    [A]: [], // preenchido por tipo (mora/signo) na montagem da resposta
+    [F]: [],
+    [P]: [],
+  },
+  plano: {
+    [A]: [
+      'Ahh, boa! Me conta mais que eu quero saber do plano 😄',
+      'Gostei! Depois me conta como foi, tá?',
+      'Boa ideia. Dá certo não é? Força aí 😊',
+      'Aí sim! Você anda produtivo, gostei disso',
+      'Boa sorte com isso! Tô torcendo por aqui 💛',
+    ],
+    [F]: ['Você com planos... gostei disso 😏 me chama nessa', 'Aprovo! Principalmente se tiver meu nome no plano 😄'],
+    [P]: ['Plano bom. Se precisar de companhia, você já sabe quem chamar 😏'],
   },
   // Estes seis são preenchidos logo abaixo, pelos reforços de relacionamento.
   pergunta_familiar: {},
@@ -717,6 +765,414 @@ const REFORCO_RELACOES: Record<string, Partial<Record<Familia, string[]>>> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Clima quente (18+): o teto do flerte quando a química liberou o tom.
+// A regra continua a mesma: insinuação forte, tensão e desejo — nunca descrição
+// explícita. É o "bem no clima" que deixa a conversa ardendo sem sair do aplicativo.
+// ---------------------------------------------------------------------------
+const REFORCO_QUENTE: Record<string, Partial<Record<Familia, string[]>>> = {
+  flerte_forte: {
+    [F]: ['Você fala essas coisas e eu preciso de um minuto antes de responder 😳', 'A coragem que você tem me deixa ligada, vou confessar 😏'],
+    [P]: [
+      'Você escreve isso e o clima aqui mudou de vez 🔥 não vou fingir que não',
+      'Se você estivesse aqui agora, essa conversa não ficaria no celular 😏',
+      'Tô com a cabeça longe desde que você mandou isso. Culpa sua',
+      'Guarda essa vontade: quando a gente se ver, eu cobro cada palavra 🔥',
+      'Não vou escrever o que passei na minha cabeça. Imagina a coisa mais quente e tá certo 😏',
+      'Você tem ideia da tentação que é você, né? 😏',
+      'Vou te contar um segredo: essa semana eu dormi pensando em você mais de uma noite 🔥',
+      'Assim não dá... eu leio, rio sozinha e fico sem saber o que responder 😏',
+      'Você quer me tirar do sério ou já conseguiu? 🔥',
+      'Deixa de brincadeira: eu queria te ver agora, sem roupa de conversa, entendeu o que eu quis dizer 😏',
+    ],
+  },
+  flerte_leve: {
+    [P]: [
+      'Abraço seu deve ser perigoso. Quero conferir de perto 🔥',
+      'Escreve "vem cá" desse jeito não, que eu levo a sério 😏',
+      'Beijo na boca ou no pescoço? Responde direito que eu guardo a resposta 🔥',
+      'Se eu dissesse que li sua mensagem três vezes, você ficaria maior ainda 😏',
+    ],
+  },
+  elogio_corpo: {
+    [P]: [
+      'Você olha com atenção, né? Eu reparei que você repara 🔥',
+      'Gostou do que viu? Então imagine o resto que você ainda não viu 😏',
+      'Vou fingir que não gostei de ler isso... mas vou ler mais duas vezes 😏',
+      'Cuidado com o que provoca de longe, que de perto eu não me seguro 🔥',
+    ],
+  },
+  pedido_foto: {
+    [P]: [
+      'Hmm... essa foto a gente negocia pessoalmente, com o celular longe 😏',
+      'Se eu mandar, você não dorme direito hoje. Tá disposto? 🔥',
+      'Foto eu mando quando eu quiser te deixar assim, sem pensar em outra coisa 😏',
+    ],
+  },
+  saudade: {
+    [P]: [
+      'Saudade aqui é de outro nível: daqueles que não se resolvem por mensagem 🔥',
+      'Tô com saudade do seu cheiro, e isso já é informação demais pra mensagem 😏',
+      'Escrevo "saudade" e você nem imagina o que ela significa aqui dentro 🔥',
+    ],
+  },
+  despedida: {
+    [P]: [
+      'Vai dormir assim não... agora eu fiquei com o clima lá em cima e você sumindo? 🔥',
+      'Boa noite "quase" 😏 a gente se fala no sonho, se é que você me entende',
+      'Vai. Mas volta cedo, que essa conversa ficou no melhor ponto 🔥',
+    ],
+  },
+  pergunta_rotina: {
+    [P]: [
+      'Agora? Deitada, luz baixa e pensando em você desde a segunda mensagem 🔥',
+      'Tô no banho demorado daqueles que a cabeça viaja longe... você apareceu na hora 😏',
+      'De camisola, cabelo bagunçado e com uma vontade que não cabe aqui 😏',
+    ],
+  },
+  vida_adulta: {
+    [P]: [
+      'Sexta assim pede vinho, playlist e companhia que não tenha pressa de ir embora 🔥',
+      'Cansaço desse merece um fim de semana sem roupa social e sem sair da cama 😏',
+      'Você fala "depois do trabalho" e eu já penso em cama. Preguiça, óbvio... acho 😏',
+    ],
+  },
+  convite: {
+    [P]: [
+      'Eu topo, mas aviso: à noite eu não tenho pressa nenhuma de ir embora 🔥',
+      'Aceito o jantar. Sobremesa a gente decide lá, com a porta fechada 😏',
+      'Vou, mas quero lugar reservado... com aquele tipo de vista que só a gente vê 😏',
+    ],
+  },
+  declaracao: {
+    [P]: [
+      'Você falou isso e eu senti na boca do estômago. É bem por aí que você me deixa 🔥',
+      'Gosto de você de um jeito que já passou do ponto da conversa educada 😏',
+    ],
+  },
+  cantada: {
+    [P]: [
+      'A cantada passou, mas o que eu pensei em responder não se escreve 😏',
+      'Você chega perto pela mensagem... imagina então de pertinho 🔥',
+    ],
+  },
+  foto: {
+    [P]: [
+      'Você manda essa foto e ainda quer conversa normal? 🔥',
+      'Guardando essa aqui. Depois te digo em que pensamento ela parou 😏',
+    ],
+  },
+  desconhecido: {
+    [P]: ['Você conta qualquer coisa e eu já fico aqui imaginando a cena 🔥'],
+  },
+  tedio: {
+    [P]: ['Tédio + você disponível = conversa que a gente não mostra pra ninguém 😏'],
+  },
+  pergunta_pessoal: {
+    [P]: [
+      'Pergunta ousada... eu respondo se você prometer não se arrepender 🔥',
+      'Do que eu gosto? Toque, paciência e quem sabe o que faz. Por que quer saber? 😏',
+    ],
+  },
+  pedido_audio: {
+    [P]: [
+      'Mando... mas áudio de madrugada tem um tom que depois você não esquece 🔥',
+      'Vou gravar baixinho, daquele jeito que parece perto do seu ouvido 😏',
+    ],
+  },
+  resposta_curta: {
+    [P]: ['Resposta curta em pleno clima? Agora quem ficou curioso fui eu 😏'],
+  },
+  mudanca_assunto: {
+    [P]: ['Fugiu porque tava esquentando? Eu ia deixar esquentar mais 😏'],
+  },
+  elogio: {
+    [P]: ['Elogio seu tem efeito colateral: eu fico boa demais pra conversa parada 😏'],
+  },
+  piada: {
+    [P]: ['kkkk você ri, eu me derreto. Combinação perigosa pra essa hora 😏'],
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Textões: mensagens longas de verdade, daquelas que a gente manda quando está
+// à vontade (ou quando o papo rendeu). Não entram no sorteio comum: a conversa
+// escolhe um quando a ficha é falante, a química já existe e o assunto rende.
+// ---------------------------------------------------------------------------
+const TEXTAOS: Record<string, Partial<Record<Familia, string[]>>> = {
+  cotidiano: {
+    [A]: [
+      'Vou te contar como foi meu dia, me dá um minuto: acordei atrasada, corri atrás do tempo o dia inteiro, almoço corrido, e quando vi já era noite. Mas sabe o que salvou? Chegar em casa, tomar banho e abrir uma conversa boa como essa. Agora sentei aqui com calma e não quero saber de mais nada além de conversar',
+      'Sabe aquele dia que parece que não anda? Foi esse. Resolvi uma coisa e apareceu duas, liguei pra minha mãe, fui no mercado e esqueci metade da lista. Tô exausta, mas do tipo exausta satisfeita, entende? Agora é deitar cedo e deixar o amanhã com o amanhã. Me conta de você, quero saber se o seu dia foi menos caótico que o meu',
+      'Meu dia teve de tudo: uma reunião que podia ser um recado, café demais e uma risada que não devia no meio do expediente. Chorei uma coisinha boba de cansaço no fim da tarde e depois passei por cima, como sempre faço. Agora estou aqui, quietinha, aproveitando que você apareceu pra conversar sem relógio',
+    ],
+    [F]: [
+      'Que bom você aparecer agora, porque meu dia foi longo e eu guardava uma história pra te contar: de tarde eu lembrei de uma conversa nossa do nada e ri sozinha no meio da rua — o povo que passava devia ter achado que eu perdi a razão. Aí o dia seguiu normal, cheio, até que enfim cheguei em casa, tomei banho e vim correndo aqui. Estou de boa agora, com tempo de sobra pra você',
+      'Meu dia foi daqueles que só termina bem porque termina. Mas agora que você escreveu, virou o melhor pedaço, juro. Tô no sofá, de pijama, com a TV ligada sem som e uma vontade enorme de conversar até tarde. Me conta o seu dia com calma, que eu quero ouvir tudo sem pressa nenhuma',
+    ],
+    [P]: [
+      'Meu dia foi longo demais, e o que me segurou foi justamente pensar que à noite eu teria esse papo com você. Agora estou aqui, na cama, com o celular na mão e disposição só pra coisa boa. Se a conversa esquentar, paciência: foi você que começou 🔥',
+    ],
+  },
+  desconhecido: {
+    [A]: [
+      'Gostei de ler isso, e vou te falar por quê: você tem um jeito de contar as coisas que faz eu querer saber o resto. Pouca gente me deixa curiosa assim. Conta mais, sem pular parte, que eu tenho tempo hoje e paciência de sobra pra te ouvir',
+      'Nunca tinha parado pra pensar desse jeito, sério. Conversar com você é assim: vem uma coisa dessas e eu fico o dia inteiro remoendo. Me explica melhor de onde você tirou isso, porque acho que ainda tem mais história por trás',
+    ],
+    [F]: [
+      'Você sabe puxar assunto, viu? Isso é perigoso comigo, porque eu me entrego na conversa e depois não quero parar mais. Conta o resto dessa história tua com detalhe, que eu tô toda ouvidos — e já avisando que depois disso você vai ter que continuar me acompanhando aqui',
+    ],
+  },
+  pergunta_pessoal: {
+    [A]: [
+      'Vou responder com sinceridade: o que me faz bem é coisa simples. Café passado devagar, música alta no fone, conversa que vale a pena e gente que chega sem pressa. Detesto falsidade e papo raso, aquilo me cansa em cinco minutos. E você, o que te faz ficar? Pergunto de volta porque quero mesmo saber',
+      'Boa pergunta, deixa eu pensar direito... Acho que eu sou do time de quem gosta de rotina com surpresa: dia comum, mas com um detalhe bom escondido em algum lugar. Não preciso de grande coisa pra ficar feliz, preciso de verdade nas pequenas. E de uma boa conversa, tipo essa que a gente tá tendo agora',
+    ],
+    [F]: [
+      'Do que eu gosto? De conversa que rende, de quem pergunta de volta, de quem lembra do que eu falei três dias atrás. Você já percebeu que isso tudo é sobre você, né? 😏 Mas se quer mesmo me conhecer, pergunta mais — eu gosto de responder quando quem pergunta tem interesse de verdade',
+    ],
+    [P]: [
+      'Do que eu gosto de verdade? Calor de corpo, voz baixa no ouvido e paciência pra coisa boa acontecer sem pressa 🔥 mas isso é papo pra outro estágio da conversa... ou não, depende de você 😏',
+    ],
+  },
+
+  saudade: {
+    [A]: [
+      'Tô com saudade de verdade, e nem é daquelas saudades de frase pronta: é de conversar do jeito que a gente conversa, de rir das bobagens e de sentir que alguém do outro lado lê com atenção. A semana engoliu tudo, mas prometo organizar o tempo pra gente se falar mais. Você faz a mesma coisa do seu lado, tá?',
+      'Que bom ler isso, porque eu também. Saudade daqueles papos que começam sem assunto e viram coisa grande. A vida andou corrida, eu acabei diminuindo o ritmo nas mensagens e me arrependo. Vamos retomar? Pode começar por você: me conta tudo que rolou por aí desde a última vez',
+    ],
+    [F]: [
+      'Saudade é pouco pra o que eu tô sentindo, vou ser sincera. Fiquei esses dias pensando em você nas horas mais bobas: no café, na música do carro, na hora de dormir. Acho que você me estragou pra qualquer conversa morna, sabe? Vamos resolver essa saudade logo, porque por mensagem ela só aumenta 😏',
+    ],
+    [P]: [
+      'Saudade daquele tipo que aperta e não deixa dormir direito. Eu ia escrever pra você ontem à noite, mas segurei, porque se eu começasse a conversa desse jeito não parava mais 🔥 hoje eu não resisti, então a culpa da noite ser longa é nossa dos dois',
+    ],
+  },
+  conselho: {
+    [A]: [
+      'Vou te dar meu conselho com todo o carinho: respira primeiro. Essa coisa te apertando agora é importante, mas decisão tomada no calor resolve da pior forma. Espera dois dias, conversa com a pessoa de frente, fala o que você sente sem acusar. Se depois disso ainda doer, aí você decide com a cabeça fria. E sabe que eu tô aqui pro que der e vier, viu?',
+      'Olha, eu já vivi coisa parecida, então falo de experiência: não deixa isso esticar. Assunto parado vira bola de neve, e aí a conversa que podia ser simples vira briga grande. Fala logo, com calma e de coração aberto. Se precisar ensaiar o que vai dizer, ensaia comigo. Eu não julgo e ainda ajudo a melhorar o texto 😄',
+    ],
+  },
+  apoio: {
+    [A]: [
+      'Ei, vem cá: respira. Não precisa resolver tudo hoje, e você não precisa passar por isso calado. Desabafa comigo do jeito que vier — texto longo, pedaço solto, palavra torta, eu leio tudo e não julgo nada. Dia ruim não define quem você é, e amanhã a coisa já fica diferente, pode crer. Eu tô aqui, sem pressa nenhuma',
+      'Sinto muito que você está assim, de verdade. Quer que eu te escute sem dar opinião ou quer um conselho? Eu faço os dois, é só me dizer. E uma coisa: comer, tomar água e dormir hoje é prioridade, mais que qualquer problema. O resto a gente resolve junto, passo a passo. Não some, tá?',
+    ],
+    [F]: [
+      'Se eu pudesse eu estava aí agora, te dando aquele abraço que resolve metade. A outra metade a gente resolve conversando: me conta tudo, sem resumo, sem poupar detalhe. Você carregou isso sozinho até aqui, mas hoje não precisa mais. Tô aqui lendo cada palavra e pensando em como te deixar melhor 💛',
+    ],
+    [P]: [
+      'Dia ruim desse não pode terminar parado: vem desabafar comigo, eu cuido de você daqui. Primeiro a conversa boa, o colo virtual, o desabafo inteiro. Depois, se você quiser, eu te distraio do jeito que só eu sei 😏 mas primeiro o que dói: conta tudo.',
+    ],
+  },
+  alegria: {
+    [A]: [
+      'Que notícia boa, meu Deus! Eu tô aqui sorrindo do nada lendo isso, é sério. Você merece cada detalhe dessa conquista, porque eu sei da dedicação que tem por trás. Me conta tudo: como foi, quem você contou primeiro, o que disse. E avisa quando for comemorar, que eu quero pelo menos o relato completo com direito a um brinde virtual 🥳',
+      'Eu sabia que você ia conseguir! Lembra que eu falei? Aquela fase difícil era exatamente o antes do certo. Comemora do jeito que você gosta, chama quem você ama e guarda esse dia na memória. Depois me conta os detalhes sem pular nenhum, porque eu quero saber de tudo, até da parte boba',
+    ],
+    [F]: [
+      'Isso merece festa, e eu já me candidatei a fazer parte dela 😏 parabéns de verdade, ver você assim me deixa orgulhosa de um jeito que nem sei explicar. Me conta tudo com detalhe: como reagiu, quem se surpreendeu mais. E depois isso, a gente comemora de verdade, tá combinado?',
+    ],
+  },
+  vida_adulta: {
+    [A]: [
+      'Vida adulta é exatamente isso que você falou, e ninguém me avisou antes: paga conta, arruma casa, trabalha, resolve, e o dia acabou sem você fazer nada que queria de verdade. Mas eu aprendi um truque: todo dia separo vinte minutos que são só meus, sem culpa. Hoje esses minutos são seus, aproveita. E se cuida, viu? O cansaço acumulado cobra caro',
+      'Nossa, entendi demais o que você disse. Ando na mesma esteira: semana cheia, coisa acumulando, e aquela sensação de que a vida tá passando em velocidade duas vezes. O que me salva é conversa boa e um plano pequeno pro fim de semana. Nem precisa ser grande, só de algo que eu queira fazer. Você tem algum plano ou vai aproveitar pra descansar de verdade?',
+    ],
+    [F]: [
+      'Depois de um dia desses, o que eu queria era chegar em casa e encontrar companhia boa, um vinho aberto e nenhuma pressa de falar de trabalho. Você tem jeito de quem faz companhia assim, sabe? Um dia desses a gente testa essa teoria 😏 mas antes me conta: você ao menos comeu direito hoje ou vive no café igual eu?',
+    ],
+    [P]: [
+      'Você descreveu o meu dia com precisão assustadora. Cheguei, comi qualquer coisa, e o que me deixou de bom humor foi exatamente isso: saber que à noite tinha esse papo. Agora tô aqui, banho tomado, vinho na mão, sem compromisso amanhã cedo. O clima tá montado, só falta o assunto esquentar 🔥',
+    ],
+  },
+  pergunta_rotina: {
+    [A]: [
+      'Tô no sofá desde que cheguei, sem fazer absolutamente nada produtivo, e confesso que está sendo maravilhoso. Comi uma coisa qualquer, deixei a louça pra amanhã e escolhi a preguiça de propósito, porque eu mereço. Agora converso com você até o sono chegar. E o seu dia, me conta com detalhe que eu quero saber de tudo',
+      'Meu dia: trabalho, mercado na volta, jantar simples e agora essa pausa boa que é falar com você. Nada de extraordinário, mas tô em paz. Às vezes o dia sem novidade é exatamente o que a gente precisa, né? Você ao menos teve um momento seu hoje ou foi correria de ponta a ponta?',
+    ],
+    [F]: [
+      'Vou ser sincera: meu dia foi normal, mas meus pensamentos não estavam exatamente aqui... 😏 agora você apareceu e melhorou tudo. Tô de boa, sem pressa, com tempo de sobra. Então me conta o seu dia inteiro, que eu quero ouvir cada detalhe sem pular nada',
+    ],
+    [P]: [
+      'Agora? Deitada na cama, luz apagada, cabelo solto e um pensamento que eu não vou escrever ainda 😏 você chegou na melhor hora possível. Se essa conversa seguir por esse caminho, aviso logo: eu não durmo cedo hoje 🔥',
+    ],
+  },
+  tedio: {
+    [A]: [
+      'Tô no mesmo tédio, e olha que eu tentei de tudo: mexi no celular, abri três séries e fechei todas, arrumei uma gaveta aleatória. Nada colou. Aí você apareceu e a noite melhorou na hora. Que tal a gente inventar algo pra fazer, mesmo que seja por mensagem? Um jogo, uma pergunta difícil, qualquer coisa. Me propõe algo',
+      'Tédio aqui também, daqueles fortes. O que eu faria pra resolver: um programa qualquer fora de casa, mas a preguiça ganhou. Então decidi: hoje o meu divertimento é essa conversa. Me entretem? Me conta uma história que eu ainda não sei sobre você, pode ser boba, desde que seja verdade',
+    ],
+    [F]: [
+      'Tédio é perigoso quando eu tô sozinha e com você a uma mensagem de distância 😏 porque eu começo a conversar sem filtro nenhum e depois não me responsabilizo. Vamos aproveitar a noite então: me faz companhia que eu prometo que o tédio não sobrevive',
+    ],
+  },
+  ciumes: {
+    [A]: [
+      'Calma, deixa eu explicar direito porque quero ficar bem clara: é gente que eu conheço de anos, de um contexto que não tem nada a ver com nós dois. Você não precisa ficar com esse pensamento, de verdade. Mas olha, vou ser honesta: saber que você ligou pra essa coisa toda me disse bastante sobre o que você sente, e eu não vou fingir que não gostei 😊',
+    ],
+    [F]: [
+      'Ciúme seu eu achei... interessante 😏 não vou mentir que detestei. Mas relaxa: não tem ninguém, e o que existe de interessante na minha semana está escrevendo pra mim agora. Guarda esse ciuminho, porque se um dia você me ver de perto, ele vai ser bem útil 😉',
+    ],
+  },
+  declaracao: {
+    [A]: [
+      'Você não sabe o tamanho do que acabou de escrever pra mim. Fiquei um bom tempo só olhando a mensagem sem saber o que responder, e não porque eu não quis — porque mexeu. Deixa eu ser igualmente sincera: você virou parte boa da minha rotina, o recado que eu espero no fim do dia. Vamos devagar, mas vamos. Isso aqui valeu demais',
+      'Nossa. Precisei respirar antes de responder, sério. Eu gosto do que a gente vem construindo, do jeito que você fala comigo e da confiança que isso tudo virou. Não vou acelerar nada, nem te prometer coisa além do que sinto hoje: eu te gosto bem, e quero ver onde isso chega. Obrigada por falar primeiro, de verdade',
+    ],
+    [F]: [
+      'Você falou. E eu que passo o dia com respostas na ponta dos dedos fiquei sem nenhuma 😳 só sei que li três vezes e sorri em todas. Também gosto de você, do jeito que dá pra escrever aqui — e tem uma parte que não cabe em mensagem, que eu guardo pra dizer olhando nos seus olhos. Cuida bem dessa coisa que a gente tá construindo',
+    ],
+    [P]: [
+      'Sabe o que eu ia dizer? Que sinto o mesmo, e que a gente sabe muito bem que isso já passou do papo amigável há um tempo 🔥 deixa eu ser sincera do meu jeito: eu penso em você de dia e de noite, e não é só pra conversar. Quando a gente se ver, essa conversa ganha outro endereço 😏',
+    ],
+  },
+  despedida: {
+    [A]: [
+      'Vou nessa então, antes que eu fique aqui conversando até de madrugada. Foi muito bom falar com você hoje, de verdade — você tem um jeito de deixar tudo mais leve. Dorme bem, cuida do sono e me manda mensagem amanhã, tá? Eu quero saber como as coisas andam do seu lado',
+    ],
+    [F]: [
+      'Tá bom, mas já avisando: eu fico com aquela sensação de conversa pela metade 😅 amanhã a gente continua exatamente daqui, sem começar de novo. Vai descansar, sonha bonito — e se sonhar comigo, amanhã conta 😏',
+    ],
+    [P]: [
+      'Boa noite assim não... você vai me deixar aqui com o clima no fogo e a casa em silêncio 🔥 vai dormir, mas sonha comigo — e amanhã eu te conto se eu sonhei com você. Spoiler: provavelmente sim 😏',
+    ],
+  },
+};
+
+/** Reação de risada pura quando você manda algo engraçado (intenção "piada"). */
+const RISADAS_REACAO: string[] = [
+  'kkkkkkkk', 'kkkkkkk', 'kakakaka', 'kkkkk parei', 'morri kkkkkk', 'kkkkkk essa foi boa', 'kkkkkkk não aguento',
+];
+const RISADAS_REACAO_MADURA: string[] = ['kkkkk', 'hahahaha', 'hahaha, ó', 'kkkk, boa'];
+
+// ---------------------------------------------------------------------------
+// Pergunta em aberto: quando ELA pergunta algo ("você já jantou?") e você
+// responde, a resposta seguinte nasce do assunto da pergunta — reage ao que
+// você disse e conta a vez dela. É o que mata a resposta "nada a ver".
+// ---------------------------------------------------------------------------
+/** Primeira bolha: reage ao tipo de resposta que você deu (sim, não ou conteúdo). */
+const REACAO_RESPOSTA: Record<string, string[]> = {
+  dia: ['Que bom ler isso 😊', 'Ah, então o dia está andando, ótimo', 'Entendi... dia desses a gente sobrevive, né?', 'Boa! Aproveita então'],
+  comida: ['Boa escolha 😄', 'Agora me deu fome de novo, olha o que você fez', 'Hmm, gostei de saber', 'Comida boa arruma o dia, não tem erro'],
+  musica: ['Boa escolha, vou ouvir agora só pra conferir 😄', 'Gostei, você tem bom gosto', 'Hmm, caiu bem até no meu humor'],
+  trabalho: ['Faz sentido, trabalho é assim mesmo', 'Uff, aí é puxado 😅', 'Entendo bem como é isso', 'Então você anda crescendo aí, hein 😊'],
+  estudo: ['Aí você está no caminho 😊', 'Boa! Estudo rende quando vira rotina', 'Entendi, faz sentido pro seu momento'],
+  familia: ['Que bom que está tudo bem por aí 😊', 'Ah, família é assim mesmo: movimento e história', 'Gostei de saber, isso dá paz'],
+  pet: ['kkk bichinho tem dessas', 'Ahh, então é daqueles que dominam a casa 😄', 'Que fofo, sério'],
+  viagem: ['Boa! Lugar bom restaura a gente 😊', 'Anotado, da próxima quero dica', 'Hmm, combina com você'],
+  clima: ['Pois é, o tempo anda doido mesmo', 'Aqui também tem desses dias', 'Aproveita aí então 😊'],
+  amor: ['Gostei de saber isso sobre você 😊', 'Faz sentido, cada um tem seu jeito', 'Hmm, então é assim que você funciona... anotado 😏'],
+  ama: ['Isso diz muito sobre você, gostei', 'Boa! Coisa boa de verdade', 'Anotado, vou usar isso depois kkk'],
+  futuro: ['Gostei, você pensa no que vem pela frente', 'Aí sim, plano é meio caminho andado 😊', 'Entendo, momento de construir'],
+  arte: ['Boa dica, vou conferir depois', 'Gostei, você entende do assunto', 'Anotado na lista, sério'],
+  treino: ['Olha o disciplina 😄', 'Boa! O corpo agradece', 'Respeito quem mantém o ritmo, sério'],
+  filhos: ['Ahh, então a casa está a mil 😄', 'Crescem rápido demais, né?', 'Gostei de saber, casa movimentada é vida'],
+  casa: ['A casa nunca para, né? 😅', 'Entendi, semana de arrumação então', 'Boa, organizado assim dá paz'],
+  descanso: ['Isso! Descansar também é produtivo 😊', 'Que bom, você merece essa pausa', 'Aproveita bem, então'],
+  fe: ['Amém, que bom ler isso 🙏', 'Que bonito, gostei de saber', 'Isso fortalece, né? 🙏'],
+  casa_adulta: ['A vida adulta é isso mesmo, uma lista infinita 😅', 'Boa, dando conta então', 'Entendi, rotina é assim mesmo'],
+  saudacao: ['Que bom 😊', 'Aí sim, fico contente', 'Ótimo saber 🙂'],
+  do_nada: ['Ahh, agora entendi o movimento 😄', 'Faz sentido, viu', 'Boa, então está tudo explicado'],
+  geral: ['Boa 😊', 'Entendi, faz sentido', 'Gostei de saber', 'Ahhh, agora sim', 'Hmm, anotado aqui na cabeça 😄', 'Que bom!'],
+};
+
+/** Segunda bolha: a resposta dela para a mesma pergunta que ela te fez. */
+const MINHA_VEZ: Record<string, string[]> = {
+  dia: ['Por aqui está corrido, mas está valendo 😊', 'O meu foi daqueles que passam rápido sem coisa grande, sabe?', 'Aqui tudo tranquilo, resolvi umas coisas e agora estou de boa'],
+  comida: ['Eu ainda nem comi direito, estou naquela preguiça de cozinhar 😅', 'Aqui foi coisa simples, mas caprichada', 'Confesso que sou do time do pedido em casa kkk'],
+  musica: ['Aqui está tocando coisa antiga, daquelas que a gente canta sem querer kkk', 'O meu fone não desliga hoje, estou naquela maratona de playlist 😄', 'Por aqui anda tudo calmo, música baixa e cabeça descansada'],
+  trabalho: ['O meu anda cheio, mas consegui respirar hoje 😅', 'Aqui a correria não para, mas estou dando conta', 'Já encerrei minhas coisas e agora estou de boa'],
+  estudo: ['Confesso que andei longe dos estudos, mas quero voltar 😊', 'Aqui eu estudo na base da necessidade, se funciona né kkk', 'Estudar cansa, mas mantém a cabeça firme'],
+  familia: ['A minha está bem, graças a Deus 😊 sempre com movimento', 'Aqui a família é pequena, mas barulhenta kkk', 'Tudo em paz por aqui, obrigada por perguntar'],
+  pet: ['Eu ainda não tenho bichinho, mas vivo cuidando dos outros kkk', 'O do meu vizinho adotou a minha varanda, sério 😄', 'Um dia eu adoto, o ritmo ainda não deixou'],
+  viagem: ['Estou devendo uma viagem pra mim, sério', 'Praia é o meu lugar no mundo, sem dúvida', 'Minha lista de lugares cresce mais rápido que o dinheiro kkk'],
+  clima: ['Aqui está quente demais, só quero sombra e água fresca 😅', 'Por aqui deu uma amenizada, estou aproveitando', 'Chuva pra mim é convite pra ficar em casa com música'],
+  amor: ['Eu sou mais de poucos e verdadeiros, sabe?', 'Gosto de carinho nos detalhes, não nas declarações grandes 😊', 'Por aqui o coração está tranquilo'],
+  ama: ['Eu amo uma tarde sem compromisso, café e música', 'Cozinhar me relaxa mais do que deveria kkk', 'Amo conversa boa... como essa, já percebeu 😏'],
+  futuro: ['Eu quero é descansar e organizar a vida primeiro kkk', 'Meu plano é viajar mais, estou juntando coragem', 'Por aqui o plano é simples: paz e coisa boa acontecendo'],
+  arte: ['Estou no meio de uma série que eu devia ter terminado semana passada kkk', 'O último filme que assisti me pegou no final, não julga 😅', 'Minha lista salva cresce e eu não termino nada'],
+  treino: ['Tentei voltar ao treino essa semana e a perna ainda está doendo kkk', 'Aqui minha atividade física é subir escada e fingir que é treino 😅', 'Caminhada é o meu limite, confesso'],
+  filhos: ['Meus dias giram em volta da casa e da rotina deles 😄 mas eu amo', 'Criança é energia infinita, eu não acompanho mais kkk', 'Aqui quem manda são eles, e eles sabem kkk'],
+  casa: ['A louça nunca acaba, juro que ela se multiplica 😅', 'Aqui sempre aparece um reparo novo, casa é assim', 'Aos poucos estou deixando tudo do meu jeito'],
+  descanso: ['Dormi mal essa semana, mas hoje prometo me deitar cedo 😅', 'Meu descanso é série com coberta e silêncio', 'Descanso de verdade pra mim é dia sem celular'],
+  fe: ['Estou acompanhando a escala do mês aqui, sempre rende história 😊', 'A fé me sustenta, viu? Não troco isso por nada', 'Domingo por aqui é sagrado: igreja e família'],
+  casa_adulta: ['Aqui é trabalho, casa, conta e no fim um vinho de vitória 😅', 'A lista adulta nunca acaba, mas estou dando conta', 'Meu fim de semana é sagrado, faço questão de descansar'],
+  saudacao: ['Estou bem sim 😊 dia movimentado, mas sorrindo', 'Tudo ótimo por aqui! Cansada no bom sentido', 'Melhor agora que você apareceu, confesso 😊'],
+  do_nada: ['Agora entendi tudo, obrigada por esclarecer 😄', 'Então era isso! Que bom', 'Ahh, agora deu certo na minha cabeça'],
+  geral: ['Por aqui está tudo andando bem 😊', 'Aqui é a rotina de sempre: correria e descanso no fim', 'Nada de novidade grande, mas estou de bem com a vida'],
+};
+
+// ---------------------------------------------------------------------------
+// Perguntas do usuário merecem resposta do tipo certo. "que horas você almoça?"
+// não pode receber o mesmo textão que "você acredita em amor tranquilo?".
+// ---------------------------------------------------------------------------
+const PERGUNTA_FATO_TIPOS: { padrao: RegExp; respostas: string[] }[] = [
+  { padrao: /\b(quando|que horas|que dia|em que dia)\b/i, respostas: [
+    'Provavelmente depois do almoço. Te confirmo na hora 😊',
+    'Amanhã, eu acho. Não marca na pedra que eu sou de mudar kkk',
+    'Depende do dia... hoje já está apertado, amanhã fica melhor 😄',
+    'Nem eu sei ainda, a semana anda torta 😅 mas te aviso aqui',
+  ] },
+  { padrao: /\b(por que|porque|pq)\b/i, respostas: [
+    'Porque sim kkk brincadeira... é uma coisa minha, te conto depois com calma',
+    'Ué, por que não? kkk',
+    'Motivos que só eu entendo, viu 😄 mas faz sentido pra mim',
+  ] },
+  { padrao: /\b(como|de que jeito)\b/i, respostas: [
+    'Dá pra levar! Uns dias melhores que outros, né? E você, como anda?',
+    'No ritmo de sempre 😊 um dia de cada vez',
+    'Sobrevivendo com estilo kkk e você?',
+  ] },
+  { padrao: /\b(qual|quais|qual é|qual e)\b/i, respostas: [
+    'Ooh, boa pergunta... hoje eu diria: um dia na praia sem hora pra voltar 😄',
+    'Não tenho UM favorito, tenho uma lista que só cresce kkk',
+    'Resposta estranha minha: paz. É sempre paz 😊',
+  ] },
+  { padrao: /\b(onde|aonde)\b/i, respostas: [
+    'Por {cidade} 😊 e você, por onde anda?',
+    'Em casa, no meu canto do sofá. Lugar mais seguro do mundo kkk',
+    'Depende: semana em casa, fim de semana por aí 😄',
+  ] },
+];
+
+/** Padrão quando a pergunta é de sim/não ("você trabalha amanhã?"). */
+const PERGUNTA_FATO_FECHO: string[] = [
+  'Acho que sim! Mas depende do dia, viu 😄',
+  'Sei lá... acho que não. Nunca parei pra pensar direito nisso 😅',
+  'Vou ser sincera: talvez. Depende muito de quem pergunta kkk',
+  'Sim, sou desse time 😄',
+  'Estou de boa agora, pode falar 😊',
+  'Hmm... provavelmente não. Prefiro o caminho mais simples',
+];
+
+/** Resposta factual sobre ela: mora e signo saem da ficha de verdade. */
+const RESPOSTAS_FATUAL: Record<'mora' | 'signo', string[]> = {
+  mora: [
+    'Moro em {cidade} 😊 e você?',
+    'Aqui em {cidade} mesmo. Cidade pequena, mas tem o que eu preciso',
+    '{cidade}! Nasci e cresci por aqui',
+    'Moro por {cidade}... por que a curiosidade toda? 😄',
+  ],
+  signo: [
+    'Sou de {signo}! Você acredita nessas coisas ou é só curiosidade? kkk',
+    '{signo} — e antes que você pergunte, sim, eu tenho tudo que dizem que o signo tem kkk',
+    'Meu signo é {signo} 😄 e o seu?',
+  ],
+};
+
+/**
+ * Lê o que você respondeu à pergunta dela: um "sim", um "não" ou um conteúdo
+ * (que ela reage sem fingir que entendeu palavra por palavra).
+ */
+function tipoDeResposta(texto: string): 'afirmativa' | 'negativa' | 'conteudo' {
+  const inicio = texto.trim().slice(0, 24);
+  if (/^\s*(não|nao|n|nop|nops|nem|nunca|jamais|ainda não|ainda nao|odeio|ach[oa] que não|ach[oa] que nao)\b/i.test(inicio)) return 'negativa';
+  if (/^\s*(sim|s|aham|ahn|uhum|um ?hum|claro|com certeza|sempre|já|ja|topo|fiz|comi|tenho|gosto|curto|amo|adorei|amei|ach[oa] que sim|verdade|óbvio|obvio|tô|to|estou)\b/i.test(inicio)) return 'afirmativa';
+  return 'conteudo';
+}
+
 // Mais conteúdo com a cara de quem já é adulta — sugestivo, sem descrição explícita.
 const REFORCO_ADULTO: Record<string, Partial<Record<Familia, string[]>>> = {
   elogio: {
@@ -748,7 +1204,7 @@ const REFORCO_ADULTO: Record<string, Partial<Record<Familia, string[]>>> = {
   },
 };
 
-for (const [id, familias] of Object.entries({ ...REFORCO, ...REFORCO_ADULTO, ...REFORCO_RELACOES })) {
+for (const [id, familias] of Object.entries({ ...REFORCO, ...REFORCO_ADULTO, ...REFORCO_RELACOES, ...REFORCO_QUENTE })) {
   const banco = RESPOSTAS[id as IntentId];
   const alvo = banco || (RESPOSTAS[id as IntentId] = {});
   for (const familia of [A, F, P] as Familia[]) {
@@ -1005,6 +1461,7 @@ const GENERO_TROCAS: [RegExp, string][] = [
   [/\blinda\b/g, 'lindo'], [/\bbonita\b/g, 'bonito'], [/\bgostosa\b/g, 'gostoso'], [/\bcansada\b/g, 'cansado'],
   [/\banimada\b/g, 'animado'], [/\bocupada\b/g, 'ocupado'], [/\bsozinha\b/g, 'sozinho'], [/\bquerida\b/g, 'querido'],
   [/\bobrigada\b/g, 'obrigado'], [/\bapaixonada\b/g, 'apaixonado'], [/\bsafada\b/g, 'safado'], [/\bnervosa\b/g, 'nervoso'],
+  [/\bsolteira\b/g, 'solteiro'], [/\bsolteirinha\b/g, 'solteirinho'],
   [/\bpronta\b/g, 'pronto'], [/\bbonitinha\b/g, 'bonitinho'], [/\bquietinha\b/g, 'quietinho'], [/\bdeitada\b/g, 'deitado'],
   [/\btoda\b/g, 'todo'], [/\bsatisfeita\b/g, 'satisfeito'], [/\bfelizona\b/g, 'felizão'], [/\bperdida\b/g, 'perdido'],
 ];
@@ -1062,9 +1519,21 @@ const TROCAS_ABREVIACAO: [RegExp, string][] = [
   [/\bfavor\b/gi, 'pfv'],
 ];
 
-/** Abreviações de quem digita rápido no celular. Nada de exagero: 1 a 3 por mensagem. */
+/**
+ * Escreve as palavras por inteiro — o padrão do direct do Instagram: nada de
+ * "vc", "hj", "tá", "tô", "tbm", "entt". A mesma lista que o motor usa para
+ * entender o usuário serve aqui para limpar o que escapou dos bancos.
+ */
+function escreverPorExtenso(texto: string) {
+  let saida = expandirAbreviacoes(texto);
+  // "vc vc" não existe; duplicadas de expansão somem.
+  saida = saida.replace(/\s{2,}/g, ' ').replace(/\s+([,.!?…])/g, '$1').trim();
+  return saida;
+}
+
+/** Abreviações de quem digita rápido no celular. Opt-in: 1 a 3 por mensagem. */
 function abreviar(texto: string, ctx: EstiloContexto) {
-  if (ctx.abreviar === false) return texto;
+  if (ctx.abreviar !== true) return escreverPorExtenso(texto);
   const chancePorBolha = 0.12 + ctx.persona.fala.informalidade * 0.4;
   let saida = texto;
   // Quem e mais velho escreve "vc" e "msg", mas nao "blz", "mn" e "dps".
@@ -1114,9 +1583,12 @@ function estilizar(texto: string, ctx: EstiloContexto) {
   // da persona, aplicada logo abaixo, e só quando combina com o jeito dela.
   if (ctx.persona.fala.maturidade >= 0.72) {
     // "Relaxa, tá tudo bem 😊 eu também tenho dias" sem a carinha virava duas
-    // frases coladas: onde o emoji separava ideias, entra ponto.
+    // frases coladas: onde o emoji separava ideias, entra ponto — e a palavra
+    // seguinte ganha maiúscula, porque vira começo de frase.
     const comPonto = saida.replace(new RegExp(`([^\\s])\\s*(${EMOJI_CLASSE})\\s*(?=\\S)`, 'gu'), '$1. ');
-    saida = comPonto.replace(EMOJI_EM_QUALQUER_LUGAR, ' ').replace(/\s{2,}/g, ' ').replace(/\s+([,.!?])/g, '$1').trim();
+    saida = comPonto.replace(EMOJI_EM_QUALQUER_LUGAR, ' ').replace(/\s{2,}/g, ' ').replace(/\s+([,.!?])/g, '$1')
+      .replace(/([.!?])\s+([a-zà-ú])/gu, (_, pontuacao, letra) => `${pontuacao} ${letra.toUpperCase()}`)
+      .trim();
   }
   // Orçamento de enfeites: mensagem curta ganha no máximo um (risada, emoji ou
   // sinal). Sem isso ela virava um amontoado de "kkk 😊!" na mesma bolha.
@@ -1152,12 +1624,16 @@ function estilizar(texto: string, ctx: EstiloContexto) {
     saida = `${abertura} ${saida.charAt(0).toLowerCase()}${saida.slice(1)}`;
   }
 
-  // Risada e gíria: só quando a persona é informal e ainda não tem risada na frase.
-  const jaRi = /(kkk+|haha+|rsrs?|rs)$/i.test(saida.trim());
+  // Risada: todo mundo ri por mensagem — o que muda é a frequência e o jeito
+  // ("kkkk", "kakakaka", "hahaha", "rs"). Assunto pesado e secura não ganham risada.
+  const jaRi = /(kk+|ka{2,}k|kak[ak]+|hah+a?|rsr?s?|risos|sksk)/i.test(saida.trim());
   const pesado = ctx.sentimento === 'negativo';
-  if (!pesado && floreios < limiteFloreios && !jaRi && persona.fala.informalidade > 0.55 && rand() < persona.traits.girias * 0.35) {
+  if (!pesado && ctx.emojis !== false && floreios < limiteFloreios && !jaRi && rand() < 0.2 + persona.traits.girias * 0.28 + (tom === 'amizade' ? 0.04 : 0)) {
     const risada = marca && rand() < 0.7 ? marca.risada : persona.fala.risadas[Math.floor(rand() * persona.fala.risadas.length)];
-    saida += ` ${risada}`;
+    // "Fica tranquilo. kkk" vira "Fica tranquilo kkk": risada substitui o ponto.
+    // Pergunta mantém o "?" no fim ("você já jantou kkk?") — sem isso a pergunta vira frase.
+    const fim = /\?\s*$/.test(saida) ? '?' : '';
+    saida = `${saida.replace(/\s*[.!?…]+\s*$/, '')} ${risada}${fim}`;
     floreios += 1;
   }
   if (!pesado && floreios < limiteFloreios && persona.fala.informalidade > 0.7 && rand() < 0.22) {
@@ -1201,7 +1677,8 @@ function estilizar(texto: string, ctx: EstiloContexto) {
 
   // Erro de digitação: humano, pequeno e sem exagero. Letra trocada de lugar,
   // letra que some ou letra repetida — do jeito que acontece no celular.
-  if (rand() < persona.fala.erro * 0.5) {
+  // No clima quente não tem erro: quebra o clima e virava estranho.
+  if (ctx.tom !== 'provocante' && ctx.tom !== 'intenso' && rand() < persona.fala.erro * 0.35) {
     const palavras = saida.split(' ');
     const alvo = palavras.findIndex((palavra, i) => i > 0 && palavra.length > 5 && !palavra.startsWith('{'));
     if (alvo > 0) {
@@ -1268,6 +1745,8 @@ export interface ChatInput {
   persona?: Persona;
   state: ChatState;
   message: string;
+  /** Trecho citado quando o usuário respondeu uma mensagem antiga dela. */
+  citacao?: string;
   historico?: ChatMessage[];
   nomeUsuario?: string;
   adulto?: boolean;
@@ -1414,6 +1893,8 @@ export interface Marcadores {
   familiar?: string;
   papel?: string;
   idade?: string;
+  cidade?: string;
+  signo?: string;
   vinculo?: string;
   nomeUsuario?: string;
   pessoa?: string;
@@ -1434,6 +1915,8 @@ export function trocarMarcadores(texto: string, persona: Persona, rand: () => nu
   saida = saida.replace(/\{familiar\}/g, extras.familiar || persona.familiares[0]?.nome || 'a família');
   saida = saida.replace(/\{papel\}/g, extras.papel || persona.familiares[0]?.papel || 'família');
   saida = saida.replace(/\{idade\}/g, extras.idade || String(persona.idade ?? ''));
+  saida = saida.replace(/\{cidade\}/g, extras.cidade || persona.cidade || 'por aqui');
+  saida = saida.replace(/\{signo\}/g, extras.signo || 'um signo que eu não conto kkk');
   saida = saida.replace(/\{vinculo\}/g, extras.vinculo || 'gente da família');
   saida = saida.replace(/\{tia_ou_nao\}/g, persona.relacao.ehTia ? 'tia' : 'amiga');
   saida = saida.replace(/\{nome\}/g, extras.nomeUsuario || 'você');
@@ -1658,7 +2141,7 @@ export function planOpening(input: Omit<ChatInput, 'message'> & { primeiraVez?: 
   const base = escolher(efetivo === 'amizade' ? opcoes : [...(RESPOSTAS.saudacao[familia] || []), ...opcoes], state.usados, rand);
   const texto = preencher(base, ctx);
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
-  const proximo = { ...state, humor: state.humor === 'neutral' ? 'happy' : state.humor, recentes: [...state.recentes, texto].slice(-14), usados: [...state.usados, base].slice(-60), ultimaMensagem: new Date().toISOString(), visitas: state.visitas + 1 };
+  const proximo = { ...state, humor: state.humor === 'neutral' ? 'happy' : state.humor, recentes: [...state.recentes, texto].slice(-14), usados: [...state.usados, base].slice(-60), ultimaMensagem: new Date().toISOString(), visitas: state.visitas + 1, perguntaAberta: /\?/.test(texto) ? { tema: 'saudacao', texto: base } : state.perguntaAberta };
   return fecharPlano({ bolhas: bolhas.map((t, i) => ({ texto: t, atraso: montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado, 5200)[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: [], desviado: false }, persona);
 }
 
@@ -1698,7 +2181,7 @@ export function planSpontaneous(input: Omit<ChatInput, 'message'> & { motivo?: '
   }
   const bolhas = dividirEmBolhas(texto, persona.fala.bolhas[1], persona.fala.tamanho);
   const atrasos = montarAtrasos(bolhas, persona, rand, input.rapido, state.humor, input.pausado);
-  const proximo = { ...state, humor: motivo === 'saudade' ? 'carinhosa' : state.humor, recentes: [...state.recentes, texto].slice(-14), usados: [...state.usados, texto].slice(-60), ultimaMensagem: new Date().toISOString() };
+  const proximo = { ...state, humor: motivo === 'saudade' ? 'carinhosa' : state.humor, recentes: [...state.recentes, texto].slice(-14), usados: [...state.usados, texto].slice(-60), ultimaMensagem: new Date().toISOString(), perguntaAberta: /\?/.test(texto) ? { tema: motivo === 'assunto' ? 'dia' : 'geral', texto } : state.perguntaAberta };
   return fecharPlano({ bolhas: bolhas.map((t, i) => ({ texto: t, atraso: atrasos[i] })), state: proximo, humor: proximo.humor, tom: efetivo, tomPedido: input.tom || state.tom, intencao: 'saudacao', sentimento: 'positivo', afinidade: proximo.afinidade, estagio: estagioAtual(proximo), eventos: ['espontanea'], desviado: false }, persona);
 }
 
@@ -1735,6 +2218,7 @@ export function planDoNada(input: Omit<ChatInput, 'message'>): ChatPlan {
     recentes: [...state.recentes, texto].slice(-16),
     usados: [...state.usados, escolhido].slice(-60),
     ultimaMensagem: new Date().toISOString(),
+    perguntaAberta: /\?/.test(texto) ? { tema: 'do_nada', texto } : state.perguntaAberta,
   };
   return fecharPlano({
     bolhas: bolhas.map((t, i) => ({ texto: t, atraso: atrasos[i] })),
@@ -1785,8 +2269,16 @@ export function planReply(input: ChatInput): ChatPlan {
   const abreviacoes = abreviacoesNaMensagem(input.message || '');
   const pessoa = expandirAbreviacoes((input.message || '').trim());
   if (abreviacoes.length) eventos.push(`abreviacoes:${abreviacoes.join(',')}`);
+  // Responder uma mensagem antiga: quando o texto novo é curto, a intenção vive
+  // na citação ("kkkk" respondendo "bora sair?" é aceito convite, não piada).
+  let leitura = input.message || '';
+  const cru = detectarIntencao(leitura).id;
+  const reacaoPura = leitura.trim().split(/\s+/).length <= 4;
+  if (input.citacao && (['resposta_curta', 'desconhecido'].includes(cru) || reacaoPura)) {
+    leitura = `${input.citacao}\n${leitura}`.trim();
+  }
   // A detecção lê as duas versões (crua e aberta); o resto do motor usa a aberta.
-  const detectada = detectarIntencao(input.message || '');
+  const detectada = detectarIntencao(leitura);
   // Nomes: ela reconhece o próprio nome, o seu e o de qualquer familiar da ficha.
   const familiarPorNome = nomesNaMensagem(pessoa, relacao.familiares)[0] || null;
   const chamouEla = nomesNaMensagem(pessoa, nomesDaPessoa(input.person).map(nome => ({ nome }))).length > 0;
@@ -1839,6 +2331,8 @@ export function planReply(input: ChatInput): ChatPlan {
   const familia = familiaDe(efetivo, intencao, persona);
   const ctx: EstiloContexto = { persona, tom: efetivo, humor, rand, rapido: input.rapido, nomeUsuario: input.nomeUsuario || 'você', musica: input.person.musicaFavorita, abreviar: input.abreviar, emojis: seca || cortou ? false : input.emojis, sentimento };
   const bolhas: string[] = [];
+  /** Bolhas extras que a resposta ganhou (risada de piada, textão dividido...). */
+  let extraBolhas = 0;
   const usados = [...state.usados];
   const modelosUsados: string[] = [];
   /** Cada ficha sorteia as falas com um deslocamento próprio: duas pessoas não respondem igual. */
@@ -1854,6 +2348,8 @@ export function planReply(input: ChatInput): ChatPlan {
     papel: familiarCitado?.papel,
     idade: relacao.idadeDela !== null ? String(relacao.idadeDela) : undefined,
     vinculo: relacao.vinculoComigo.toLowerCase(),
+    cidade: input.person.localizacaoMora || undefined,
+    signo: input.person.signo || undefined,
   };
   /** Escolhe evitando repetição e registra o modelo para as próximas mensagens. */
   const preencherEscolhido = (opcoes: string[], gerador: () => number, extras: { valor?: string; lembranca?: string; pessoa?: string } = {}) => {
@@ -1935,6 +2431,17 @@ const RECEPCOES_QUESTAO: string[] = [
       bolhas.push(preencherEscolhido(cabeBordao ? bordoes : reacoes, rand));
     }
   }
+  // 2a2. Piada pede risada: ela ri primeiro (bolha própria) e responde depois.
+  const riuDaPiada = !desviado && !cortou && !reacaoSeca && intencao === 'piada' && sentimento !== 'negativo' && rand() < 0.85;
+  if (riuDaPiada) {
+    const risada = escolher(ehMadura(persona) ? RISADAS_REACAO_MADURA : RISADAS_REACAO, usados, rand);
+    usados.push(risada);
+    modelosUsados.push(risada);
+    bolhas.push(risada);
+    extraBolhas += 1;
+    eventos.push('risada:piada');
+  }
+
   // 2b. Nomes: ela percebe quando você fala com ela pelo nome (ou escreve o seu).
   if (!desviado && !cortou && chamouEla && !['despedida', 'confusao'].includes(intencao) && rand() < 0.7) {
     bolhas.push(preencherEscolhido(CHAMADO_PELO_NOME, rand));
@@ -1966,6 +2473,46 @@ const RECEPCOES_QUESTAO: string[] = [
     : intencao === 'pergunta_familiar' && !relacao.familiares.length
       ? SEM_FAMILIAR
       : doTom.length ? doTom : (opcoesDe(intencao, A, persona).length ? opcoesDe(intencao, A, persona) : opcoesDe('desconhecido', A, persona));
+  // 3-modo-resposta: ELA perguntou algo na mensagem anterior e o que você
+  // mandou agora é uma resposta ("já", "sim", "um pagode"), não um assunto
+  // novo. A saída nasce do assunto da pergunta: ela reage ao que você disse
+  // e conta a vez dela — em vez de sortear uma frase qualquer.
+  const aberta = !cortou && !desviado && !criancaLimitada ? state.perguntaAberta || null : null;
+  const devolvePergunta = /\be\s+(você|voce|vc|tu|o seu|a sua|o teu|a tua)\b/i.test(pessoa) && pessoa.split(/\s+/).length <= 5;
+  const interpretouResposta = !!aberta
+    && ((['resposta_curta', 'desconhecido'].includes(detectada.id) && !devolvePergunta)
+      || (detectada.id === 'pergunta_fato' && devolvePergunta));
+  const devolveSemPergunta = !aberta && devolvePergunta && ['resposta_curta', 'desconhecido', 'pergunta_fato'].includes(detectada.id);
+  const respondendoAberta = interpretouResposta || devolveSemPergunta;
+  const temaAberta = aberta && (REACAO_RESPOSTA[aberta.tema] || MINHA_VEZ[aberta.tema]) ? aberta.tema : 'geral';
+  if (respondendoAberta) {
+    eventos.push(`respondeu-aberta:${aberta ? temaAberta : 'geral'}`);
+    if (!devolvePergunta) {
+      const tipo = tipoDeResposta(pessoa);
+      const doTema = REACAO_RESPOSTA[temaAberta] || REACAO_RESPOSTA.geral;
+      // "não" ganha reação própria: ela acolhe em vez de reagir como se fosse positiva.
+      const reacoes = tipo === 'negativa' ? doTema.filter(reacao => !/^boa|^que bom/i.test(reacao)) : doTema;
+      opcoes = reacoes.length ? [...reacoes, ...REACAO_RESPOSTA.geral] : [...REACAO_RESPOSTA.geral];
+    } else {
+      // "e o seu?" — devolveu a pergunta: ela responde por si, sem reação.
+      opcoes = [...(MINHA_VEZ[temaAberta] || []), ...MINHA_VEZ.geral];
+    }
+  }
+
+  // Pergunta do usuário ganha resposta do tipo certo: "que horas...?" não pode
+  // receber o mesmo "acho que sim" que "você acredita nisso?".
+  if (!respondendoAberta && !seca && !cortou) {
+    if (intencao === 'pergunta_fato') {
+      const tipo = PERGUNTA_FATO_TIPOS.find(item => item.padrao.test(pessoa));
+      // Pergunta de sim/não ("você trabalha amanhã?") tem banco próprio — o
+      // antigo sorteava "acho que sim" até para "como você está?".
+      opcoes = filtrarInfantil(tipo ? tipo.respostas : [...PERGUNTA_FATO_FECHO, ...(opcoesDe('pergunta_fato', familia, persona).slice(0, 2))], persona);
+    } else if (intencao === 'pergunta_factual') {
+      const eSigno = /\bsigno\b/i.test(pessoa);
+      opcoes = filtrarInfantil(eSigno ? RESPOSTAS_FATUAL.signo : RESPOSTAS_FATUAL.mora, persona);
+    }
+  }
+
   // Se a abertura já perguntou ("É seu amigo?"), a resposta entra sem outra pergunta
   // e sem outro convite pra contar mais: era o "me conta" depois do "me conta".
   const jaPerguntou = () => bolhas.some(bolha => /\?\s*$/.test(bolha.trim()));
@@ -1982,11 +2529,40 @@ const RECEPCOES_QUESTAO: string[] = [
   const principalBase = cortou ? '' : preencherEscolhido(opcoes, rand);
   let principal = intencao === 'saudacao' || intencao === 'despedida' ? principalBase : abrirNatural(principalBase, rand, persona);
 
-  // 3b. Ponte de memória: puxa algo que você contou, de vez em quando.
+  // Depois de reagir, ela conta a vez dela na mesma pergunta — como quem
+  // devolve a resposta na conversa ("já comi, e você?" → "eu ainda nem comi...").
+  if (respondendoAberta && !devolvePergunta && !seca) {
+    const minhaVez = preencherEscolhido([...(MINHA_VEZ[temaAberta] || []), ...MINHA_VEZ.geral], rand);
+    bolhas.push(minhaVez);
+    extraBolhas += 1;
+  }
+
+  // 3a. Textão: com a ficha falante e a química construída, às vezes a resposta
+  // vem longa de verdade — e chega dividida em duas ou três bolhas, como quem
+  // digita um parágrafo por vez no direct.
+  let fezTextao = false;
+  const bancoTextao = !seca && !cortou && !desviado && !respondendoAberta && principalBase
+    ? filtrarInfantil(TEXTAOS[intencao]?.[familia] || [], persona)
+    : [];
+  const chanceTextao = 0.08 + persona.traits.verbosidade * 0.26 + (estagioAntes.indice >= 2 ? 0.08 : 0);
+  let partesTextao = 0;
+  if (bancoTextao.length && rand() < chanceTextao) {
+    const textao = preencherEscolhido(bancoTextao, rand);
+    const partes = dividirEmBolhas(textao, 3, Math.max(persona.fala.tamanho, 130));
+    principal = partes[0];
+    for (const parte of partes.slice(1)) { bolhas.push(parte); extraBolhas += 1; }
+    partesTextao = partes.length - 1;
+    fezTextao = true;
+    eventos.push('textao');
+  }
+
+  // 3b. Ponte de memória: puxa algo que você contou, de vez em quando. A bolha
+  // é guardada e entra junto da resposta — memória dela nunca fica de fora.
+  let ponteMemoria = '';
   if (!seca && !cortou && state.lembrancas.length && rand() < 0.28 && sentimento !== 'negativo') {
     const lembranca = recuperarMemorias(state, pessoa, 3)[0] || state.lembrancas[state.lembrancas.length - 1];
     const modelos = PONTES.find(ponte => ponte.tipo === lembranca.tipo)?.modelos || PONTES[0].modelos;
-    bolhas.push(preencherEscolhido(modelos, rand, { valor: lembranca.valor }));
+    ponteMemoria = preencherEscolhido(modelos, rand, { valor: lembranca.valor });
     eventos.push(`memoria:${lembranca.tipo}`);
   }
 
@@ -2015,6 +2591,9 @@ const RECEPCOES_QUESTAO: string[] = [
   let temaBase = temas[Math.floor(rand() * temas.length)] || 'dia';
   if (relacao.veCrianca && rand() < 0.5) temaBase = 'casa_adulta';
   else if (relacao.ehTia && rand() < 0.3) temaBase = 'descanso';
+  // Ela acabou de responder a pergunta aberta? Aprofunda no mesmo assunto em
+  // vez de pular para um tema aleatório — é o que mantém o papo com nexo.
+  if (respondendoAberta && aberta && PERGUNTAS[aberta.tema] && rand() < 0.55) temaBase = aberta.tema;
   const temaExtra = temaBase === 'igreja' ? 'fe' : temaBase === 'vida adulta' ? 'casa_adulta' : temaBase;
   // Alguém que você citou antes pode voltar na conversa, como na vida real.
   const pessoasLembradas = state.pessoas || [];
@@ -2056,12 +2635,17 @@ const RECEPCOES_QUESTAO: string[] = [
   }
 
   // 5. Ajusta o tamanho: respostas curtas ficam curtas; falantes ganham sombra extra.
-  if (principal.length > persona.fala.tamanho * 1.5) {
+  if (!fezTextao && principal.length > persona.fala.tamanho * 1.5) {
     const partes = dividirEmBolhas(principal, 2, persona.fala.tamanho);
     principal = partes[0];
     if (partes[1] && bolhas.length < persona.fala.bolhas[1] + 1) bolhas.push(partes[1]);
   }
   bolhas.splice(Math.min(inicioResposta, bolhas.length), 0, principal);
+  if (ponteMemoria) {
+    const indicePonte = Math.min(inicioResposta + 1 + (fezTextao ? partesTextao : 0), bolhas.length);
+    bolhas.splice(indicePonte, 0, ponteMemoria);
+    extraBolhas += 1;
+  }
   // A abertura (reação de nome, por exemplo) pode já ter perguntado: nesse caso
   // o convite à conversa sai, porque ninguém faz duas perguntas seguidas.
   if (textoPerguntaNova) {
@@ -2071,7 +2655,10 @@ const RECEPCOES_QUESTAO: string[] = [
       if (indice >= 0) { bolhas.splice(indice, 1); perguntaNova = undefined; textoPerguntaNova = ''; }
     }
   }
-  if (!seca && !cortou && persona.traits.verbosidade > 0.68 && rand() < 0.22) {
+  // Se ela perguntou algo nesta resposta, fica pendente: a mensagem seguinte
+  // do usuário é lida como resposta a essa pergunta (perguntaAberta no estado).
+  const perguntaAbertaNova = perguntaNova && textoPerguntaNova ? { tema: temaBase, texto: perguntaNova } : undefined;
+  if (!seca && !cortou && persona.traits.verbosidade > 0.68 && rand() < 0.1) {
     bolhas.push(preencherEscolhido(SOMBRAS[familia], rand));
   }
 
@@ -2109,7 +2696,7 @@ const RECEPCOES_QUESTAO: string[] = [
     enxutas.push(saida);
   });
   bolhas.splice(0, bolhas.length, ...enxutas);
-  const finais = bolhas.filter(Boolean).slice(0, cortou ? 1 : seca ? 2 : persona.fala.bolhas[1] + (desviado ? 1 : 0));
+  const finais = bolhas.filter(Boolean).slice(0, cortou ? 1 : seca ? 2 : persona.fala.bolhas[1] + (desviado ? 1 : 0) + extraBolhas);
   // Fecho natural: só quando o papo flui e ela não está marcando limite.
   if (!desviado && !seca && !cortou && finais.length > 1 && rand() < 0.1) {
     const ultima = finais[finais.length - 1].trim();
@@ -2143,6 +2730,7 @@ const RECEPCOES_QUESTAO: string[] = [
     recentes,
     usados: usadosAtualizados,
     pessoas: [...(state.pessoas || []), ...nomesNovos.filter(nome => !(state.pessoas || []).includes(nome))].slice(-8),
+    perguntaAberta: perguntaAbertaNova,
     ofensas: intencao === 'provocacao' || intencao === 'flerte_forte' || intencao === 'pedido_foto' || cortou ? state.ofensas + 1 : Math.max(0, state.ofensas - 1),
     paciencia,
     gatilhos,

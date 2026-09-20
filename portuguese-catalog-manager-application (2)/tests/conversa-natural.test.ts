@@ -127,7 +127,7 @@ describe("conversa sem cara de robô", () => {
   });
 
   it("escreve como adulto e não como adolescente", () => {
-    const molecagem = /kkkk|sksk|😜|🙈|🥳|🥺|💕|\bmó\b|\bsla\b|\bmds\b|\baff\b|tô rindo sozinha/i;
+    const molecagem = /sksksk|😜|🙈|🥳|🥺|💕|\bmó\b|\bsla\b|\bmds\b|\baff\b|tô rindo sozinha/i; // kkkk é risada de gente adulta também
     [61, 45, 34, 27].forEach(idade => {
       const person = ficha({ id: `p${idade}`, nome: `Pessoa ${idade}`, idade, comportamento: "Brincalhona e festeira" });
       const persona = buildPersona(person, { people: [person], settings: { ownerAge: 30 } });
