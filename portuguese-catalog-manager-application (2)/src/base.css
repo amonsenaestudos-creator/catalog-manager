@@ -941,11 +941,31 @@ kbd { font: 500 10px 'Inter Variable', Inter, sans-serif; border: 1px solid var(
 .chat-messages { flex: 1; overflow-y: auto; padding: 16px 14px; display: flex; flex-direction: column; gap: 6px; }
 .chat-day-divider { text-align: center; margin: 8px 0 12px; }
 .chat-day-divider span { font-size: 10px; color: var(--faint); padding: 3px 12px; background: var(--surface-2); border-radius: 999px; }
-.chat-bubble-wrap { display: flex; align-items: flex-end; gap: 8px; max-width: 82%; }
+.chat-bubble-wrap { display: flex; align-items: flex-end; gap: 8px; max-width: 82%; position: relative; }
 .chat-bubble-wrap.mine { align-self: flex-end; flex-direction: row-reverse; }
 .chat-bubble { padding: 9px 13px; border-radius: 16px; font-size: 13px; line-height: 1.45; max-width: 100%; word-break: break-word; }
 .chat-bubble.user { background: linear-gradient(120deg, #b671d0, #ca79ae); color: white; border-bottom-right-radius: 5px; }
 .chat-bubble.them { background: var(--surface-3); color: var(--txt); border-bottom-left-radius: 5px; }
+/* Citação dentro da bolha (responder mensagem, como no direct do Instagram). */
+.chat-citacao { display: flex; flex-direction: column; gap: 1px; padding: 5px 9px; margin-bottom: 6px; border-left: 3px solid var(--accent); border-radius: 8px; background: rgba(0, 0, 0, .18); font-size: 11px; line-height: 1.35; }
+.chat-citacao b { font-size: 10px; opacity: .85; }
+.chat-citacao span { opacity: .9; }
+.chat-bubble.them .chat-citacao { background: var(--surface-2); }
+/* Botão de responder: sempre visível (discreto), destacado no hover — o dedo não tem hover. */
+.chat-responder-msg { border: 1px solid var(--line); background: var(--surface-2); color: var(--faint); border-radius: 999px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; opacity: .45; transition: opacity .18s ease, color .18s ease, border-color .18s ease; flex-shrink: 0; align-self: flex-end; margin-bottom: 3px; }
+.chat-bubble-wrap:hover .chat-responder-msg, .chat-responder-msg:focus-visible { opacity: 1; }
+.chat-responder-msg:hover { color: var(--accent); border-color: var(--accent); }
+/* Barra de citação acima do campo, enquanto você escolhe a mensagem para responder. */
+.chat-respondendo { display: flex; align-items: center; gap: 9px; margin: 0 12px; padding: 7px 11px; border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; background: var(--surface-2); }
+.chat-respondendo-icone { color: var(--accent); display: inline-flex; }
+.chat-respondendo-texto { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.chat-respondendo-texto b { font-size: 10px; color: var(--accent); }
+.chat-respondendo-texto span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-respondendo button { color: var(--faint); display: inline-flex; padding: 4px; border-radius: 8px; }
+.chat-respondendo button:hover { color: var(--txt); background: var(--surface-3); }
+/* Chip de IA real no cabeçalho da conversa. */
+.chat-status-line.ia-line { color: var(--accent); }
+.check-label.disabled { opacity: .55; pointer-events: none; }
 .chat-bubble.typing { display: flex; gap: 4px; align-items: center; padding: 12px 16px; }
 .chat-bubble.typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: typing-dot 1.2s ease-in-out infinite; }
 .chat-bubble.typing span:nth-child(2) { animation-delay: .18s; }

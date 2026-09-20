@@ -86,8 +86,8 @@ export function Modal({ title, description, children, onClose, wide = false, foo
 export function Confirm({ title, description, confirmLabel = 'Confirmar', danger = false, onConfirm, onClose }: { title: string; description: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onClose: () => void }) {
   return <Modal title={title} onClose={onClose} footer={<><Button onClick={onClose}>Cancelar</Button><Button variant={danger ? 'danger' : 'primary'} onClick={() => { onConfirm(); onClose(); }}>{confirmLabel}</Button></>}><p className="confirm-description">{description}</p></Modal>;
 }
-export function CheckBox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
-  return <label className="check-label"><input type="checkbox" checked={checked} onChange={onChange} /><span>{label}</span></label>;
+export function CheckBox({ checked, onChange, label, disabled }: { checked: boolean; onChange: () => void; label: string; disabled?: boolean }) {
+  return <label className={`check-label ${disabled ? 'disabled' : ''}`}><input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} /><span>{label}</span></label>;
 }
 export function Toast() { const { notice, dismissNotice } = useCatalog(); if (!notice) return null; return createPortal(<motion.div role={notice.error ? 'alert' : 'status'} className={`toast ${notice.error ? 'toast-error' : ''}`} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }}><Check size={18} /><span>{notice.message}</span><IconButton label="Fechar aviso" onClick={dismissNotice}><X size={16} /></IconButton></motion.div>, document.body); }
 export function Disclosure({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) { return <details className="disclosure" open={defaultOpen || undefined}><summary>{title}<ChevronDown size={17} /></summary><div className="disclosure-content">{children}</div></details>; }

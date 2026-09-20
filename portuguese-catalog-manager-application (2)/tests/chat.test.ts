@@ -6,6 +6,7 @@ import {
   analisarConversa, conversaParaMarkdown, detectarIntencao, estadoDe, estagioAtual, extrairMemorias, HUMORES, novoChatState,
   planOpening, planReply, planSpontaneous, sugerirAberturas, sugerirRespostas, tomEfetivo, TONS, tonsDisponiveis,
 } from "../src/lib/dialogue";
+import { textoParaBolhas } from "../src/lib/ia";
 import { emptyData } from "../src/store";
 
 function ficha(ajustes: Partial<Person> = {}): Person {
@@ -228,5 +229,63 @@ describe("sugestões, análise e exportação", () => {
     data.people = [person];
     data.chatStates = { [person.id]: { ...novoChatState(person), afinidade: 66 } };
     expect(estadoDe(data, person).afinidade).toBe(66);
+  });
+});
+
+describe("realismo do direct (palavras inteiras, risada, textão e citação)", () => {
+  const person = ficha();
+
+  it("escreve as palavras por inteiro: sem vc, tá, tô, hj, tbm ou entt", () => {
+    let comAbrev = 0;
+    const mensagens = ["Oi, tudo bem?", "Você tá me evitando, demora pra responder", "Tô muito cansada hoje", "Vamos marcar algo tbm?", "Entt eu vou dormir hj cedo"];
+    for (let i = 0; i < 50; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i + 2), message: mensagens[i % mensagens.length], adulto: false });
+      const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+      if (/\b(vc|tá|tô|hj|tbm|entt|pq|blz|dps)\b/i.test(texto)) comAbrev++;
+    }
+    expect(comAbrev).toBe(0);
+  });
+
+  it("ri de verdade quando você manda uma piada", () => {
+    let riu = 0;
+    for (let i = 0; i < 20; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i + 5), message: "kkkkk olha essa piada sem graça", adulto: false });
+      if (/kk|kakaka|haha|rs/i.test(plano.bolhas.map(bolha => bolha.texto).join(" "))) riu++;
+    }
+    expect(riu).toBeGreaterThan(14);
+  });
+
+  it("manda textão às vezes: bolha longa dividida em pedaços", () => {
+    let longos = 0;
+    for (let i = 0; i < 60; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i + 9), message: "Tô com aquele tédio de domingo à noite, sem fazer nada", adulto: false });
+      if (plano.bolhas.some(bolha => bolha.texto.length > 110)) longos++;
+    }
+    expect(longos).toBeGreaterThan(3);
+  });
+
+  it("lê a citação ao responder uma mensagem antiga", () => {
+    const plano = planReply({ person, state: novoChatState(person), rand: randFixo(11), message: "kkkkkk", citacao: "Bora sair hoje? Vamos no cinema?", adulto: false });
+    expect(plano.intencao).toBe("convite");
+  });
+
+  it("lote de mensagens seguidas é lido como uma coisa só", () => {
+    const plano = planReply({ person, state: novoChatState(person), rand: randFixo(13), message: "Oi!\nTudo bem por aí?\nAdoro pizza de calabresa, é meu vício", adulto: false });
+    expect(plano.state.lembrancas.some(item => /pizza/i.test(item.valor))).toBe(true);
+    expect(plano.bolhas.length).toBeGreaterThan(0);
+  });
+});
+
+describe("IA opcional", () => {
+  it("quebra a resposta do modelo em bolhas de direct", () => {
+    const bolhas = textoParaBolhas("Oi, tudo bem?\n\nEu estava mesmo pensando em você agora.\n\"Que bom que apareceu\"");
+    expect(bolhas).toEqual(["Oi, tudo bem?", "Eu estava mesmo pensando em você agora.", "Que bom que apareceu"]);
+  });
+
+  it("quebra mensagem gigante do modelo em pedaços curtinhos", () => {
+    const longa = `${"Uma frase comprida de teste. ".repeat(30)}Fim.`;
+    const bolhas = textoParaBolhas(longa);
+    expect(bolhas.length).toBeGreaterThan(1);
+    expect(bolhas.every(bolha => bolha.length <= 360)).toBe(true);
   });
 });

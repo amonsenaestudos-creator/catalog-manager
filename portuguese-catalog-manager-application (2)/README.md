@@ -41,15 +41,19 @@ A conversa com cada pessoa vive na ficha (**Conversar**) e é montada na hora a 
 - **O clima é automático:** não existe painel de tom no chat. Ela vai do papo leve ao flerte (e, com ficha 18+ e modo adulto ligado, ao clima quente) conforme a intimidade construída, sempre ajustada por reserva e ousadia da persona. Se o assunto passar do ponto, ela **desconversa** com naturalidade em vez de responder, e a química não sobe.
 - **Humor automático:** ela chega a um humor (alegre, brincalhona, flertando, tímida, curiosa, carinhosa, fechada ou neutra) e reage ao que você escreve. Cobranças fecham o clima; desabafos trazem carinho. O cabeçalho só mostra o estado atual, sem botões.
 - **Memória:** preferências, rotina e planos citados por você viram anotações curtas que ela retoma depois. A memória pode ser apagada no menu da conversa.
-- **Nunca a mesma frase:** cada resposta é sorteada entre dezenas de modelos por intenção e clima, combinados com gírias, risadas, emojis, vocativos e pequenos erros de digitação proporcionais à persona. Os últimos modelos usados saem do sorteio.
+- **Nunca a mesma frase:** cada resposta é sorteada entre dezenas de modelos por intenção e clima, combinados com risadas ("kkkk", "kakakaka"), emojis, vocativos e, de vez em quando, um textão inteiro dividido em bolhas. Os últimos modelos usados saem do sorteio.
+- **Jeito de digitar de gente grande:** as palavras saem por inteiro — nada de "vc", "hj", "tá", "tô", "tbm", "entt" (abreviações viraram opção em Ajustes, desligada por padrão).
+- **Várias mensagens seguidas:** você pode mandar quantas mensagens quiser em sequência. Ela lê tudo junto, com um tempo de leitura real, e responde uma única vez — se você mandar outra enquanto ela digita, ela para, relê e responde com o contexto novo, sem bolha solta.
+- **Responder uma mensagem específica:** o botão de seta em cada bolha cita a mensagem original, como no direct do Instagram. Quando sua resposta é curta ("kkkk"), a citação é lida junto para ela entender o que você quis dizer.
 - **Modo automático:** o botão **Deixar puxar** faz ela mandar mensagem sozinha depois de um tempo, retomando assunto ou lembrança.
 - **Extras:** envio de foto na conversa e reação a ela, fotos ocasionais dela, sugestões de resposta e de abertura, cartão **Como ela conversa**, análise da conversa e exportação em Markdown.
+- **IA de verdade (opcional):** em Ajustes → Conversas você conecta qualquer endpoint compatível com a API da OpenAI (OpenAI, OpenRouter, Groq, LM Studio, Ollama...). A IA escreve as respostas na hora; a mecânica (química, paciência, memória) continua no motor local e, se a IA falhar, ele responde sozinho. A chave fica só no seu aparelho.
 
 ### Conteúdo adulto
 
-- Só existe para fichas com **18 anos ou mais** e depois de ligar o **modo adulto** em **Ajustes → Conversas** (desligado por padrão). Ficha com menos de 18 anos nunca entra em flerte nem em conteúdo adulto, mesmo com a opção ligada.
-- Ainda assim o conteúdo é **sugestivo**: insinuação, provocação e clima, sempre por mensagem e sem descrição explícita.
-- Em **Ajustes → Conversas** ficam o ritmo de digitação, o medidor de química, o uso de gírias e emojis e o modo automático.
+- Só existe para fichas com **18 anos ou mais** e depois de ligar o **modo adulto** em **Ajustes → Conversas** (desligado por padrão). Ficha com menos de 18 anos nunca entra em flerte nem em conteúdo adulto, mesmo com a opção ligada — inclusive com IA: ficha menor ou com vínculo de família nem usa IA.
+- Com a química construída, o clima fica **quente de verdade** (desejo, tensão, insinuação forte), mas continua **sugestivo**: nada de descrição explícita de atos sexuais.
+- Em **Ajustes → Conversas** ficam o ritmo de digitação, o medidor de química, as abreviações (opt-in), o uso de emojis e o modo automático.
 - Nos quebra-gelos (**Puxar assunto**), a categoria **Picante** só aparece para ficha adulta com o modo adulto ligado.
 
 ## Dados e recuperação
