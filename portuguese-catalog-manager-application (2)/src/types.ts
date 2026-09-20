@@ -335,6 +335,11 @@ export interface ChatState {
   usados: string[];
   /** Nomes de pessoas que você mencionou e ela passou a conhecer. */
   pessoas?: string[];
+  /**
+   * Pergunta que ela fez e que ainda não foi respondida. É o que faz a resposta
+   * seguinte nascer do assunto dela, e não de um sorteio genérico.
+   */
+  perguntaAberta?: { tema: string; texto: string };
   ultimaMensagem: string;
   visitas: number;
   ofensas: number;

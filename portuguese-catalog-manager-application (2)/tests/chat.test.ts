@@ -289,3 +289,54 @@ describe("IA opcional", () => {
     expect(bolhas.every(bolha => bolha.length <= 360)).toBe(true);
   });
 });
+
+describe("pergunta em aberto: a resposta nasce do assunto dela", () => {
+  const person = ficha();
+
+  it("nao responde 'nada a ver' quando voce responde a pergunta que ela fez", () => {
+    for (let i = 1; i <= 12; i++) {
+      const estado = { ...novoChatState(person), perguntaAberta: { tema: "comida", texto: "Voce ja jantou?" } };
+      const plano = planReply({ person, state: estado, rand: randFixo(i), message: "ja sim", adulto: false });
+      const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+      expect(plano.eventos, texto).toContain("respondeu-aberta:comida");
+      expect(texto).not.toMatch(/econ[ôo]mic|só isso|resposta seca|desembucha/i);
+    }
+  });
+
+  it("perguntas de assunto diferente levam a respostas daquele assunto", () => {
+    let tema = false;
+    for (let i = 1; i <= 10; i++) {
+      const estado = { ...novoChatState(person), perguntaAberta: { tema: "musica", texto: "Qual musica voce esta ouvindo?" } };
+      const plano = planReply({ person, state: estado, rand: randFixo(i), message: "um pagode antigo aqui", adulto: false });
+      expect(plano.eventos).toContain("respondeu-aberta:musica");
+      const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+      if (/música|musica|playlist|fone|tocando|canta|ouvir|humor|gosto/i.test(texto)) tema = true;
+    }
+    expect(tema).toBe(true);
+  });
+
+  it("'e o seu?' faz ela responder por si, no assunto da pergunta", () => {
+    const estado = { ...novoChatState(person), perguntaAberta: { tema: "dia", texto: "Como foi seu dia?" } };
+    const plano = planReply({ person, state: estado, rand: randFixo(5), message: "foi bom, e o seu?", adulto: false });
+    const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+    expect(plano.eventos).toContain("respondeu-aberta:dia");
+    expect(texto).toMatch(/corrido|valendo|tranquil|de boa|andando bem|vida|rápido|coisa grande/i);
+  });
+
+  it("a pergunta que ela faz fica pendente no estado da conversa", () => {
+    const estado = novoChatState(person);
+    let pendente: { tema: string; texto: string } | null = null;
+    for (let i = 0; i < 30 && !pendente; i++) {
+      const plano = planReply({ person, state: estado, rand: randFixo(i + 2), message: "Boa, e voce? Me conta uma novidade", adulto: false });
+      pendente = plano.state.perguntaAberta || null;
+    }
+    expect(pendente).toBeTruthy();
+    expect(pendente!.texto.endsWith("?")).toBe(true);
+  });
+
+  it("assunto novo limpa a pergunta pendente", () => {
+    const estado = { ...novoChatState(person), perguntaAberta: { tema: "comida", texto: "Voce ja jantou?" } };
+    const plano = planReply({ person, state: estado, rand: randFixo(4), message: "Vamos sair hoje? Bora no cinema", adulto: false });
+    expect(plano.state.perguntaAberta?.texto).not.toBe("Voce ja jantou?");
+  });
+});
