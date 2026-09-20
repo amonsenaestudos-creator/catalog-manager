@@ -153,6 +153,7 @@ export type IntentId =
   | 'cotidiano_comida' | 'foto' | 'desconhecido'
   // Novos: família, idade, igreja, vida adulta e as mensagens que chegam do nada.
   | 'pergunta_familiar' | 'pergunta_idade' | 'igreja' | 'vida_adulta' | 'confusao' | 'conselho'
+  | 'pergunta_relacionamento' | 'pergunta_factual' | 'plano'
   | 'pergunta_rotina' | 'mensagem_enviada' | 'pedido_historia' | 'reclamacao_sem_dormir' | 'gratidao_recebida' | 'pedido_audio'
   | 'grosseria';
 
@@ -164,6 +165,11 @@ const REGRAS_INTENCAO: RegraIntencao[] = [
   { id: 'confusao', padrao: rx("\\b(não fui eu|nao fui eu|não deixei|nao deixei|não fui|nao fui|não fiz|nao fiz|não é meu|nao e meu|confundiu|não lembro disso|nao lembro disso|deve ser outra pessoa|troquei de igreja|nunca te pedi|não sou eu|nao sou eu|foi outra pessoa|você me confundiu)\\b", "i"), peso: 2.9, sentimento: 'neutro' },
   { id: 'pergunta_familiar', padrao: rx("\\b(sua mãe|sua mae|sua mãezinha|seu pai|sua filha|seu filho|seus filhos|tem filhos|tem filho|filhos pequenos|sua irmã|sua irma|seu irmão|seu irmao|sua vó|sua avó|sua avo|sua tia|seu tio|sua prima|seu primo|sua família|sua familia|a família tá|como tá sua|como ta sua|fala da sua|manda um abraço pra|manda um abraco pra)\\b", "i"), peso: 2.8, sentimento: 'positivo' },
   { id: 'pergunta_idade', padrao: rx("\\b(quantos anos|que idade|sua idade|idade você tem|idade voce tem|mais velha que eu|mais nova que eu|mais novo que você|mais velho que você|diferença de idade|diferenca de idade|já é adulta|ja e adulta)\\b", "i"), peso: 2.5, sentimento: 'neutro' },
+  // Perguntas diretas sobre ela merecem resposta direta — não textão genérico.
+  { id: 'pergunta_relacionamento', padrao: rx("\\b(você tem namorado|voce tem namorado|você tem namorada|voce tem namorada|tem namorad[oa]|está com alguém|esta com alguem|está com alguem|tá com alguém|ta com alguem|ta com alguém|você tem alguém|voce tem alguem|você é solteir|voce e solteir|tá solteir|ta solteir|está solteir|solteira\\?|solteiro\\?|é comprometid|e comprometid|está namorando|esta namorando|tá namorando|ta namorando|tem compromisso)\\b", "i"), peso: 2.4, sentimento: 'neutro' },
+  { id: 'pergunta_factual', padrao: rx("\\b(onde você mora|onde voce mora|onde vocês moram|onde mora|em que cidade você|em que cidade voce|qual seu signo|qual o seu signo|qual é o seu signo|qual e o seu signo|seu signo)\\b", "i"), peso: 2.7, sentimento: 'neutro' },
+  // Notícia de plano pessoal: ela reage ao plano, não muda de assunto.
+  { id: 'plano', padrao: rx("\\b(vou|vamos|pretendo|estou pensando em|penso em|decid[ií] que)\\s+(viajar|sair|ir|começar|comecar|fazer|marcar|comprar|mudar|trocar|aprender|entrar|largar|parar de)\\b", "i"), peso: 1.9, sentimento: 'positivo' },
   { id: 'igreja', padrao: rx("\\b(igreja|capela|culto|reunião de domingo|reuniao de domingo|ala|bispo|bispa|presidente de estaca|chamado|missão|missao|templo|sacramento|soc soc|sociedade de socorro|moças|mocas|rapazes|semana do jovem|mutirão|mutirao|limpeza da capela|escalei|escala do mês|escala do mes|reunião geral|reuniao geral|primaria|primária|escola dominical|obra missionária|obra missionaria|domingo na igreja|fui no templo)\\b", "i"), peso: 1.7, sentimento: 'neutro' },
   { id: 'vida_adulta', padrao: rx("\\b(vinho|jantar|cama|massagem|hotel|banho|final de semana fora|fim de semana fora|noite sozinha|noite sozinho|depois do trabalho|chegando em casa cansada|checklist|mercado|boleto|aluguel|terapia|remédio|remedio|escola das crianças|escola das criancas|filhos|marido|ex-marido|namorado)\b", "i"), peso: 1.6, sentimento: 'neutro' },
   { id: 'conselho', padrao: rx("\\b(o que você acha disso|que que você acha disso|você me aconselha|voce me aconselha|devo fazer|devo mudar|devo aceitar|devo continuar|devo terminar|devo sair|vale a pena|você acha que eu devo|voce acha que eu devo|me dá um conselho|me da um conselho|tô na dúvida|to na duvida|preciso de opinião|preciso de opiniao|o que eu faço|o que eu faco|me dá uma ideia|me da uma ideia|não sei o que fazer|nao sei o que fazer|me ajuda a decidir)\\b", "i"), peso: 2.0, sentimento: 'neutro' },
@@ -181,9 +187,9 @@ const REGRAS_INTENCAO: RegraIntencao[] = [
   // Pedido de história: ela conta um caso dela em vez de responder "anotado".
   { id: 'pedido_historia', padrao: rx("\\b(me conta uma coisa boa|conta uma coisa boa|me conta algo bom|conta algo bom|fala uma coisa boa|me conta uma novidade|conta uma novidade|me conta uma curiosidade|conta uma curiosidade|me conta um caso|conta um caso|me conta uma história|conta uma história|me conta um segredo|conta um segredo|me conta uma fofoca|conta uma fofoca|conta uma coisa interessante|me conta uma coisa interessante)\\b", "i"), peso: 1.7, sentimento: 'neutro' },
   // Noite sem dormir: ela cuida, não puxa assunto aleatório.
-  { id: 'reclamacao_sem_dormir', padrao: rx("\\b(não consigo dormir|nao consigo dormir|não dormi|só dormi|insônia|insonia|de madrugada acordado|acordei no meio da noite|não peguei no sono|nao peguei no sono|a cabeça não para|a cabeca nao para|mente acelerada|sem sono)\\b", "i"), peso: 1.8, sentimento: 'negativo' },
+  { id: 'reclamacao_sem_dormir', padrao: rx("\\b(não consigo dormir|nao consigo dormir|não dormi|só dormi|insônia|insonia|de madrugada acordado|acordei no meio da noite|não peguei no sono|nao peguei no sono|a cabeça não para|a cabeca nao para|mente acelerada|sem sono)\\b", "i"), peso: 2.3, sentimento: 'negativo' },
   // Gratidão pela conversa: ela recebe o obrigado e devolve com cuidado.
-  { id: 'gratidao_recebida', padrao: rx("\\b(agradecer a conversa|obrigado pela conversa|obrigada pela conversa|valeu pela conversa|obrigado pelo papo|obrigada pelo papo|valeu pelo papo|obrigado por ouvir|obrigada por ouvir|obrigado pela paciência|obrigado pela ajuda|obrigada pela ajuda|obrigado pelo conselho|obrigada pelo conselho|obrigado pelo carinho|obrigada pelo carinho)\\b", "i"), peso: 1.5, sentimento: 'positivo' },
+  { id: 'gratidao_recebida', padrao: rx("\\b(agradecer a conversa|obrigado pela conversa|obrigada pela conversa|valeu pela conversa|obrigado pelo papo|obrigada pelo papo|valeu pelo papo|obrigado por ouvir|obrigada por ouvir|obrigado pela paciência|obrigado pela ajuda|obrigada pela ajuda|obrigado pelo conselho|obrigada pelo conselho|obrigado pelo carinho|obrigada pelo carinho)\\b", "i"), peso: 1.8, sentimento: 'positivo' },
   { id: 'apoio', padrao: rx("\\b(triste|muito triste|pra baixo|para baixo|deprimid[oa]s?|cansad[oa]s?|exaust[oa]s?|estressad[oa]s?|ansios[oa]s?|chorando|chorei|difícil|problema|briga|briguei|perdi (o |meu )?emprego|fui demitid[oa]|me demitiram|demitid[oa]s?|doente|com medo|preocupad[oa]s?|sozinh[oa]s?|desanimad[oa]s?|chatead[oa]s?|magoad[oa]s?|no fundo do poço|acabou o namoro|terminamos|me separei|separação|meu dia foi horrível|dia horrivel|perdi a paciência|perdi a paciencia|t[ôo] (muito )?mal|estou mal|me sinto mal|não tô bem|nao to bem|não estou bem|nao estou bem|tô exausto|to exausto|tô acabado|to acabado|sem forças|sem forcas|sem ânimo|sem animo|sobrecarregad[oa]s?|sem sono|não consigo dormir|nao consigo dormir|não dormi|nao dormi|dormi mal|acordei de madrugada|sem energia)\\b", "i"), peso: 2.1, sentimento: 'negativo' },
   { id: 'alegria', padrao: rx("\\b(passei na prova|passei de ano|passei no concurso|passei no vestibular|passei de fase|aprovei|consegui|ganhei|promoção|aumento|fui aprovad[oa]|deu certo|melhor dia|feliz|felizona|notícia boa|formei|conquistei|mudança|novo emprego|deu tudo certo|recebi a notícia|recebi a noticia|me elogiaram|fui elogiado)\\b", "i"), peso: 2.0, sentimento: 'positivo' },
   { id: 'desculpa', padrao: rx("\\b(desculpa|desculpe|foi mal|perdão|me perdoa|não quis|nao quis|vacilei|errei|demorei pra responder|sumi)\\b", "i"), peso: 1.9, sentimento: 'negativo' },
@@ -249,17 +255,32 @@ export function familiarDaMensagem(texto: string, familiares: { nome: string; pa
   return familiares[0] || null;
 }
 
+/** Intenções românticas/ousadas: se a frase nega o trecho, não contam. */
+const SENSIVEIS_A_NEGACAO = new Set<IntentId>(['flerte_forte', 'pedido_foto', 'elogio_corpo', 'cantada', 'declaracao']);
+
+/** O padrão casou de verdade? Em intenção sensível, o trecho não pode estar negado. */
+function casarRegra(regra: RegraIntencao, texto: string): boolean {
+  const encontro = regra.padrao.exec(texto);
+  if (!encontro) return false;
+  if (!SENSIVEIS_A_NEGACAO.has(regra.id)) return true;
+  const antes = texto.slice(Math.max(0, encontro.index - 26), encontro.index);
+  return !/\b(não|nao|nunca|nem|sem|jamais)\b/i.test(antes);
+}
+
 export function detectarIntencao(texto: string): { id: IntentId; sentimento: Sentimento } {
   // Duas leituras da mesma mensagem: do jeito que veio e com as abreviações
-  // abertas ("vc viu hj?"). A frase crua continua valendo para os padrões que já
-  // contam com o jeito falado ("tá me evitando", "tô mal", "blz").
+  // abertas ("vc viu hj?"). Vence a regra de MAIOR peso (prioridade), e o
+  // empate cai para a ordem da lista. É o que evita "não te amo mais" virar
+  // declaração e "que horas você almoça?" ganhar resposta de outro assunto.
   const cru = normalizeText(texto);
   const expandido = normalizeText(expandirAbreviacoes(texto));
+  let melhor: RegraIntencao | null = null;
   for (const regra of REGRAS_INTENCAO) {
-    if (regra.padrao.test(cru) || (expandido !== cru && regra.padrao.test(expandido))) {
-      return { id: regra.id, sentimento: regra.sentimento || sentimentoDe(texto) };
-    }
+    const casou = casarRegra(regra, cru) || (expandido !== cru && casarRegra(regra, expandido));
+    if (!casou) continue;
+    if (!melhor || regra.peso > melhor.peso) melhor = regra;
   }
+  if (melhor) return { id: melhor.id, sentimento: melhor.sentimento || sentimentoDe(texto) };
   if (!texto.trim()) return { id: 'resposta_curta', sentimento: 'neutro' };
   return { id: texto.trim().split(/\s+/).length <= 3 ? 'resposta_curta' : 'desconhecido', sentimento: sentimentoDe(texto) };
 }
@@ -478,6 +499,33 @@ const RESPOSTAS: Record<IntentId, Banco> = {
     [A]: ['Nossa, agora me deu fome 😅', 'Amo comida boa. Você cozinha ou pede?', 'Isso sim é papo. Me fala o lugar, quero conhecer'],
     [F]: ['Se você cozinha assim, me chama pro jantar 😏', 'Comida boa e companhia boa é o combo perfeito 😉'],
     [P]: ['Jantar e depois? 😏 você escolhe a sobremesa'],
+  },
+  pergunta_relacionamento: {
+    [A]: [
+      'Não, estou solteira 😊 por que a pergunta?',
+      'Solteira sim! Curioso você, hein 😄',
+      'Não tenho ninguém não, pode ficar tranquilo',
+      'Estou de portas fechadas pro resto do mundo, mas aberta pra boa conversa 😄',
+      'Solteira. Mas não estou dando facilidade não, viu 😏',
+    ],
+    [F]: ['Solteira 😏 por que você quer saber?', 'Não tenho ninguém... ainda 😏', 'Solteira sim. Por que a pergunta toda? 😄'],
+    [P]: ['Solteira, e muito bem acompanhada quando eu quero 😏'],
+  },
+  pergunta_factual: {
+    [A]: [], // preenchido por tipo (mora/signo) na montagem da resposta
+    [F]: [],
+    [P]: [],
+  },
+  plano: {
+    [A]: [
+      'Ahh, boa! Me conta mais que eu quero saber do plano 😄',
+      'Gostei! Depois me conta como foi, tá?',
+      'Boa ideia. Dá certo não é? Força aí 😊',
+      'Aí sim! Você anda produtivo, gostei disso',
+      'Boa sorte com isso! Tô torcendo por aqui 💛',
+    ],
+    [F]: ['Você com planos... gostei disso 😏 me chama nessa', 'Aprovo! Principalmente se tiver meu nome no plano 😄'],
+    [P]: ['Plano bom. Se precisar de companhia, você já sabe quem chamar 😏'],
   },
   // Estes seis são preenchidos logo abaixo, pelos reforços de relacionamento.
   pergunta_familiar: {},
@@ -887,12 +935,7 @@ const TEXTAOS: Record<string, Partial<Record<Familia, string[]>>> = {
       'Do que eu gosto de verdade? Calor de corpo, voz baixa no ouvido e paciência pra coisa boa acontecer sem pressa 🔥 mas isso é papo pra outro estágio da conversa... ou não, depende de você 😏',
     ],
   },
-  pergunta_fato: {
-    [A]: [
-      'Deixa eu pensar, porque quero responder direito... Acho que sim, mas com uma condição. Vou te explicar: já fiz coisas parecidas antes, dei certo em parte e aprendi o resto. Então minha resposta é sim, desde que seja do meu jeito e no meu tempo. E você, faria? Quero comparar as respostas',
-      'Rapaz, essa me pegou de verdade. Nunca parei pra pensar nisso, mas agora que você perguntou, acho que minha resposta é não. Já perdi tempo demais com coisa que não valia a pena pra repetir a dose. Mas cada um tem a sua história — me conta a sua que eu quero entender de onde veio a pergunta',
-    ],
-  },
+
   saudade: {
     [A]: [
       'Tô com saudade de verdade, e nem é daquelas saudades de frase pronta: é de conversar do jeito que a gente conversa, de rir das bobagens e de sentir que alguém do outro lado lê com atenção. A semana engoliu tudo, mas prometo organizar o tempo pra gente se falar mais. Você faz a mesma coisa do seu lado, tá?',
@@ -1059,6 +1102,64 @@ const MINHA_VEZ: Record<string, string[]> = {
   saudacao: ['Estou bem sim 😊 dia movimentado, mas sorrindo', 'Tudo ótimo por aqui! Cansada no bom sentido', 'Melhor agora que você apareceu, confesso 😊'],
   do_nada: ['Agora entendi tudo, obrigada por esclarecer 😄', 'Então era isso! Que bom', 'Ahh, agora deu certo na minha cabeça'],
   geral: ['Por aqui está tudo andando bem 😊', 'Aqui é a rotina de sempre: correria e descanso no fim', 'Nada de novidade grande, mas estou de bem com a vida'],
+};
+
+// ---------------------------------------------------------------------------
+// Perguntas do usuário merecem resposta do tipo certo. "que horas você almoça?"
+// não pode receber o mesmo textão que "você acredita em amor tranquilo?".
+// ---------------------------------------------------------------------------
+const PERGUNTA_FATO_TIPOS: { padrao: RegExp; respostas: string[] }[] = [
+  { padrao: /\b(quando|que horas|que dia|em que dia)\b/i, respostas: [
+    'Provavelmente depois do almoço. Te confirmo na hora 😊',
+    'Amanhã, eu acho. Não marca na pedra que eu sou de mudar kkk',
+    'Depende do dia... hoje já está apertado, amanhã fica melhor 😄',
+    'Nem eu sei ainda, a semana anda torta 😅 mas te aviso aqui',
+  ] },
+  { padrao: /\b(por que|porque|pq)\b/i, respostas: [
+    'Porque sim kkk brincadeira... é uma coisa minha, te conto depois com calma',
+    'Ué, por que não? kkk',
+    'Motivos que só eu entendo, viu 😄 mas faz sentido pra mim',
+  ] },
+  { padrao: /\b(como|de que jeito)\b/i, respostas: [
+    'Dá pra levar! Uns dias melhores que outros, né? E você, como anda?',
+    'No ritmo de sempre 😊 um dia de cada vez',
+    'Sobrevivendo com estilo kkk e você?',
+  ] },
+  { padrao: /\b(qual|quais|qual é|qual e)\b/i, respostas: [
+    'Ooh, boa pergunta... hoje eu diria: um dia na praia sem hora pra voltar 😄',
+    'Não tenho UM favorito, tenho uma lista que só cresce kkk',
+    'Resposta estranha minha: paz. É sempre paz 😊',
+  ] },
+  { padrao: /\b(onde|aonde)\b/i, respostas: [
+    'Por {cidade} 😊 e você, por onde anda?',
+    'Em casa, no meu canto do sofá. Lugar mais seguro do mundo kkk',
+    'Depende: semana em casa, fim de semana por aí 😄',
+  ] },
+];
+
+/** Padrão quando a pergunta é de sim/não ("você trabalha amanhã?"). */
+const PERGUNTA_FATO_FECHO: string[] = [
+  'Acho que sim! Mas depende do dia, viu 😄',
+  'Sei lá... acho que não. Nunca parei pra pensar direito nisso 😅',
+  'Vou ser sincera: talvez. Depende muito de quem pergunta kkk',
+  'Sim, sou desse time 😄',
+  'Estou de boa agora, pode falar 😊',
+  'Hmm... provavelmente não. Prefiro o caminho mais simples',
+];
+
+/** Resposta factual sobre ela: mora e signo saem da ficha de verdade. */
+const RESPOSTAS_FATUAL: Record<'mora' | 'signo', string[]> = {
+  mora: [
+    'Moro em {cidade} 😊 e você?',
+    'Aqui em {cidade} mesmo. Cidade pequena, mas tem o que eu preciso',
+    '{cidade}! Nasci e cresci por aqui',
+    'Moro por {cidade}... por que a curiosidade toda? 😄',
+  ],
+  signo: [
+    'Sou de {signo}! Você acredita nessas coisas ou é só curiosidade? kkk',
+    '{signo} — e antes que você pergunte, sim, eu tenho tudo que dizem que o signo tem kkk',
+    'Meu signo é {signo} 😄 e o seu?',
+  ],
 };
 
 /**
@@ -1360,6 +1461,7 @@ const GENERO_TROCAS: [RegExp, string][] = [
   [/\blinda\b/g, 'lindo'], [/\bbonita\b/g, 'bonito'], [/\bgostosa\b/g, 'gostoso'], [/\bcansada\b/g, 'cansado'],
   [/\banimada\b/g, 'animado'], [/\bocupada\b/g, 'ocupado'], [/\bsozinha\b/g, 'sozinho'], [/\bquerida\b/g, 'querido'],
   [/\bobrigada\b/g, 'obrigado'], [/\bapaixonada\b/g, 'apaixonado'], [/\bsafada\b/g, 'safado'], [/\bnervosa\b/g, 'nervoso'],
+  [/\bsolteira\b/g, 'solteiro'], [/\bsolteirinha\b/g, 'solteirinho'],
   [/\bpronta\b/g, 'pronto'], [/\bbonitinha\b/g, 'bonitinho'], [/\bquietinha\b/g, 'quietinho'], [/\bdeitada\b/g, 'deitado'],
   [/\btoda\b/g, 'todo'], [/\bsatisfeita\b/g, 'satisfeito'], [/\bfelizona\b/g, 'felizão'], [/\bperdida\b/g, 'perdido'],
 ];
@@ -1481,9 +1583,12 @@ function estilizar(texto: string, ctx: EstiloContexto) {
   // da persona, aplicada logo abaixo, e só quando combina com o jeito dela.
   if (ctx.persona.fala.maturidade >= 0.72) {
     // "Relaxa, tá tudo bem 😊 eu também tenho dias" sem a carinha virava duas
-    // frases coladas: onde o emoji separava ideias, entra ponto.
+    // frases coladas: onde o emoji separava ideias, entra ponto — e a palavra
+    // seguinte ganha maiúscula, porque vira começo de frase.
     const comPonto = saida.replace(new RegExp(`([^\\s])\\s*(${EMOJI_CLASSE})\\s*(?=\\S)`, 'gu'), '$1. ');
-    saida = comPonto.replace(EMOJI_EM_QUALQUER_LUGAR, ' ').replace(/\s{2,}/g, ' ').replace(/\s+([,.!?])/g, '$1').trim();
+    saida = comPonto.replace(EMOJI_EM_QUALQUER_LUGAR, ' ').replace(/\s{2,}/g, ' ').replace(/\s+([,.!?])/g, '$1')
+      .replace(/([.!?])\s+([a-zà-ú])/gu, (_, pontuacao, letra) => `${pontuacao} ${letra.toUpperCase()}`)
+      .trim();
   }
   // Orçamento de enfeites: mensagem curta ganha no máximo um (risada, emoji ou
   // sinal). Sem isso ela virava um amontoado de "kkk 😊!" na mesma bolha.
@@ -1526,7 +1631,9 @@ function estilizar(texto: string, ctx: EstiloContexto) {
   if (!pesado && ctx.emojis !== false && floreios < limiteFloreios && !jaRi && rand() < 0.2 + persona.traits.girias * 0.28 + (tom === 'amizade' ? 0.04 : 0)) {
     const risada = marca && rand() < 0.7 ? marca.risada : persona.fala.risadas[Math.floor(rand() * persona.fala.risadas.length)];
     // "Fica tranquilo. kkk" vira "Fica tranquilo kkk": risada substitui o ponto.
-    saida = `${saida.replace(/\s*[.!?…]+\s*$/, '')} ${risada}`;
+    // Pergunta mantém o "?" no fim ("você já jantou kkk?") — sem isso a pergunta vira frase.
+    const fim = /\?\s*$/.test(saida) ? '?' : '';
+    saida = `${saida.replace(/\s*[.!?…]+\s*$/, '')} ${risada}${fim}`;
     floreios += 1;
   }
   if (!pesado && floreios < limiteFloreios && persona.fala.informalidade > 0.7 && rand() < 0.22) {
@@ -1786,6 +1893,8 @@ export interface Marcadores {
   familiar?: string;
   papel?: string;
   idade?: string;
+  cidade?: string;
+  signo?: string;
   vinculo?: string;
   nomeUsuario?: string;
   pessoa?: string;
@@ -1806,6 +1915,8 @@ export function trocarMarcadores(texto: string, persona: Persona, rand: () => nu
   saida = saida.replace(/\{familiar\}/g, extras.familiar || persona.familiares[0]?.nome || 'a família');
   saida = saida.replace(/\{papel\}/g, extras.papel || persona.familiares[0]?.papel || 'família');
   saida = saida.replace(/\{idade\}/g, extras.idade || String(persona.idade ?? ''));
+  saida = saida.replace(/\{cidade\}/g, extras.cidade || persona.cidade || 'por aqui');
+  saida = saida.replace(/\{signo\}/g, extras.signo || 'um signo que eu não conto kkk');
   saida = saida.replace(/\{vinculo\}/g, extras.vinculo || 'gente da família');
   saida = saida.replace(/\{tia_ou_nao\}/g, persona.relacao.ehTia ? 'tia' : 'amiga');
   saida = saida.replace(/\{nome\}/g, extras.nomeUsuario || 'você');
@@ -2237,6 +2348,8 @@ export function planReply(input: ChatInput): ChatPlan {
     papel: familiarCitado?.papel,
     idade: relacao.idadeDela !== null ? String(relacao.idadeDela) : undefined,
     vinculo: relacao.vinculoComigo.toLowerCase(),
+    cidade: input.person.localizacaoMora || undefined,
+    signo: input.person.signo || undefined,
   };
   /** Escolhe evitando repetição e registra o modelo para as próximas mensagens. */
   const preencherEscolhido = (opcoes: string[], gerador: () => number, extras: { valor?: string; lembranca?: string; pessoa?: string } = {}) => {
@@ -2383,6 +2496,20 @@ const RECEPCOES_QUESTAO: string[] = [
     } else {
       // "e o seu?" — devolveu a pergunta: ela responde por si, sem reação.
       opcoes = [...(MINHA_VEZ[temaAberta] || []), ...MINHA_VEZ.geral];
+    }
+  }
+
+  // Pergunta do usuário ganha resposta do tipo certo: "que horas...?" não pode
+  // receber o mesmo "acho que sim" que "você acredita nisso?".
+  if (!respondendoAberta && !seca && !cortou) {
+    if (intencao === 'pergunta_fato') {
+      const tipo = PERGUNTA_FATO_TIPOS.find(item => item.padrao.test(pessoa));
+      // Pergunta de sim/não ("você trabalha amanhã?") tem banco próprio — o
+      // antigo sorteava "acho que sim" até para "como você está?".
+      opcoes = filtrarInfantil(tipo ? tipo.respostas : [...PERGUNTA_FATO_FECHO, ...(opcoesDe('pergunta_fato', familia, persona).slice(0, 2))], persona);
+    } else if (intencao === 'pergunta_factual') {
+      const eSigno = /\bsigno\b/i.test(pessoa);
+      opcoes = filtrarInfantil(eSigno ? RESPOSTAS_FATUAL.signo : RESPOSTAS_FATUAL.mora, persona);
     }
   }
 

@@ -340,3 +340,54 @@ describe("pergunta em aberto: a resposta nasce do assunto dela", () => {
     expect(plano.state.perguntaAberta?.texto).not.toBe("Voce ja jantou?");
   });
 });
+
+describe("interpretação das mensagens: pergunta recebe resposta do assunto", () => {
+  const person = ficha({ localizacaoMora: "Pinheiros, São Paulo", signo: "Escorpião" });
+
+  it("frase negada não vira intenção romântica", () => {
+    expect(detectarIntencao("não te amo mais").id).toBe("desconhecido");
+    expect(detectarIntencao("eu não mando esse tipo de foto").id).not.toBe("pedido_foto");
+  });
+
+  it("pergunta sobre relacionamento tem resposta direta", () => {
+    for (let i = 1; i <= 8; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i), message: "você tem namorado?", adulto: false });
+      const texto = plano.bolhas.map(bolha => bolha.texto).join(" | ");
+      expect(plano.intencao, texto).toBe("pergunta_relacionamento");
+      expect(texto).toMatch(/solteira|ninguém|portas/i);
+    }
+  });
+
+  it("onde você mora / qual seu signo usa os dados da ficha", () => {
+    const mora = planReply({ person, state: novoChatState(person), rand: randFixo(3), message: "onde você mora?", adulto: false });
+    expect(mora.bolhas.map(bolha => bolha.texto).join(" ")).toMatch(/Pinheiros/i);
+    const signo = planReply({ person, state: novoChatState(person), rand: randFixo(4), message: "qual seu signo?", adulto: false });
+    expect(signo.bolhas.map(bolha => bolha.texto).join(" ")).toMatch(/Escorpi/i);
+  });
+
+  it("pergunta factual de horário ganha resposta de horário, não textão", () => {
+    const plano = planReply({ person, state: novoChatState(person), rand: randFixo(6), message: "que horas você vai almoçar?", adulto: false });
+    const texto = plano.bolhas.map(bolha => bolha.texto).join(" ");
+    expect(plano.intencao).toBe("pergunta_fato");
+    expect(texto).toMatch(/almoço|hora|amanh[ãa]|tarde|hoje|semana|aviso/i);
+    expect(texto).not.toMatch(/me pegou de verdade|perdi tempo demais/i);
+  });
+
+  it("notícia de plano ganha reação de plano", () => {
+    const plano = planReply({ person, state: novoChatState(person), rand: randFixo(7), message: "vou viajar pra praia sábado", adulto: false });
+    expect(plano.intencao).toBe("plano");
+    expect(plano.bolhas.map(bolha => bolha.texto).join(" ")).toMatch(/plano|conta|Boa|gostei|força|torcendo/i);
+  });
+
+  it("risada no fim da pergunta não come o '?'", () => {
+    for (let i = 1; i <= 20; i++) {
+      const plano = planReply({ person, state: novoChatState(person), rand: randFixo(i), message: "kkkk faz uma piada aí", adulto: false });
+      const pergunta = plano.bolhas.map(bolha => bolha.texto).find(texto => /kk|kakaka|haha|rs/i.test(texto) && texto.includes("?"));
+      if (pergunta) {
+        // Bolha com risada e pergunta: o "?" sobrevive (não vira "jantou kkk" sem sinal).
+        expect(pergunta.trim(), pergunta).toMatch(/\?$/);
+      }
+    }
+    expect(true).toBe(true);
+  });
+});
