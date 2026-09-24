@@ -93,6 +93,10 @@ export interface Person {
   customFields?: CustomField[];
   attachments?: Attachment[];
   ratingHistory?: RatingSnapshot[];
+  /** Observação da avaliação atual — vai para o histórico junto com a nota. */
+  ratingComment?: string;
+  /** Cor da pessoa (personalização). Sem escolha, o catálogo sorteia estável pela paleta. */
+  cor?: string;
   rarity?: Rarity;
   pinned?: boolean;
   /** Familiares e pessoas próximas dela que também estão no catálogo. */
@@ -105,7 +109,14 @@ export interface Person {
 
 export interface CustomField { id: string; label: string; value: string }
 export interface Attachment { id: string; label: string; url: string; kind: 'link' | 'video' | 'pdf' | 'audio' | 'outro'; createdAt: string }
-export interface RatingSnapshot { date: string; overall: number }
+export interface RatingSnapshot {
+  date: string;
+  overall: number;
+  /** Observação guardada junto com a avaliação (se houver). */
+  comment?: string;
+  /** Atributos na data do snapshot — permite revisar/restaurar sem perder a atual. */
+  values?: Partial<Rating>;
+}
 export type Rarity = 'comum' | 'raro' | 'epico' | 'lendario';
 
 export interface Reminder {
@@ -279,7 +290,7 @@ export interface Appointment { id: string; personId: string | null; title: strin
 export interface Conversation { id: string; personId: string | null; date: string; topic: string; content: string; createdAt: string }
 export interface JournalEntry { id: string; date: string; mood: number; title: string; content: string; tags: string[]; createdAt: string; updatedAt: string }
 export interface PersonalLink { id: string; label: string; url: string; group: string; note: string; createdAt: string }
-export interface AppNotification { id: string; title: string; body: string; kind: 'lembrete' | 'prazo' | 'revisita' | 'conquista' | 'sistema'; date: string; read: boolean; personId?: string | null; page?: string }
+export interface AppNotification { id: string; title: string; body: string; kind: 'lembrete' | 'prazo' | 'revisita' | 'conquista' | 'sistema' | 'mundo'; date: string; read: boolean; personId?: string | null; page?: string }
 export interface Profile { id: string; name: string; color: string; createdAt: string }
 export interface Duel { id: string; winnerId: string; loserId: string; date: string }
 export interface Progress {
@@ -294,6 +305,8 @@ export interface Progress {
   // Marcos já comemorados (níveis, cinturão do duelo) para não repetir a festa.
   celebrated?: Record<string, string>;
   konami?: boolean;
+  /** Código-espelho digitado (conquista secreta). */
+  mirror?: boolean;
 }
 export interface Vault { pin: string | null; photoIds: string[] }
 
@@ -313,6 +326,45 @@ export interface ChatMessage {
   foto?: string;
   /** Mensagem citada ao responder (como no direct do Instagram). */
   replyTo?: { id: string; autor: string; texto: string };
+}
+
+/**
+ * Humor contínuo: não é só "feliz" — é feliz mas cansada, tranquila porém
+ * irritada com alguma coisa. Três mostradores, cada um mudando a resposta.
+ */
+export interface HumorContínuo {
+  /** -1 (ruim) a 1 (bom): como ela está se sentindo agora. */
+  valence: number;
+  /** 0 a 1: energia para escrever longo e puxar assunto. */
+  energy: number;
+  /** 0 a 1: tensão acumulada; deixa a digitação hesitar. */
+  stress: number;
+}
+
+/** O quanto a memória pesa: o que fica, o que vai embora. */
+export type ImportanciaMemoria = 'alta' | 'media' | 'temporaria';
+
+/**
+ * Memória de longo prazo da conversa: o que ela ouviu, com importância e
+ * força. Informação temporária perde força com os dias — o "esquecer"
+ * acontece por prioridade de recuperação, nunca apagando o dado.
+ */
+export interface MemoriaConversa {
+  id: string;
+  personId: string;
+  content: string;
+  /** Classe da lembrança: preferencia, evento, rotina, fato, estado, pessoa. */
+  tipo: string;
+  /** Nó do grafo de tópicos ao qual a memória pertence. */
+  topico: string;
+  importance: ImportanciaMemoria;
+  createdAt: string;
+  /** Última vez que a conversa puxou essa lembrança. */
+  lastUsedAt?: string;
+  /** Quantas vezes ela já puxou o assunto. A partir de 2, pode virar piada interna. */
+  usos: number;
+  /** 0 a 1: frescor da memória. Cai com os dias, de volta com repetição. */
+  forca: number;
 }
 
 /**
@@ -347,6 +399,27 @@ export interface ChatState {
   paciencia?: number;
   /** O que mexeu no humor na última mensagem dela. */
   gatilhos?: string[];
+  // ---- Camada viva: estado da conversa além da química (src/lib/dialogue/) ----
+  /** Humor contínuo (valência/energia/estresse) — a parte "feliz mas cansada". */
+  humorEstado?: HumorContínuo;
+  /** Para onde a conversa está tentando chegar (conhecer, aprofundar, brincar...). */
+  objetivo?: string;
+  /** Assunto atual no grafo de tópicos (escola, cansaço, música...). */
+  topicoAtual?: string;
+  /** Trocas seguidas no assunto atual — o papo vai aprofundando. */
+  profundidade?: number;
+  /** 0 a 1: quanto ela inicia conversa. Cai quando você ignora, sobe com a relação. */
+  iniciativa?: number;
+  /** Mensagens espontâneas dela que ficaram sem resposta, seguidas. */
+  ignora?: number;
+  /** Suas respostas curtas/secas em sequência (3 seguidas fazem ela reagir). */
+  secas?: number;
+  /** Últimas respostas suas normalizadas: para ela perceber o "repeteco". */
+  ultimasSuas?: string[];
+  /** Memórias ricas, com importância e força que decai com os dias. */
+  memorias?: MemoriaConversa[];
+  /** Hora da última mensagem espontânea dela (mede a sua ausência). */
+  ultimoPuxada?: string;
 }
 
 export interface Memory {
@@ -369,6 +442,21 @@ export interface Icebreaker {
   createdAt: string;
 }
 
+/**
+ * Pacote: um grupo nomeado de fichas montado por você (seu time, o grupo do
+ * jogo, as meninas da igreja...). Dá para exportar e mandar para outra pessoa
+ * abrir no perfil dela — sem levar o catálogo inteiro junto.
+ */
+export interface Pacote {
+  id: string;
+  name: string;
+  color: string;
+  description: string;
+  personIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppData {
   schemaVersion?: number;
   updatedAt?: string;
@@ -385,6 +473,7 @@ export interface AppData {
   drafts: Record<string, PersonDraft>;
   ignoredDuplicates: string[];
   folders: Folder[];
+  pacotes: Pacote[];
   generalNotes: GeneralNote[];
   investigationBoards: InvestigationBoard[];
   personTemplates?: PersonTemplate[];
@@ -438,12 +527,26 @@ export interface AppData {
     // Conversas: modo adulto (opt-in), ritmo e estilo da simulação.
     // O clima da conversa sobe sozinho conforme a química — não há tom para escolher.
     adultMode?: boolean;
+    /**
+     * Critérios da avaliação que aparecem (chaves de RATING_FIELDS).
+     * Oculto some das telas, mas o valor fica salvo e continua contando
+     * na média — é visibilidade, não apagão de dado.
+     */
+    ratingFields?: string[];
     chatSpeed?: 'pausado' | 'realista' | 'rapido';
     chatSlang?: boolean;
     chatEmojis?: boolean;
     chatMeter?: boolean;
     chatAuto?: boolean;
     chatDoNada?: boolean;
+    /**
+     * Mundo vivo: o aplicativo continua acontecendo enquanto você não olha —
+     * pessoas ficam ocupadas, guardam memórias, voltam depois de sumidas,
+     * e o resumo do dia chega na central de avisos.
+     */
+    mundoVivo?: boolean;
+    /** Dia (YYYY-MM-DD) em que o mundo vivo já rodou, para não repetir o resumo. */
+    mundoVivoUltimoDia?: string;
     /**
      * IA real (opcional): qualquer endpoint compatível com a API da OpenAI.
      * A chave fica só neste aparelho, junto do resto do catálogo.

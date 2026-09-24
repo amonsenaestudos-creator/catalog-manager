@@ -1,4 +1,4 @@
-import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, Person, Photo, Rating, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
+import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, Person, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
 import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS, VINCULO_PAPEIS } from './types';
 import { DEMO_PORTRAITS } from './assets';
 
@@ -17,7 +17,93 @@ export const RATING_FIELDS = [
   { key: 'comportamento', label: 'Comportamento', weight: 1, adult: false },
   { key: 'quadril', label: 'Quadril', weight: 0.8, adult: true },
 ] as const;
+/**
+ * Blocos da avaliação: os mesmos campos de sempre, organizados para
+ * preencher e ler em vez de uma lista solta.
+ */
+export const RATING_BLOCKS = [
+  { id: 'beleza', label: 'Aparência geral', keys: ['belezaGeral'] as const },
+  { id: 'fisicas', label: 'Características físicas', keys: ['rosto', 'cabelo', 'corpo', 'peitos', 'bunda', 'quadril'] as const },
+  { id: 'comportamento', label: 'Comportamento', keys: ['comportamento'] as const },
+] as const;
+
+export type RatingBlockId = (typeof RATING_BLOCKS)[number]['id'];
+
+/** Campos de uma avaliação na ordem dos blocos (para formulários e resumos). */
+export const RATING_BLOCK_FIELDS = RATING_BLOCKS.flatMap(block => block.keys.map(key => RATING_FIELDS.find(f => f.key === key)!).filter(Boolean));
+
+/**
+ * Quais critérios aparecem nas telas. `undefined` ou vazio = todos os 8.
+ * O que está oculto continua salvo e segue contando na média.
+ */
+export const visibleRatingFields = (settings?: { ratingFields?: string[] } | null) =>
+  RATING_FIELDS.filter(f => !settings?.ratingFields?.length || settings.ratingFields.includes(f.key));
+
+export interface RatingBlockResumo {
+  id: RatingBlockId;
+  label: string;
+  /** Média dos critérios preenchidos do bloco (null = nada preenchido). */
+  media: number | null;
+  preenchidos: number;
+  total: number;
+}
+
+/** Média de um bloco: só critérios preenchidos (> 0) entram na conta. */
+export function resumoBlocos(rating: Rating, fields: readonly { key: keyof Rating; adult?: boolean }[] = RATING_FIELDS, adulto = true): RatingBlockResumo[] {
+  return RATING_BLOCKS.map(block => {
+    const campos = block.keys
+      .map(key => fields.find(f => f.key === key))
+      .filter((f): f is NonNullable<typeof f> => !!f)
+      .filter(f => adulto || !f.adult);
+    const valores = campos.map(f => Math.max(0, Math.min(5, Number(rating[f.key]) || 0))).filter(n => n > 0);
+    return {
+      id: block.id,
+      label: block.label,
+      media: valores.length ? valores.reduce((a, b) => a + b, 0) / valores.length : null,
+      preenchidos: valores.length,
+      total: campos.length,
+    };
+  }).filter(b => b.total > 0);
+}
+
+export interface ResumoAvaliacao {
+  overall: number;
+  blocos: RatingBlockResumo[];
+  preenchidos: number;
+  total: number;
+}
+
+/** Resumo visual da avaliação: nota geral + médias por bloco + progresso. */
+export function resumoDaAvaliacao(person: Person, settings?: { ratingFields?: string[] } | null): ResumoAvaliacao {
+  const campos = visibleRatingFields(settings);
+  const blocos = resumoBlocos(person.rating, campos, isAdult(person));
+  return {
+    overall: calculateOverallRating(person.rating),
+    blocos,
+    preenchidos: campos.filter(f => Number(person.rating[f.key]) > 0).length,
+    total: campos.length,
+  };
+}
+
+/** Os atributos (sem mode/overall) — o que vai num snapshot do histórico. */
+export const valoresDaAvaliacao = (rating: Rating): Partial<Rating> => {
+  const valores: Partial<Rating> = {};
+  RATING_FIELDS.forEach(f => { valores[f.key] = Math.max(0, Math.min(5, Number(rating[f.key]) || 0)); });
+  return valores;
+};
+
 export const PALETTE = ['#c786ec', '#ef88a6', '#e6b76a', '#7fbd9b', '#7ba3dc', '#b7a1ed', '#72bdc2', '#b0a8be'];
+
+/**
+ * Cor da pessoa: a escolhida por ela (a do dono do catálogo) ou, sem
+ * escolha, uma cor estável da paleta — o mesmo ID sempre leva a mesma
+ * cor, e pessoas diferentes caem em cores diferentes.
+ */
+export function corDaPessoa(p: Person): string {
+  if (p.cor && /^#[0-9a-fA-F]{3,8}$/.test(p.cor)) return p.cor;
+  const base = (p.id || p.nome || 'pessoa').split('').reduce((total, letra) => (total * 31 + letra.charCodeAt(0)) >>> 0, 7);
+  return PALETTE[base % PALETTE.length];
+}
 export const PHOTO_LABELS: Record<Photo['type'], string> = { normal: 'Normal', biquini: 'Biquíni', sem_nada: 'Sem nada' };
 export const FOLDER_ICONS = ['folder', 'image', 'note', 'bookmark', 'heart', 'sparkles'];
 
@@ -57,7 +143,7 @@ export function getDefaultPerson(): Person {
   return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '' };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
+  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -248,7 +334,21 @@ export function normalizePerson(value: unknown): Person {
   result.aniversario = /^\d{4}-\d{2}-\d{2}$/.test(text(p.aniversario)) ? text(p.aniversario) : null;
   result.customFields = array(p.customFields).map(value => { const f = object(value); return { id: text(f.id) || generateId(), label: text(f.label), value: text(f.value) }; }).filter(f => f.label).slice(0, 30);
   result.attachments = array(p.attachments).map(value => { const a = object(value); return { id: text(a.id) || generateId(), label: text(a.label, 'Anexo'), url: safeLink(text(a.url)), kind: (['link', 'video', 'pdf', 'audio', 'outro'].includes(text(a.kind)) ? a.kind : 'outro') as Attachment['kind'], createdAt: text(a.createdAt, new Date().toISOString()) }; }).slice(0, 60);
-  result.ratingHistory = array(p.ratingHistory).map(value => { const h = object(value); return { date: text(h.date, today()), overall: Math.max(0, Math.min(5, numeric(h.overall))) }; }).slice(-40);
+  result.ratingHistory = array(p.ratingHistory).map(value => {
+    const h = object(value);
+    const snapshot: RatingSnapshot = { date: text(h.date, today()), overall: Math.max(0, Math.min(5, numeric(h.overall))) };
+    const comment = text(h.comment, '');
+    if (comment) snapshot.comment = comment.slice(0, 300);
+    const values = object(h.values);
+    if (Object.keys(values).length) {
+      const limpo: Partial<Rating> = {};
+      for (const key of RATING_FIELDS.map(f => f.key)) { const n = numeric(values[key]); if (n > 0) limpo[key] = Math.min(5, n); }
+      if (Object.keys(limpo).length) snapshot.values = limpo;
+    }
+    return snapshot;
+  }).slice(-40);
+  result.ratingComment = text(p.ratingComment, '').slice(0, 300) || undefined;
+  result.cor = /^#[0-9a-fA-F]{3,8}$/.test(text(p.cor, '')) ? text(p.cor) : undefined;
   result.rarity = RARITIES.includes(text(p.rarity)) ? p.rarity as Person['rarity'] : rarityFor(calculateOverallRating(result.rating));
   result.pinned = p.pinned === true;
   result.vinculoComigo = text(p.vinculoComigo);
@@ -359,6 +459,20 @@ export function normalizeData(value: unknown, strict = false): AppData {
   });
   // Legacy collections become people folders so existing groups remain available.
   if (!base.folders.length && base.collections.length) base.folders = base.collections.map(c => ({ id: c.id, name: c.name, color: c.color, icon: 'folder', description: 'Pasta migrada de uma coleção anterior.', personIds: c.personIds, photoIds: [], noteIds: [], storyIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }));
+  // Pacotes: grupos nomeados. Ficam sem pessoa que foi para a lixeira —
+  // a ficha voltando, o pacote a reaproveita na próxima carga.
+  base.pacotes = array(raw.pacotes).map(value => {
+    const item = object(value);
+    return {
+      id: text(item.id) || generateId(),
+      name: text(item.name).trim() || 'Pacote sem nome',
+      color: /^#[\da-f]{6}$/i.test(text(item.color)) ? text(item.color) : PALETTE[0],
+      description: text(item.description),
+      personIds: [...new Set(strings(item.personIds).filter(id => base.people.some(p => p.id === id)))],
+      createdAt: text(item.createdAt, new Date().toISOString()),
+      updatedAt: text(item.updatedAt, new Date().toISOString()),
+    };
+  });
   base.generalNotes = array(raw.generalNotes).map(value => {
     const note = object(value);
     return { id: text(note.id) || generateId(), title: text(note.title, 'Nota sem título'), content: text(note.content), type: (['ideia', 'observacao', 'lembrete', 'referencia'].includes(text(note.type)) ? note.type : 'observacao') as GeneralNote['type'], personIds: [...new Set(strings(note.personIds).filter(id => base.people.some(p => p.id === id)))], folderId: base.folders.some(f => f.id === text(note.folderId)) ? text(note.folderId) : null, pinned: !!note.pinned, createdAt: text(note.createdAt, new Date().toISOString()), updatedAt: text(note.updatedAt, new Date().toISOString()) };

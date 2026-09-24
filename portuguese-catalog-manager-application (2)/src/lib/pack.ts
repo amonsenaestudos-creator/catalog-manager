@@ -241,6 +241,64 @@ export function importarPacote(data: AppData, pacote: PacoteCategoria): { data: 
   return { data: comCategorias, resumo };
 }
 
+/* ------------------------------------------------------------- nomeado ----
+ * Pacote nomeado: o grupo que você mesmo montou (seu time, o grupo do jogo...).
+ * Sair como JSON com as fichas enxutas — quem recebe abre no perfil dela.
+ */
+export const PACK_KIND_NOMEADO = 'catalog-pacote';
+
+export interface PacoteNomeado {
+  kind: typeof PACK_KIND_NOMEADO;
+  version: number;
+  exportadoEm: string;
+  autor: string;
+  nome: string;
+  descricao: string;
+  incluiFotos: boolean;
+  total: number;
+  pessoas: Person[];
+}
+
+/** Monta o pacote nomeado em memória: as fichas escolhidas, só com o essencial. */
+export function montarPacoteNomeado(data: AppData, pacote: { name: string; description?: string; personIds: string[] }, opcoes: OpcoesPacote = {}): PacoteNomeado {
+  const pessoas = data.people.filter(pessoa => !pessoa.deletedAt && pacote.personIds.includes(pessoa.id));
+  if (!pessoas.length) throw new Error('Este pacote ainda não tem nenhuma ficha viva.');
+  const ids = new Set(pessoas.map(pessoa => pessoa.id));
+  const enxutas = pessoas.map(pessoa => {
+    const clonada = clonar(pessoa);
+    const fotos = opcoes.incluirFotos ? clonada.fotos.filter(fotoQueViaja) : [];
+    const principal = fotos.find(foto => foto.isMain) || fotos[0];
+    return {
+      ...clonada,
+      favorite: false,
+      pinned: false,
+      archivedAt: null,
+      deletedAt: null,
+      updatedAt: new Date().toISOString(),
+      fotos: principal ? [{ ...principal, id: generateId(), personId: pessoa.id, isMain: true }] : [],
+      notas: opcoes.incluirNotas ? clonada.notas : [],
+      attachments: [],
+      vinculos: (clonada.vinculos || []).filter(vinculo => ids.has(vinculo.personId)).map(vinculo => ({ ...vinculo, id: generateId() })),
+    } as Person;
+  });
+  return {
+    kind: PACK_KIND_NOMEADO,
+    version: PACK_VERSION,
+    exportadoEm: new Date().toISOString(),
+    autor: data.settings.profileName || data.settings.username || 'alguém',
+    nome: pacote.name,
+    descricao: pacote.description || '',
+    incluiFotos: !!opcoes.incluirFotos && enxutas.some(pessoa => pessoa.fotos.length > 0),
+    total: enxutas.length,
+    pessoas: enxutas,
+  };
+}
+
+export function nomeDoArquivoPacote(pacote: { name: string }) {
+  const limpo = normalizeText(pacote.name).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'pacote';
+  return `pacote-${limpo}-${new Date().toISOString().slice(0, 10)}.json`;
+}
+
 /** Ficha do pacote em uma linha, para a tela de conferência antes de importar. */
 export function resumoDoPacote(pacote: PacoteCategoria) {
   return {

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { AppData, CatalogFilter, Person, PersonDraft, Profile } from './types';
-import { calculateOverallRating, DEFAULT_FILTER, demoData, duplicatePerson, emptyData, generateId, getAllTagNames, makeActivity, normalizePhotos, PALETTE, today } from './store';
+import { calculateOverallRating, DEFAULT_FILTER, demoData, duplicatePerson, emptyData, generateId, getAllTagNames, makeActivity, normalizePhotos, PALETTE, today, valoresDaAvaliacao } from './store';
 import { DEFAULT_PROFILE, deleteProfileData, loadProfiles, persistData, pushBackup, readStoredData, saveProfiles, writeJournal } from './lib/storage';
 import { computeXp, evaluateAchievements, levelInfo, weeklyChallenges } from './lib/progress';
 import { newNotifications, pushBrowserNotification } from './lib/notifications';
@@ -22,7 +22,10 @@ interface CatalogContext {
   setFilter: (f: CatalogFilter) => void;
   navigate: (page: string, scope?: CatalogFilter['scope']) => void;
   selectedId: string | null;
-  openPerson: (p: Person | string) => void;
+  openPerson: (p: Person | string, opts?: { editar?: boolean; aba?: string }) => void;
+  /** Pedido de abertura da ficha: abrir direto na edição ou numa aba específica. */
+  openRequest: { editar?: boolean; aba?: string } | null;
+  setOpenRequest: (r: { editar?: boolean; aba?: string } | null) => void;
   closePerson: () => void;
   /** Conversa aberta na aba Conversas (null = lista de conversas). */
   chatPersonId: string | null;
@@ -109,6 +112,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [page, setPage] = useState('home');
   const [filter, setFilter] = useState<CatalogFilter>({ ...DEFAULT_FILTER });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [openRequest, setOpenRequest] = useState<{ editar?: boolean; aba?: string } | null>(null);
   const [chatPersonId, setChatPersonId] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [compareIds, setCompareIds] = useState<string[] | null>(null);
@@ -330,18 +334,24 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       return next.category === f.category && next.subcategory === f.subcategory && next.tag === f.tag && next.collection === f.collection ? f : next;
     });
   }, [data.categories, data.collections, data.settings.customTags, data.people]);
-  const openPerson = useCallback((person: Person | string) => { const id = typeof person === 'string' ? person : person.id; const p = current.current.people.find(p => p.id === id); if (p?.deletedAt) { navigate('catalog', 'trash'); notify('Esta ficha está na lixeira. Restaure para editar.'); return; } if (p) setSelectedId(id); }, [navigate, notify]);
+  const openPerson = useCallback((person: Person | string, opts?: { editar?: boolean; aba?: string }) => { const id = typeof person === 'string' ? person : person.id; const p = current.current.people.find(p => p.id === id); if (p?.deletedAt) { navigate('catalog', 'trash'); notify('Esta ficha está na lixeira. Restaure para editar.'); return; } if (p) { setOpenRequest(opts?.editar || opts?.aba ? { editar: opts.editar, aba: opts.aba } : null); setSelectedId(id); } }, [navigate, notify]);
   const changePeople = useCallback((ids: string[], patch: Partial<Person>, message: string) => { commit(d => ({ ...d, people: d.people.map(p => ids.includes(p.id) ? { ...p, ...patch, updatedAt: new Date().toISOString() } : p) }), message); }, [commit]);
   const savePerson = useCallback((p: Person, draftId?: string) => {
     if (!p.nome.trim() || !p.descricao.trim()) { notify('Preencha o nome e a descrição.', true); return false; }
     if (p.idade !== null && (!Number.isInteger(p.idade) || p.idade < 0 || p.idade > 120)) { notify('Informe uma idade inteira entre 0 e 120 anos, ou deixe em branco.', true); return false; }
     const before = calculateOverallRating(p.rating);
+    const comment = (p.ratingComment || '').trim() || undefined;
     commit(d => {
       const previous = d.people.find(x => x.id === p.id);
-      const historyChanged = previous && Math.abs(calculateOverallRating(previous.rating) - before) >= 0.1;
+      // A avaliação entra no histórico quando a nota anda (≥0,1) ou a
+      // observação muda — a anterior nunca é perdida, só ganha companhia.
+      const historyChanged = !!previous && (Math.abs(calculateOverallRating(previous.rating) - before) >= 0.1
+        || comment !== ((previous.ratingComment || '').trim() || undefined));
       const person: Person = {
         ...p, nome: p.nome.trim(), descricao: p.descricao.trim(), rating: { ...p.rating, overall: before }, fotos: normalizePhotos(p.fotos, p.id), updatedAt: new Date().toISOString(),
-        ratingHistory: historyChanged ? [...(p.ratingHistory || []), { date: today(), overall: before }].slice(-40) : (p.ratingHistory || []),
+        ratingHistory: historyChanged
+          ? [...(p.ratingHistory || []), { date: today(), overall: before, comment, values: valoresDaAvaliacao(p.rating) }].slice(-40)
+          : (p.ratingHistory || []),
       };
       const drafts = { ...d.drafts }; if (draftId) delete drafts[draftId];
       return { ...d, drafts, people: previous ? d.people.map(x => x.id === person.id ? person : x) : [person, ...d.people], locations: [...new Set([...d.locations, person.localizacaoMora].filter(Boolean))] };
@@ -484,7 +494,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [commit]);
 
   return <Context.Provider value={{
-    data, ready, authenticated, demo, page, filter, setFilter, navigate, selectedId, openPerson, closePerson: () => setSelectedId(null), chatPersonId, openChat, closeChat,
+    data, ready, authenticated, demo, page, filter, setFilter, navigate, selectedId, openPerson, openRequest, setOpenRequest, closePerson: () => setSelectedId(null), chatPersonId, openChat, closeChat,
     quickOpen, setQuickOpen, compareIds, setCompareIds, commandOpen, setCommandOpen, privacy, setPrivacy, panic, setPanic, blur, setBlur,
     commit, savePerson, saveDraft, discardDraft, changePeople, trashPeople, restorePeople, deletePermanently, duplicate, seenToday,
     login, logout, enterDemo, undo, redo, canUndo: !!past.current.length, canRedo: !!future.current.length, status, lastSavedAt, retrySave: flush,
