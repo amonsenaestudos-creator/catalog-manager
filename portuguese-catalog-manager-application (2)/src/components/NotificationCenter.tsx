@@ -1,10 +1,10 @@
-import { Bell, BellOff, CalendarClock, CheckCheck, Crown, MapPin, RotateCw, Trash2, Users } from 'lucide-react';
+import { Bell, BellOff, CalendarClock, CheckCheck, Crown, Globe, MapPin, RotateCw, Trash2, Users } from 'lucide-react';
 import { useCatalog } from '../context';
 import { formatDate } from '../store';
 import { IconButton } from './ui';
 
-const KIND_ICON = { lembrete: Bell, prazo: CalendarClock, revisita: MapPin, conquista: Crown, sistema: Users } as const;
-const KIND_LABEL = { lembrete: 'Lembrete', prazo: 'Prazo', revisita: 'Revisitar', conquista: 'Conquista', sistema: 'Sistema' } as const;
+const KIND_ICON = { lembrete: Bell, prazo: CalendarClock, revisita: MapPin, conquista: Crown, sistema: Users, mundo: Globe } as const;
+const KIND_LABEL = { lembrete: 'Lembrete', prazo: 'Prazo', revisita: 'Revisitar', conquista: 'Conquista', sistema: 'Sistema', mundo: 'Mundo vivo' } as const;
 
 /** Sino com os avisos do catálogo: prazos, encontros, aniversários e conquistas. */
 export default function NotificationCenter() {

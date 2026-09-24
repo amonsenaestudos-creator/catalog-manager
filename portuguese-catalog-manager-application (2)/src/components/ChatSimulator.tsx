@@ -9,9 +9,13 @@ import { buildPersona, seededRandom } from '../lib/persona';
 import { iaConfigurada, responderComIA, URL_PADRAO_IA } from '../lib/ia';
 import {
   EMOJI_HUMOR, HUMORES, montarAtrasos, PACIENCIA_BAIXA, PACIENCIA_MAXIMA, ROTULO_HUMOR, analisarConversa, cartaoDaPersona, conversaParaMarkdown,
-  estadoDe, estagioAtual, pacienciaDe, planDoNada, planOpening, planReply, planSpontaneous, promptDoSistema, resumirMemorias,
+  estadoDe, estagioAtual, pacienciaDe, promptDoSistema, resumirMemorias,
   sugerirAberturas, sugerirRespostas, type EstadoEmocional, type EstadoEstruturado, type Tone,
 } from '../lib/dialogue';
+import {
+  estadoEstendidoDe, intervaloDeIniciativa, memoriasVisiveis, ritmoDePlano, rotuloDoTopico,
+  processarAbertura, processarPuxada, processarResposta, type PlanoEstendido,
+} from '../lib/dialogue/engine';
 import { seloDaRelacao } from '../lib/relacao';
 
 /** Emojis de uso rápido no campo de mensagem. */
@@ -33,9 +37,14 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const [cardOpen, setCardOpen] = useState(false);
   const [photoPicker, setPhotoPicker] = useState(false);
   const [auto, setAuto] = useState(!!s.chatAuto);
-  // Retrato do momento: o estado que a última mensagem produziu.
+  // Retrato do momento: o estado que a última mensagem produziu — agora com
+  // a camada viva: humor contínuo, objetivo, tópico atual e iniciativa.
   const [retrato, setRetrato] = useState(false);
-  const [ultimoEstado, setUltimoEstado] = useState<{ estado: EstadoEmocional; json: EstadoEstruturado } | null>(null);
+  const [ultimoEstado, setUltimoEstado] = useState<{
+    estado: EstadoEmocional; json: EstadoEstruturado;
+    humor?: PlanoEstendido['humor']; humorLeitura?: string;
+    objetivo?: PlanoEstendido['objetivo']; topico?: string | null; iniciativa?: number;
+  } | null>(null);
   const [promptAberto, setPromptAberto] = useState(false);
   const [aviso, setAviso] = useState('');
   // Rolando o histórico para reler, o campo continua no lugar e aparece o atalho
@@ -127,17 +136,28 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
     tickTimers.current.push(setTimeout(() => setTicks(atual => ({ ...atual, [id]: 'lido' })), Math.max(1400, primeiroAtraso - 260)));
   };
 
-  /** Distribui as bolhas dela na tela, com "digitando..." entre elas. */
-  const tocarPlano = (plano: ReturnType<typeof planReply>) => {
+  /** Distribui as bolhas dela na tela, com "digitando..." entre elas — e, às
+   *  vezes, a digitação para e volta: ela pensa, apaga, volta. */
+  const tocarPlano = (plano: PlanoEstendido['plano'], extras?: PlanoEstendido) => {
     // Sempre quer que esteja, o retrato fica guardado para a tela mostrar.
-    if (plano.estado && plano.estruturado) setUltimoEstado({ estado: plano.estado, json: plano.estruturado });
+    if (plano.estado && plano.estruturado) setUltimoEstado({
+      estado: plano.estado, json: plano.estruturado,
+      humor: extras?.humor, humorLeitura: extras?.humorLeitura,
+      objetivo: extras?.objetivo, topico: extras?.topico, iniciativa: extras?.iniciativa,
+    });
     limparTimers();
     // Bolha de rodada antiga morre silenciosamente: a conversa seguiu.
     const minha = ++rodada.current;
     setTyping(true);
     let acumulado = 0;
-    plano.bolhas.forEach(bolha => {
+    plano.bolhas.forEach((bolha, indice) => {
+      const inicio = acumulado;
       acumulado += bolha.atraso;
+      const pausa = extras?.ritmo?.[indice]?.pausa;
+      if (pausa && !s.reducedMotion) {
+        timers.current.push(setTimeout(() => { if (rodada.current === minha) setTyping(false); }, inicio + pausa.ponto));
+        timers.current.push(setTimeout(() => { if (rodada.current === minha) setTyping(true); }, inicio + pausa.ponto + pausa.dur));
+      }
       timers.current.push(setTimeout(() => {
         if (rodada.current !== minha) return;
         adicionarMensagem({ id: generateId(), personId: person.id, role: 'them', text: bolha.texto, timestamp: new Date().toISOString(), mood: plano.humor, tom: plano.tom });
@@ -146,11 +166,13 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
     });
     // Ela continua "digitando" até acabar de mandar; o silêncio vem depois.
     timers.current.push(setTimeout(() => { if (rodada.current === minha) setTyping(false); }, acumulado + 320));
+    const avisoVivo = extras?.avisos[0] || '';
     if (plano.eventos.includes('limite:grosseria')) setAviso('Ela cortou o assunto. Falar grosso mexe com o humor da conversa — paciência e química caíram.');
     else if (plano.estado && plano.estado.paciencia <= PACIENCIA_BAIXA) setAviso('A paciência dela está no fim: respostas curtas até o clima melhorar.');
     else if (plano.eventos.includes('estagio:') && plano.estado?.gatilhos.includes('ficou mais próxima')) setAviso(`Ela se abriu: a conversa chegou em "${plano.estagio.label}".`);
     else if (plano.desviado) setAviso('Ela desconversou: esse assunto ainda não é do jeito dela com você.');
     else if (plano.eventos.some(evento => evento.startsWith('estagio:'))) setAviso(`A conversa evoluiu: agora vocês estão em "${plano.estagio.label}".`);
+    else if (avisoVivo) setAviso(avisoVivo);
     // De vez em quando ela manda uma foto junto (quando tem foto na ficha).
     if (person.fotos.length && plano.tom !== 'amizade' && Math.random() < 0.18) {
       const foto = person.fotos[Math.floor(Math.random() * person.fotos.length)];
@@ -162,9 +184,9 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   };
 
   const abrirConversa = () => {
-    const plano = planOpening({ person, persona, state: estadoDe(data, person), adulto, rand: Math.random, rapido, nomeUsuario, primeiraVez: true, ...contextoDeConversa });
-    salvarEstado(plano.state);
-    tocarPlano(plano);
+    const estendido = processarAbertura({ person, persona, state: estadoDe(data, person), adulto, rand: Math.random, rapido, nomeUsuario, ...contextoDeConversa });
+    salvarEstado(estendido.plano.state);
+    tocarPlano(estendido.plano, estendido);
   };
 
   /**
@@ -180,32 +202,36 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
     const fotoEnviada = lote.some(item => item.foto);
     const citacao = [...lote].reverse().find(item => item.citacao)?.citacao;
     const base = estadoDe(data, person);
-    const plano = planReply({
+    // A camada viva interpreta a mensagem (estado, personalidade, memória,
+    // objetivo, tópicos) e o motor de texto gera a resposta dentro dela.
+    const estendido = processarResposta({
       person, persona, state: base, message: texto, historico: mensagens, adulto, rand: Math.random, rapido, nomeUsuario,
       fotoEnviada, citacao, ...contextoDeConversa,
     });
-    salvarEstado(plano.state);
+    salvarEstado(estendido.plano.state);
     // Com IA ligada, o texto vem do modelo — a mecânica (química, humor,
-    // memória) continua sendo calculada aqui. Se falhar, o motor local responde.
-    let final = plano;
+    // memória, consequências) continua sendo calculada aqui. Se falhar, o
+    // motor local responde.
+    let final: PlanoEstendido = estendido;
     if (usarIA && texto && s.chatAI) {
       setTyping(true);
       controleIA.current?.abort();
       controleIA.current = new AbortController();
       try {
         const bolhasIA = await responderComIA({
-          person, persona, estado: plano.estado, mensagens, texto, citacao, adulto, nomeUsuario,
+          person, persona, estado: estendido.plano.estado, mensagens, texto, citacao, adulto, nomeUsuario,
           configIA: { url: s.chatAI.url || URL_PADRAO_IA, chave: s.chatAI.chave || '', modelo: s.chatAI.modelo || '' },
           sinal: controleIA.current.signal,
         });
-        const atrasos = montarAtrasos(bolhasIA, persona, Math.random, rapido, plano.humor, pausado);
-        final = { ...plano, bolhas: bolhasIA.map((textoBolha, i) => ({ texto: textoBolha, atraso: atrasos[i] })) };
+        const atrasos = montarAtrasos(bolhasIA, persona, Math.random, rapido, estendido.plano.humor, pausado);
+        const bolhas = bolhasIA.map((textoBolha, i) => ({ texto: textoBolha, atraso: atrasos[i] }));
+        final = { ...estendido, plano: { ...estendido.plano, bolhas }, ritmo: ritmoDePlano(bolhas, persona, estendido.humor, Math.random) };
       } catch (erro) {
         if ((erro as Error)?.name === 'AbortError') return; // você mandou outra mensagem: a nova rodada assume
         ctx.notify('A IA não respondeu agora — o motor local assumiu a conversa.', true);
       }
     }
-    tocarPlano(final);
+    tocarPlano(final.plano, final);
   };
 
   /** Ela espera um tempo de leitura (que cresce com o tamanho do lote) e responde. */
@@ -240,30 +266,43 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
 
   /** Mensagem que chega do nada: ela lembra de algo que você nem fez. */
   const doNada = () => {
-    if (typing || pendentes.current.length) return;
+    if (typing || pendentes.current.length) return false;
     const base = estadoDe(data, person);
-    const plano = planDoNada({ person, persona, state: base, adulto, rand: Math.random, rapido, nomeUsuario, ...contextoDeConversa });
-    salvarEstado(plano.state);
-    tocarPlano(plano);
+    const estendido = processarPuxada({ person, persona, state: base, motivo: 'do_nada', forcado: true, adulto, rand: Math.random, rapido, nomeUsuario, ...contextoDeConversa });
+    if (!estendido) return false;
+    salvarEstado(estendido.plano.state);
+    tocarPlano(estendido.plano, estendido);
+    return true;
   };
 
-  /** Mensagem espontânea (modo automático ou botão de "deixa ela puxar"). */
-  const espontanea = (motivo?: 'saudade' | 'lembranca' | 'assunto') => {
-    if (typing || pendentes.current.length) return;
+  /** Mensagem espontânea (modo automático ou botão de "deixa ela puxar").
+   *  Sem `forcada`, a iniciativa dela manda: pode simplesmente não falar. */
+  const espontanea = (motivo?: 'saudade' | 'lembranca' | 'assunto', forcada = true) => {
+    if (typing || pendentes.current.length) return false;
     const base = estadoDe(data, person);
-    const plano = planSpontaneous({ person, persona, state: base, adulto, rand: Math.random, rapido, nomeUsuario, motivo, ...contextoDeConversa });
-    salvarEstado(plano.state);
-    tocarPlano(plano);
+    const estendido = processarPuxada({ person, persona, state: base, motivo, forcado: forcada, adulto, rand: Math.random, rapido, nomeUsuario, ...contextoDeConversa });
+    if (!estendido) return false;
+    salvarEstado(estendido.plano.state);
+    tocarPlano(estendido.plano, estendido);
+    return true;
   };
 
+  // Modo automático: o intervalo da próxima puxada sai da iniciativa dela
+  // (0.1 fica um bom tempo; 0.9 puxa o papo a cada instantes). Se ela
+  // decidir ficar quietinha, o relógio volta a rodar — nada de metrônomo.
   useEffect(() => {
     if (!auto || typing) return;
     if (autoTimer.current) clearTimeout(autoTimer.current);
-    autoTimer.current = setTimeout(() => {
+    const proximoIntervalo = () => intervaloDeIniciativa(estadoEstendidoDe(estadoDe(data, person), persona).iniciativa, rapido, pausado, Math.random);
+    const tentativa = () => {
       if (typing) return;
+      let puxou = false;
       // De vez em quando chega aquela mensagem do nada: ela lembra de algo que você nem fez.
-      if (data.settings.chatDoNada !== false && Math.random() < 0.35) doNada(); else espontanea();
-    }, 22000 + Math.random() * 16000);
+      if (data.settings.chatDoNada !== false && Math.random() < 0.35) puxou = doNada();
+      if (!puxou) puxou = espontanea(undefined, false);
+      if (!puxou) autoTimer.current = setTimeout(tentativa, proximoIntervalo());
+    };
+    autoTimer.current = setTimeout(tentativa, proximoIntervalo());
     return () => { if (autoTimer.current) clearTimeout(autoTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto, typing, mensagens.length, person.id, data.settings.chatDoNada]);
@@ -295,6 +334,8 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   };
 
   const analise = useMemo(() => analisarConversa(mensagens), [mensagens]);
+  // Memória rica (camada viva): o que ela guarda, com importância e força.
+  const memoriasRicas = useMemo(() => memoriasVisiveis(estado.memorias || []), [estado.memorias]);
   const ultimaDela = [...mensagens].reverse().find(mensagem => mensagem.role === 'them');
   const sugestoesProntas = useMemo(() => sugerirRespostas({
     person, persona, state: estado, mensagemDela: ultimaDela?.text || '', adulto, quantas: 6, tom, rand: seededRandom(sementeSugestoes + 1), ...contextoDeConversa,
@@ -387,11 +428,48 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
             <span className="chat-estado-chip">{estagio.label}</span>
             {estadoCompleto.gatilhos.map(gatilho => <span className="chat-estado-chip gatilho" key={gatilho}>{gatilho}</span>)}
           </div>
+          {ultimoEstado?.humor && (
+            <div className="chat-estado-continuo">
+              <span className="chat-estado-rotulo" title="Três mostradores do humor contínuo: a mesma mensagem soa diferente conforme eles">
+                Humor <b>{ultimoEstado.humorLeitura}</b>
+              </span>
+              <div className="chat-estado-barras">
+                <span className="chat-estado-item" title="Como ela está se sentindo (do ruim ao bom)">
+                  <label>Animação <b>{Math.round(((ultimoEstado.humor.valence + 1) / 2) * 100)}%</b></label>
+                  <span className="chat-estado-trilha"><i style={{ width: `${Math.round(((ultimoEstado.humor.valence + 1) / 2) * 100)}%` }} /></span>
+                </span>
+                <span className="chat-estado-item" title="Energia para escrever longo e puxar assunto">
+                  <label>Energia <b>{Math.round(ultimoEstado.humor.energy * 100)}%</b></label>
+                  <span className="chat-estado-trilha"><i style={{ width: `${Math.round(ultimoEstado.humor.energy * 100)}%` }} /></span>
+                </span>
+                <span className="chat-estado-item" title="Tensão acumulada — deixa a digitação hesitar">
+                  <label>Tensão <b>{Math.round(ultimoEstado.humor.stress * 100)}%</b></label>
+                  <span className={`chat-estado-trilha ${ultimoEstado.humor.stress > 0.55 ? 'baixa' : ''}`}><i style={{ width: `${Math.round(ultimoEstado.humor.stress * 100)}%` }} /></span>
+                </span>
+                <span className="chat-estado-item" title="Quanto ela inicia conversa — cai quando você ignora, sobe com a relação">
+                  <label>Iniciativa <b>{Math.round((ultimoEstado.iniciativa ?? 0) * 100)}%</b></label>
+                  <span className="chat-estado-trilha quimica"><i style={{ width: `${Math.round((ultimoEstado.iniciativa ?? 0) * 100)}%` }} /></span>
+                </span>
+              </div>
+              <div className="chat-estado-rodape">
+                <span className="chat-estado-chip" title={ultimoEstado.objetivo?.descricao}>Objetivo: {ultimoEstado.objetivo?.rotulo || 'manter o papo'}</span>
+                {ultimoEstado.topico && <span className="chat-estado-chip" title="Assunto atual no grafo de tópicos — a conversa transita entre eles">{rotuloDoTopico(ultimoEstado.topico)}</span>}
+              </div>
+            </div>
+          )}
           <details className="chat-detalhe">
-            <summary>O que ela lembra de você<span>{memoriasDaConversa.length}</span></summary>
-            {memoriasDaConversa.length
-              ? <ul className="chat-memorias">{memoriasDaConversa.map(item => <li key={item}>{item}</li>)}</ul>
-              : <p className="form-help">Nada anotado ainda. Fale de você, da sua rotina, do que você gosta.</p>}
+            <summary>O que ela lembra de você<span>{memoriasRicas.length || memoriasDaConversa.length}</span></summary>
+            {memoriasRicas.length
+              ? <ul className="chat-memorias">{memoriasRicas.map(m => (
+                <li key={m.id}>
+                  <i className={`mem-ponto ${m.importance}`} title={m.importance === 'alta' ? 'Importante — fica por meses' : m.importance === 'media' ? 'Normal — dura algumas semanas' : 'Temporária — some em poucos dias'} />
+                  <span>{m.content}</span>
+                  <small> · força {Math.round(m.forca * 100)}%</small>
+                </li>
+              ))}</ul>
+              : memoriasDaConversa.length
+                ? <ul className="chat-memorias">{memoriasDaConversa.map(item => <li key={item}>{item}</li>)}</ul>
+                : <p className="form-help">Nada anotado ainda. Fale de você, da sua rotina, do que você gosta.</p>}
           </details>
           <details className="chat-detalhe" open={promptAberto} onToggle={evento => setPromptAberto((evento.target as HTMLDetailsElement).open)}>
             <summary>Prompt do sistema<span>como ela é instruída</span></summary>
@@ -583,7 +661,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
       )}
 
       <p className="chat-footnote">
-        <Flame size={11} />Conversa simulada com base na ficha, na idade e no vínculo entre vocês. Ela te chama de {nomeUsuario} e trata do jeito que a relação permite ({cartao.relacao.toLowerCase()}). O clima sobe sozinho com a intimidade; nada é oferecido do nada. Ela lembra do que você conta ({estado.lembrancas.length} anotação(ões)).
+        <Flame size={11} />Conversa simulada com base na ficha, na idade e no vínculo entre vocês. Ela te chama de {nomeUsuario} e trata do jeito que a relação permite ({cartao.relacao.toLowerCase()}). O clima sobe sozinho com a intimidade; nada é oferecido do nada. Ela lembra do que você conta ({estado.memorias?.length ?? estado.lembrancas.length} anotação(ões)) — o que importa fica, o que é bobagem some.
         {!person.fotos.length && <button onClick={() => { onClose(); ctx.openPerson(person); }}> Adicionar foto à ficha</button>}
       </p>
     </div>

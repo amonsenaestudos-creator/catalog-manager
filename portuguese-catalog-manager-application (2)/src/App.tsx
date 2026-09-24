@@ -3,13 +3,16 @@ import type { ErrorInfo, ReactNode } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { ArrowLeft, Check, ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, MoreHorizontal, Plus, Redo2, RotateCcw, ScanEye, Settings as SettingsIcon, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
 import { CatalogProvider, useCatalog } from './context';
-import { formatDate } from './store';
+import { formatDate, today } from './store';
 import { Avatar, Button, IconButton, Toast } from './components/ui';
 import Sidebar from './components/Sidebar';
 import Login from './components/Login';
 import Home from './components/Home';
 import Catalog from './components/Catalog';
 import AddPerson from './components/AddPerson';
+import Favoritos from './components/Favoritos';
+import ModoRua from './components/ModoRua';
+import Pacotes from './components/Pacotes';
 import QuickAddModal from './components/QuickAddModal';
 import PersonDrawer from './components/PersonDrawer';
 import Ranking from './components/Ranking';
@@ -38,16 +41,18 @@ import { FolhaDeAcoes } from './components/Folha';
 import type { AcaoDeFolha } from './components/Folha';
 import OnboardingTour from './components/OnboardingTour';
 import { playSound } from './lib/sound';
+import { tickDoMundo } from './lib/dialogue/events';
 import { useBordaVoltar } from './lib/toque';
 
 const PAGE_NAMES: Record<string, string> = {
-  home: 'Visão geral', conversas: 'Conversas', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
+  home: 'Visão geral', conversas: 'Conversas', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', favoritos: 'Favoritos', rua: 'Modo rua', pacotes: 'Pacotes', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
 };
 const SHORTCUT_PAGES = ['home', 'catalog', 'ranking', 'tierlists', 'add', 'gallery', 'stories', 'settings'];
 // Atalhos de letra: chegam rápido às telas novas sem mudar os atalhos antigos.
-const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox', p: 'conversas' };
+const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox', p: 'conversas', f: 'favoritos', s: 'rua', k: 'pacotes' };
 // Código Konami: ↑ ↑ ↓ ↓ ← → ← → B A liga (ou desliga) o tema disco.
 const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
+const MIRROR = ['arrowdown', 'arrowdown', 'arrowup', 'arrowup', 'arrowright', 'arrowleft', 'arrowright', 'arrowleft'];
 
 function PrivacyScreen() {
   const ctx = useCatalog();
@@ -123,6 +128,9 @@ function ActivePage() {
   if (page === 'discover') return <Discover />;
   if (page === 'catalog') return <Catalog />;
   if (page === 'add') return <AddPerson />;
+  if (page === 'favoritos') return <Favoritos />;
+  if (page === 'rua') return <ModoRua />;
+  if (page === 'pacotes') return <Pacotes />;
   if (page === 'ranking') return <Ranking />;
   if (page === 'tierlists') return <TierLists />;
   if (page === 'gallery') return <Gallery />;
@@ -141,6 +149,7 @@ function Application() {
   const { data, page, authenticated, ready } = ctx;
   const escTimes = useRef<number[]>([]);
   const konamiKeys = useRef<string[]>([]);
+  const mirrorKeys = useRef<string[]>([]);
   // No celular não existe Esc: segurar o título da tela aciona o modo pânico.
   // Histórico de telas: no celular o topo ganha um botão de voltar que anda
   // para trás dentro do aplicativo, como num app de verdade.
@@ -260,6 +269,23 @@ function Application() {
     const timer = setTimeout(ctx.dismissSplash, 4200);
     return () => clearTimeout(timer);
   }, [ctx.splash, ctx.dismissSplash]);
+  // Mundo vivo: o aplicativo continua acontecendo enquanto você não olha.
+  // Uma vez por dia, gera o que "aconteceu" no universo (pessoas ocupadas,
+  // memórias guardadas, retornos) e o resumo do dia — tudo chega em Avisos.
+  useEffect(() => {
+    if (!authenticated || !ready) return;
+    if (data.settings.mundoVivo !== true) return;
+    const hoje = today();
+    if (data.settings.mundoVivoUltimoDia === hoje) return;
+    const eventos = tickDoMundo(data);
+    if (!eventos.length) return;
+    ctx.commit(
+      d => ({ ...d, settings: { ...d.settings, mundoVivoUltimoDia: hoje }, notifications: [...eventos, ...d.notifications].slice(0, 120) }),
+      undefined,
+      false,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, ready, data.settings.mundoVivo, data.settings.mundoVivoUltimoDia]);
   useEffect(() => {
     if (!authenticated) return;
     const key = (event: KeyboardEvent) => {
@@ -287,6 +313,18 @@ function Application() {
       // Quem está escrevendo (inclusive na conversa aberta fora de modal) não dispara atalhos.
       if (digitando || document.querySelector('[role="dialog"]')) return;
       if (!mod && !event.altKey) {
+        // Código-espelho: o konami de cabeça para baixo. Uma vez por catálogo.
+        if (value.startsWith('arrow')) {
+          mirrorKeys.current = [...mirrorKeys.current, value].slice(-MIRROR.length);
+          if (mirrorKeys.current.join(' ') === MIRROR.join(' ')) {
+            mirrorKeys.current = [];
+            if (!data.progress.mirror) {
+              ctx.commit(d => ({ ...d, progress: { ...d.progress, mirror: true } }), undefined, false);
+              playSound('disco'); setConfetti(Date.now()); setTimeout(() => setConfetti(0), 3400);
+              ctx.notify('Conquista secreta: Espelho — você digitou o código de volta. Ninguém mais sabe disso (ainda).');
+            }
+          }
+        }
         konamiKeys.current = [...konamiKeys.current, value].slice(-KONAMI.length);
         // O "B" do código não pode ligar o disfarce no meio da sequência.
         if (konamiKeys.current.slice(-9).join(' ') === KONAMI.slice(0, 9).join(' ')) return;
@@ -316,7 +354,7 @@ function Application() {
     };
     document.addEventListener('keydown', key);
     return () => document.removeEventListener('keydown', key);
-  }, [ctx, authenticated, data.settings.pinEnabled, data.progress.konami]);
+  }, [ctx, authenticated, data.settings.pinEnabled, data.progress.konami, data.progress.mirror]);
 
   if (!ready) return <div className="loading-screen"><span className="brand-symbol"><Heart size={25} fill="currentColor" strokeWidth={0} /></span><h1>catalog.</h1><p><Loader2 className="spin" size={16} />Preparando seu espaço...</p></div>;
   if (!authenticated) return <><Login /><Toast /></>;

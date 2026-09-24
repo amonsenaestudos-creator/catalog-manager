@@ -391,7 +391,7 @@ const RESPOSTAS: Record<IntentId, Banco> = {
     ],
   },
   pergunta_fato: {
-    [A]: ['Deixa eu pensar 🤔 acho que sim!', 'Boa! Sobre isso eu acho que vai muito do dia, sabe? Mas te conto 😊', 'Rapaz, você me pegou 😅 nunca parei pra pensar. E você?'],
+    [A]: ['Deixa eu pensar 🤔 acho que sim!', 'Boa! Sobre isso eu acho que vai muito do dia, sabe? Mas te conto 😊', 'Rapaz, você me pegou 😅 nunca parei pra pensar. E você?', 'Ah, essa eu vi! Qual foi a sua parte favorita?', 'Confesso que não cheguei a ver kkk você viu? Me conta que eu fiquei perdida', 'Vi sim! Ficou aquela coisa na cabeça 😄 e você, o que achou?'],
     [F]: ['Hmm 😏 e por que você quer saber?', 'Resposta curta: depende. Resposta longa: te conto com um café 😉', 'Vou responder com uma condição: você também responde depois 😏'],
     [P]: ['Isso é assunto bom pra conversa mais perto 🔥 mas já que você perguntou...'],
   },
@@ -1902,6 +1902,15 @@ export interface Marcadores {
 }
 
 /**
+ * Camada viva (src/lib/dialogue/): aplica a voz da persona (risada,
+ * emoji, abreviação, erro de digitação) a uma linha montada fora dos
+ * bancos — puxada de memória, transição de tópico, reação de estilo.
+ */
+export function estilizarLinha(texto: string, ctx: EstiloContexto): string {
+  return estilizar(texto, ctx);
+}
+
+/**
  * Troca os marcadores {…} dos bancos pelos dados reais da ficha e da conversa.
  * Tudo que é escrito para ela passar usa este caminho — inclusive as sugestões
  * que aparecem na tela, que antes mostravam "{familiar}" cru.
@@ -2444,7 +2453,10 @@ const RECEPCOES_QUESTAO: string[] = [
 
   // 2b. Nomes: ela percebe quando você fala com ela pelo nome (ou escreve o seu).
   if (!desviado && !cortou && chamouEla && !['despedida', 'confusao'].includes(intencao) && rand() < 0.7) {
-    bolhas.push(preencherEscolhido(CHAMADO_PELO_NOME, rand));
+    // Num 'oi' pelo nome ela responde presente — mas o flerte fica para
+    // quando o assunto já está rodando.
+    const bancoChamado = intencao === 'saudacao' ? CHAMADO_PELO_NOME.filter(l => !l.includes('soa bem')) : CHAMADO_PELO_NOME;
+    bolhas.push(preencherEscolhido(bancoChamado, rand));
     eventos.push('nome:ela');
   } else if (!desviado && !cortou && falouProprioNome && rand() < 0.65) {
     bolhas.push(preencherEscolhido(FALOU_PROPRIA_NOME, rand));

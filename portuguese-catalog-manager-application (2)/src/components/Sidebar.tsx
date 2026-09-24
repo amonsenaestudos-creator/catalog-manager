@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
-import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Gauge, Heart, Home, Image, Layers, LogOut, MessageCircle, Minus, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
+import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Footprints, Gauge, Heart, Home, Image, Layers, LogOut, MessageCircle, Minus, Package, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
 import { useCatalog } from '../context';
 import { isActive } from '../store';
 import { Avatar, IconButton } from './ui';
@@ -45,6 +45,8 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
   const nav: ItemMenu[] = [
     { id: 'home', label: 'Início', icon: Home },
     { id: 'catalog', label: 'Catálogo', icon: Users, count: activeCount, tour: 'catalog' },
+    { id: 'favoritos', label: 'Favoritos', icon: Heart },
+    { id: 'rua', label: 'Modo rua', icon: Footprints, extra: true },
     { id: 'conversas', label: 'Conversas', icon: MessageCircle, count: conversasAbertas || undefined },
     { id: 'dashboard', label: 'Painel', icon: Gauge },
     { id: 'discover', label: 'Descobrir', icon: Sparkles, tour: 'discover' },
@@ -55,6 +57,7 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
     { id: 'add', label: 'Adicionar pessoa', icon: PlusCircle },
     { id: 'gallery', label: 'Galeria', icon: Image },
     { id: 'folders', label: 'Pastas', icon: Folder },
+    { id: 'pacotes', label: 'Pacotes', icon: Package, extra: true },
     { id: 'agenda', label: 'Agenda', icon: CalendarDays, count: data.appointments.filter(item => item.status === 'agendado').length || undefined },
     { id: 'myspace', label: 'Meu espaço', icon: UserCircle2 },
     { id: 'toolbox', label: 'Ferramentas', icon: Wrench },
