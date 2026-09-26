@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight, Building2, CalendarDays, Check, Clapperboard, CloudRain, Coffee, Compass, Disc3, Dices,
-  Droplets, Egg, Eye, Film, Flame, Gift, History, Images, Lock, MonitorPlay, Music, Pause, Play,
+  Droplets, Egg, Eye, Film, Flame, Gift, History, Images, Lock, Maximize2, Minimize2, MonitorPlay, Music, Pause, Play,
   Puzzle, Quote, Route, Shuffle, SkipBack, SkipForward, Sparkles, Telescope, Trophy, Volume2, VolumeX, X,
 } from 'lucide-react';
 import type { AppData, Person } from '../types';
@@ -430,6 +430,20 @@ export function TelaTV({ slides }: { slides: SlideTV[] }) {
   const totalVistos = useRef(data.progress.tvVistos || 0);
   const temOvo = useRef(!!data.progress.ovos?.maratonista);
   const slide = slides.length ? slides[indice % slides.length] : null;
+  // Tela cheia de verdade: do celular à TV da sala.
+  const caixa = useRef<HTMLDivElement>(null);
+  const [emTelaCheia, setEmTelaCheia] = useState(false);
+  useEffect(() => {
+    const aoMudar = () => setEmTelaCheia(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', aoMudar);
+    return () => document.removeEventListener('fullscreenchange', aoMudar);
+  }, []);
+  const telaCheia = async () => {
+    try {
+      if (!document.fullscreenElement) await caixa.current?.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch { ctx.notify('A tela cheia não está disponível neste navegador.', true); }
+  };
 
   // Trilha sonora da apresentação — começa junto e para ao sair.
   useEffect(() => {
@@ -462,16 +476,18 @@ export function TelaTV({ slides }: { slides: SlideTV[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indice]);
 
-  // Grava a contagem ao sair do modo TV.
+  // Grava a contagem ao sair do modo TV. Zerar depois de ler mantém o total
+  // certo mesmo com a limpeza dupla do StrictMode em desenvolvimento.
   useEffect(() => () => {
     const n = vistos.current;
+    vistos.current = 0;
     if (n > 0) ctx.commit(d => ({ ...d, progress: { ...d.progress, tvVistos: (d.progress.tvVistos || 0) + n } }), undefined, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!slide) return <EmptyState icon={MonitorPlay} title="Nada para exibir" description="Com fotos, pessoas e memórias, o modo TV monta a programação sozinho." />;
 
-  return <div className="tv-tela">
+  return <div className="tv-tela" ref={caixa}>
     <div className="tv-palco">
       <AnimatePresence mode="wait">
         <motion.div key={slide.id} className={`tv-slide tipo-${slide.tipo}`} initial={{ opacity: 0, scale: 0.985 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
@@ -492,6 +508,7 @@ export function TelaTV({ slides }: { slides: SlideTV[] }) {
       <IconButton label="Slide anterior" onClick={() => setIndice((indice + slides.length - 1) % slides.length)}><SkipBack size={17} /></IconButton>
       <IconButton label={tocando ? 'Pausar reprodução' : 'Continuar reprodução'} onClick={() => setTocando(!tocando)}>{tocando ? <Pause size={17} /> : <Play size={17} />}</IconButton>
       <IconButton label="Próximo slide" onClick={() => setIndice((indice + 1) % slides.length)}><SkipForward size={17} /></IconButton>
+      <IconButton label={emTelaCheia ? 'Sair da tela cheia' : 'Ver em tela cheia'} onClick={telaCheia}>{emTelaCheia ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</IconButton>
       <span className="tv-contador">{(indice % slides.length) + 1} / {slides.length}</span>
       <label className="tv-trilha"><Music size={14} /><select value={trilha} onChange={e => setTrilha(e.target.value as TrilhaId | 'nenhuma')} aria-label="Trilha da apresentação">
         {TRILHAS.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}

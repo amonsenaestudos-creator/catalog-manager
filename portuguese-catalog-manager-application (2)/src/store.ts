@@ -906,9 +906,23 @@ export function demoData(): AppData {
     const p = getDefaultPerson(); return { ...p, nome, idade: Number(age), descricao: ['Gosta de fotografia, boas conversas e descobrir cafés pela cidade.', 'Criativa e espontânea. Sempre tem uma boa indicação de livro.', 'Companhia das corridas de domingo. Apaixonado por música e viagens.', 'Uma presença tranquila e acolhedora. Adora cozinhar para os amigos.'][i], localizacaoOnde: cat, localizacaoSub: cat === 'comunidade' ? 'adulta' : '', localizacaoMora: ['Pinheiros, São Paulo', 'Vila Madalena, São Paulo', 'Perdizes, São Paulo', 'Bela Vista, São Paulo'][i], tags: i === 0 ? ['amiga', 'conhecida'] : ['amiga'], favorite: i < 2, rating: { ...p.rating, rosto: Number(rate), cabelo: Number(rate), comportamento: Number(rate), belezaGeral: Number(rate) }, fotos: [{ id: generateId(), personId: p.id, isMain: true, type: 'normal' as const, url: `/images/${img}.jpg`, name: `${nome}.jpg` }], createdAt: `${today()}T${String(10 + i).padStart(2, '0')}:00:00`, notas: [{ id: generateId(), title: 'Primeira impressão', content: 'Uma conversa leve que vale a pena recordar.', type: 'observacao' as const, date: today() }], viHojeCount: 2 + i, viHojeDates: [today(), addDays(today(), -i - 2)], ultimoVisto: today() };
   });
   data.people.forEach((person, index) => { person.fotos[0].url = DEMO_PORTRAITS[index]; });
+  // Vitrine do Explorar: uma ficha antiga para a máquina do tempo, um vínculo
+  // para o mapa, pasta e álbum para a trilha, uma memória e um vídeo de demonstração.
+  const [marina, clara] = data.people;
+  const bianca = data.people[3];
+  bianca.createdAt = '2024-06-14T10:00:00';
+  bianca.fotos[0].createdAt = '2024-06-15T10:00:00';
+  bianca.fotos[0].capturedAt = '2024-06-15';
+  bianca.notas[0].date = '2024-06-14';
+  marina.vinculos = [{ id: generateId(), personId: clara.id, papel: 'amiga' }];
+  clara.vinculos = [{ id: generateId(), personId: marina.id, papel: 'amiga' }];
+  marina.momentos = [{ id: generateId(), url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', legenda: 'Flores da praça (vídeo de demonstração)', createdAt: `${today()}T12:00:00` }];
   data.tierLists = [{ id: generateId(), nome: 'Pessoas especiais', tiers: ['Incríveis', 'Ótima companhia', 'Quero conhecer melhor'], items: data.people.slice(0, 3).map((p, i) => ({ personId: p.id, tier: i < 2 ? 'Incríveis' : 'Ótima companhia' })), allowedCategories: ['todas'], allowedSubcategories: ['todas'] }];
   data.reminders = [{ id: generateId(), personId: data.people[0].id, titulo: 'Combinar o café de sábado', data: addDays(today(), 2), concluido: false, createdAt: new Date().toISOString() }];
   data.collections = [{ id: generateId(), name: 'Boas companhias', color: PALETTE[0], personIds: data.people.slice(0, 2).map(p => p.id) }];
+  data.folders = [{ id: generateId(), name: 'Cafés & conversas', color: PALETTE[1], icon: 'casa', description: 'Para mostrar o mapa e a trilha.', personIds: [marina.id, clara.id], photoIds: [], noteIds: [], storyIds: [], createdAt: `${today()}T12:00:00`, updatedAt: `${today()}T12:00:00` }];
+  data.albums = [{ id: generateId(), name: 'Retratos', description: 'Para mostrar a trilha e a TV.', color: PALETTE[3], photoIds: [marina.fotos[0].id, clara.fotos[0].id], createdAt: `${today()}T12:00:00`, updatedAt: `${today()}T12:00:00` }];
+  data.memories = [{ id: generateId(), personId: marina.id, title: 'Tarde de café', content: 'Uma tarde para lembrar: café passado na hora e planos para o fim de semana.', date: '2025-08-20', createdAt: '2025-08-20T15:00:00' }];
   data.stories = [{ id: generateId(), titulo: 'Uma tarde para lembrar', tipo: 'detalhada', personId: data.people[0].id, conteudo: 'A conversa começou com um café e terminou com uma lista de lugares para conhecer. Às vezes, os melhores momentos são os mais simples.', date: today() }];
   return data;
 }

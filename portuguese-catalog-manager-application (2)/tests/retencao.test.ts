@@ -259,3 +259,17 @@ describe('slides e estatísticas', () => {
     expect(slides.every(s => s.titulo && s.subtitulo)).toBe(true);
   });
 });
+
+describe('demonstração como vitrine do Explorar', () => {
+  it('tem passado, relações, coleções, memória e vídeo', async () => {
+    const { demoData } = await import('../src/store');
+    const data = demoData();
+    expect(anosDoCatalogo(data).length).toBeGreaterThan(1);
+    expect(data.folders.length).toBeGreaterThan(0);
+    expect(data.albums.length).toBeGreaterThan(0);
+    expect(data.memories.length).toBeGreaterThan(0);
+    expect(data.people.some(p => (p.momentos || []).length > 0)).toBe(true);
+    expect(data.people.some(p => (p.vinculos || []).length > 0)).toBe(true);
+    expect(trilhaExploracao(data, 7).length).toBeGreaterThanOrEqual(5);
+  });
+});

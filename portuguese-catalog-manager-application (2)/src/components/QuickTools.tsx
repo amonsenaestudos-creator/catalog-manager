@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Archive, Bell, CalendarClock, CheckCircle2, Clipboard, Columns3, Download, EyeOff, FileWarning, FolderOpen, GalleryHorizontal, Gauge, Heart, ImageOff, Maximize2, Moon, Plus, RefreshCw, ScanEye, Search, Share2, Shuffle, SlidersHorizontal, Sparkles, Star, Sun, Trophy, Users } from 'lucide-react';
+import { Archive, Bell, CalendarClock, CheckCircle2, Clipboard, Columns3, Compass, Download, EyeOff, FileWarning, FolderOpen, GalleryHorizontal, Gauge, Heart, ImageOff, Maximize2, Moon, Plus, RefreshCw, ScanEye, Search, Share2, Shuffle, SlidersHorizontal, Sparkles, Star, Sun, Trophy, Users } from 'lucide-react';
 import { useCatalog } from '../context';
 import { DEFAULT_FILTER, exportCsv, isActive } from '../store';
 import { Modal } from './ui';
@@ -39,6 +39,7 @@ export default function QuickTools({ onClose }: { onClose: () => void }) {
     { title: 'Buscar em tudo', description: 'Pessoas, notas, histórias e ações', icon: Search, run: closeRun(() => ctx.setCommandOpen(true)) },
     { title: 'Pessoa surpresa', description: 'Abra uma ficha aleatória', icon: Shuffle, run: closeRun(random) },
     { title: 'Roleta', description: 'Escolha visualmente quem rever', icon: Sparkles, run: closeRun(() => ctx.setRouletteOpen(true)) },
+    { title: 'Explorar', description: 'Presente, trilha, mapa, tempo e TV', icon: Compass, run: closeRun(() => ctx.navigate('explorar')) },
     { title: 'Favoritas', description: `${people.filter(p => p.favorite).length} fichas favoritas`, icon: Heart, run: catalog({ scope: 'favorites' }) },
     { title: 'Sem foto', description: 'Encontre fichas que precisam de imagem', icon: ImageOff, run: catalog({ photo: 'without' }) },
     { title: 'Incompletas', description: 'Priorize os cadastros por terminar', icon: FileWarning, run: catalog({ incomplete: true, sort: 'completeness' }) },

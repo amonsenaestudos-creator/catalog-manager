@@ -1900,3 +1900,34 @@
   .new-features-link { min-height: 48px; padding: 0 12px; border-radius: var(--raio-p); }
   .new-features-link small { font-size: 10.5px; }
 }
+
+/* ------------------------------------------------- 17.5 o explorar no dedo */
+@media (max-width: 760px) {
+  /* abas que rolam de lado, cartões empilhados e alvos de polegar: o explorar
+     inteiro funciona com uma mão, do presente ao modo TV */
+  .explorar-tabs { flex-wrap: nowrap; overflow-x: auto; }
+  .explorar-tabs > button { white-space: nowrap; }
+  .explorar-grade { grid-template-columns: 1fr; }
+  .presente-aberto img { height: 150px; }
+  .trilha-acoes .btn { flex: 1; justify-content: center; min-height: 46px; }
+  .mapa-caixa { grid-template-columns: 1fr; }
+  .mapa-expandir { min-height: 40px; }
+  .tempo-fotos { grid-template-columns: repeat(3, 1fr); }
+  .tv-palco { min-height: 300px; }
+  .tv-foto { height: 42vh; }
+  .tv-cartao h3 { font-size: 19px; }
+  .tv-barra { flex-wrap: wrap; }
+  .tv-contador { margin-right: 0; }
+  .tv-modal { padding: 10px; }
+  .colecao-numeros { grid-template-columns: repeat(2, 1fr); }
+  .ambiente-lista li .btn { min-height: 44px; }
+  .home-explorar { padding: 12px; }
+  .momentos-tela { min-height: 340px; }
+  .momento-video { width: min(260px, 80%); }
+  .descoberta-cartao { padding: 26px 18px 20px; }
+}
+@media (max-width: 1100px) {
+  /* no tablet a TV respira: foto menor e palco com folga */
+  .tv-foto { height: 40vh; }
+  .tv-palco { min-height: 380px; }
+}

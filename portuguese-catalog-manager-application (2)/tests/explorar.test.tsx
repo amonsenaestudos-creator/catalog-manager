@@ -59,6 +59,7 @@ describe('explorar', () => {
     expect(document.querySelector('.tv-tela')).toBeTruthy();
     // Pausar evita o avanço automático durante o resto do teste.
     await act(async () => { (screen.getByRole('button', { name: /Pausar reprodução/i }) as HTMLElement).click(); });
+    expect(screen.getByRole('button', { name: /tela cheia/i })).toBeInTheDocument();
   });
 
   it('mostra ambiente, desafios e coleção', async () => {
