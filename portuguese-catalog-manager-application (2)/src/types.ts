@@ -105,10 +105,30 @@ export interface Person {
   vinculoComigo?: string;
   /** Ajuste manual do jeito de falar: a idade sugere, você decide. */
   maturidadeAjuste?: 'auto' | 'seria' | 'solta';
+  /** Clipes curtos da aba “Momentos” do perfil. */
+  momentos?: MomentoVideo[];
 }
 
 export interface CustomField { id: string; label: string; value: string }
 export interface Attachment { id: string; label: string; url: string; kind: 'link' | 'video' | 'pdf' | 'audio' | 'outro'; createdAt: string }
+
+/**
+ * Momento em vídeo da ficha: um clipe curto que aparece na aba “Momentos”.
+ * Arquivos pequenos são guardados dentro do catálogo (data URL, como as fotos);
+ * arquivos grandes ficam como endereço temporário da sessão e expiram ao recarregar.
+ */
+export interface MomentoVideo {
+  id: string;
+  /** data:video/*, https:// (arquivo direto), blob: (sessão) ou link de YouTube/Vimeo. */
+  url: string;
+  legenda: string;
+  duracao?: number | null;
+  /** Miniatura opcional (data URL de imagem). */
+  capa?: string;
+  /** Verdadeiro quando o endereço só vale nesta sessão (arquivo grande). */
+  temporario?: boolean;
+  createdAt: string;
+}
 export interface RatingSnapshot {
   date: string;
   overall: number;
@@ -307,6 +327,35 @@ export interface Progress {
   konami?: boolean;
   /** Código-espelho digitado (conquista secreta). */
   mirror?: boolean;
+  /**
+   * Exploração (tela Explorar): sequência de dias em que a pessoa realmente
+   * encontrou ou organizou algo — não basta abrir o app.
+   */
+  exploracao?: {
+    /** Último dia (AAAA-MM-DD) com uma descoberta registrada. */
+    ultimoDia: string;
+    /** Dias seguidos com descoberta. */
+    sequencia: number;
+    /** Total de descobertas registradas. */
+    total: number;
+    /** Fichas visitadas no dia atual (para os mini-desafios de “encontre”). */
+    visitadasDia: string[];
+    diaVisitas: string;
+    /** Trilhas aleatórias concluídas (passo a passo até o fim). */
+    trilhas?: number;
+    /** Última festa de “memória antiga” por ficha (fichaId → AAAA-MM). */
+    festas?: Record<string, string>;
+  };
+  /** Mini-desafios diários: dia atual e ids concluídos. */
+  desafiosDiarios?: { dia: string; concluidos: string[] };
+  /** Desbloqueáveis visuais já liberados (id → data). */
+  desbloqueaveis?: Record<string, string>;
+  /** Easter eggs encontrados (id → data). Os secretos não aparecem na lista antes. */
+  ovos?: Record<string, string>;
+  /** Presentes diários já abertos (AAAA-MM-DD → id do presente). */
+  presentes?: Record<string, string>;
+  /** Slides assistidos no modo TV (para o ovo maratonista). */
+  tvVistos?: number;
 }
 export interface Vault { pin: string | null; photoIds: string[] }
 
@@ -555,6 +604,18 @@ export interface AppData {
     // Quem está usando o catálogo: a idade muda o jeito que ela fala com você.
     ownerAge?: number | null;
     ownerBirthday?: string | null;
+    // Explorar: sons ambientes, identidade sonora por seção e visual desbloqueado.
+    /** Cada seção tem um pequeno sinal sonoro ao abrir (respeita o mudo geral). */
+    somSecao?: boolean;
+    /** Sons ambientes contínuos (chuva, café...) e trilhas de apresentação. */
+    somAmbiente?: boolean;
+    ambienteVolume?: number;
+    /** Trilha padrão do modo apresentação/TV. */
+    trilhaApresentacao?: 'ambiente' | 'cinematico' | 'eletronico' | 'minimalista' | 'nenhuma';
+    /** Visual liberado na coleção: fundo, moldura do avatar e estilo dos cartões. */
+    fundoEquipado?: string;
+    molduraEquipada?: string;
+    estiloCartao?: string;
   };
 }
 

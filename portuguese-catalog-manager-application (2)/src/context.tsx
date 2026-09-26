@@ -4,6 +4,7 @@ import type { AppData, CatalogFilter, Person, PersonDraft, Profile } from './typ
 import { calculateOverallRating, DEFAULT_FILTER, demoData, duplicatePerson, emptyData, generateId, getAllTagNames, makeActivity, normalizePhotos, PALETTE, today, valoresDaAvaliacao } from './store';
 import { DEFAULT_PROFILE, deleteProfileData, loadProfiles, persistData, pushBackup, readStoredData, saveProfiles, writeJournal } from './lib/storage';
 import { computeXp, evaluateAchievements, levelInfo, weeklyChallenges } from './lib/progress';
+import { mesesDesde } from './lib/retencao';
 import { newNotifications, pushBrowserNotification } from './lib/notifications';
 import { configureSound, playSound, primeSound, vibrate } from './lib/sound';
 import type { SoundName } from './lib/sound';
@@ -98,6 +99,9 @@ interface CatalogContext {
   rouletteOpen: boolean;
   setRouletteOpen: (v: boolean) => void;
   togglePinned: (id: string) => void;
+  /** Memória antiga recém-aberta: o App mostra a sobreposição de descoberta. */
+  descoberta: { personId: string; meses: number } | null;
+  dismissDescoberta: () => void;
 }
 const Context = createContext<CatalogContext | null>(null);
 export function useCatalog() { const context = useContext(Context); if (!context) throw new Error('CatalogProvider ausente.'); return context; }
@@ -334,7 +338,41 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       return next.category === f.category && next.subcategory === f.subcategory && next.tag === f.tag && next.collection === f.collection ? f : next;
     });
   }, [data.categories, data.collections, data.settings.customTags, data.people]);
-  const openPerson = useCallback((person: Person | string, opts?: { editar?: boolean; aba?: string }) => { const id = typeof person === 'string' ? person : person.id; const p = current.current.people.find(p => p.id === id); if (p?.deletedAt) { navigate('catalog', 'trash'); notify('Esta ficha está na lixeira. Restaure para editar.'); return; } if (p) { setOpenRequest(opts?.editar || opts?.aba ? { editar: opts.editar, aba: opts.aba } : null); setSelectedId(id); } }, [navigate, notify]);
+  const [descoberta, setDescoberta] = useState<{ personId: string; meses: number } | null>(null);
+  const dismissDescoberta = useCallback(() => setDescoberta(null), []);
+  const openPerson = useCallback((person: Person | string, opts?: { editar?: boolean; aba?: string }) => {
+    const id = typeof person === 'string' ? person : person.id;
+    const p = current.current.people.find(p => p.id === id);
+    if (p?.deletedAt) { navigate('catalog', 'trash'); notify('Esta ficha está na lixeira. Restaure para editar.'); return; }
+    if (!p) return;
+    // Explorar: a visita de hoje conta para os mini-desafios de “encontre” —
+    // e abrir uma memória de 8+ meses ganha a festa de descoberta (uma vez por mês por ficha).
+    if (!demoRef.current) {
+      const hoje = today();
+      const exploracao = current.current.progress.exploracao;
+      const meses = mesesDesde(p.createdAt);
+      const mesAtual = hoje.slice(0, 7);
+      const festejar = meses >= 8 && exploracao?.festas?.[id] !== mesAtual;
+      commit(d => ({
+        ...d,
+        progress: {
+          ...d.progress,
+          exploracao: {
+            ultimoDia: d.progress.exploracao?.ultimoDia || '',
+            sequencia: d.progress.exploracao?.sequencia || 0,
+            total: d.progress.exploracao?.total || 0,
+            trilhas: d.progress.exploracao?.trilhas || 0,
+            visitadasDia: d.progress.exploracao?.diaVisitas === hoje ? [...new Set([...d.progress.exploracao.visitadasDia, id])].slice(-60) : [id],
+            diaVisitas: hoje,
+            festas: { ...(d.progress.exploracao?.festas || {}), ...(festejar ? { [id]: mesAtual } : {}) },
+          },
+        },
+      }), undefined, false);
+      if (festejar) setDescoberta({ personId: id, meses });
+    }
+    setOpenRequest(opts?.editar || opts?.aba ? { editar: opts.editar, aba: opts.aba } : null);
+    setSelectedId(id);
+  }, [navigate, notify, commit]);
   const changePeople = useCallback((ids: string[], patch: Partial<Person>, message: string) => { commit(d => ({ ...d, people: d.people.map(p => ids.includes(p.id) ? { ...p, ...patch, updatedAt: new Date().toISOString() } : p) }), message); }, [commit]);
   const savePerson = useCallback((p: Person, draftId?: string) => {
     if (!p.nome.trim() || !p.descricao.trim()) { notify('Preencha o nome e a descrição.', true); return false; }
@@ -502,7 +540,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     xp, level, achievements, unread, notificationsOpen, setNotificationsOpen, markNotificationRead, markAllNotificationsRead, clearNotifications, checkAlerts,
     profiles, createProfile, switchProfile, removeProfile, swipe, duel, togglePhotoFavorite,
     vaultUnlocked, unlockVault, lockVault, splash, dismissSplash, addXp,
-    sound, buzz, celebration, dismissCelebration, rouletteOpen, setRouletteOpen, togglePinned,
+    sound, buzz, celebration, dismissCelebration, rouletteOpen, setRouletteOpen, togglePinned, descoberta, dismissDescoberta,
   }}>{children}</Context.Provider>;
 }
 

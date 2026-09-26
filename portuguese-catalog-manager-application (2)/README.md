@@ -31,6 +31,8 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Tierlists:** exportação em PNG pelo menu **Mais**.
 - **Ferramentas:** 50 utilidades em cinco grupos (Catálogo e dados, Organização em lote, Conversa e social, Meu espaço e rotina, Utilidades do dia a dia), com busca, ícones no mesmo estilo do resto do app e atalho `T`. Cada ferramenta declara os campos que precisa e mostra o resultado em tela, com botão de copiar e download quando faz sentido.
 - **Novidades do Catalog:** guia navegável dos recursos novos e aprimorados. A lista está em `src/features.ts`.
+- **Explorar (atalho `E`):** presente diário, retrospectiva do dia com reprodução, trilha aleatória passo a passo, mapa de conexões navegável, máquina do tempo por ano/mês, modo TV com trilhas (ambiente, cinemático, eletrônico, minimalista), ambientes sonoros contínuos (chuva, café, oceano, cidade, lo-fi), três mini-desafios por dia (+20 XP cada), sequência de descobertas de verdade e coleção de visuais desbloqueáveis (fundos, molduras, cartões, cores) mais easter eggs. Abrir uma ficha de 8+ meses mostra a animação de descoberta (uma vez por mês por ficha).
+- **Momentos em vídeo:** cada ficha tem a aba **Momentos** com reprodução vertical, deslize para trocar, miniaturas e adição por arquivo (até 12 MB ficam guardados; maiores valem a sessão) ou link (arquivo direto, YouTube, Vimeo).
 
 ## Conversa simulada 2.0
 
@@ -119,6 +121,9 @@ Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não
 - `src/lib/storage.ts`: IndexedDB, recuperação local e versões de backup.
 - `src/lib/export.ts`: exportações PNG por Canvas (ficha, ranking e tierlist), sem interpolar conteúdo pessoal em HTML.
 - `src/lib/sound.ts`: sintetizador de sons de interface (Web Audio) com as regras de silêncio.
+- `src/lib/ambiente.ts`: sons ambientes contínuos (chuva, café, oceano, cidade, lo-fi), trilhas de apresentação e o sinal sonoro de cada seção — tudo sintetizado, com um único som contínuo por vez.
+- `src/lib/retencao.ts`: a lógica pura do Explorar — presente diário com semente, momentos do dia, trilha aleatória, mapa, máquina do tempo, slides de TV, sequência de descobertas, mini-desafios, desbloqueáveis, ovos e tipos de vídeo.
+- `src/components/Explorar.tsx`: a página Explorar (8 modos) e a sobreposição de descoberta de memórias antigas; `src/components/MomentosPerfil.tsx`: os vídeos verticais da aba Momentos da ficha.
 - `src/lib/persona.ts`: leitura da ficha (comportamento, idade, interesses, signo, música, localização) e montagem da persona que fala.
 - `src/lib/dialogue.ts`: motor da conversa simulada — intenções, clima automático, química, estágios, memória, humor, estilo de escrita, sugestões, análise e exportação.
 - `src/lib/toolkit.ts`: as 50 ferramentas, com campos, prévia e execução sobre os dados.

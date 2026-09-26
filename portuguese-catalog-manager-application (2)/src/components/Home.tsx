@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Clock3, Heart, Plus, Shuffle, Sparkles, Trophy, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Clock3, Flame, Gift, Heart, Plus, Shuffle, Sparkles, Trophy, Users } from 'lucide-react';
 import { useCatalog } from '../context';
-import { calculateOverallRating, formatDate, getFinalScore, isActive, locationLabel, rankedPeople } from '../store';
+import { calculateOverallRating, formatDate, getFinalScore, isActive, locationLabel, rankedPeople, today } from '../store';
 import { Avatar, Button, Disclosure, EmptyState, IconButton, PageTitle, PhotoView, SectionHeading } from './ui';
 import StarRating from './StarRating';
 import Analytics from './Analytics';
@@ -18,6 +18,12 @@ export default function Home() {
   const recent = [...people].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 4); const favorites = people.filter(p => p.favorite).slice(0, 5);
   const random = () => { if (people.length) ctx.openPerson(people[Math.floor(Math.random() * people.length)]); };
   return <div className="home-page"><PageTitle eyebrow="Seu espaço pessoal" title={`Olá, ${data.settings.profileName.split(' ')[0] || 'você'}.`} description="Bom ter você por aqui. O que vamos guardar hoje?"><Button onClick={random} disabled={!people.length}><Shuffle size={16} />Surpresa</Button><Button variant="primary" onClick={() => ctx.setQuickOpen(true)}><Plus size={17} />Fichário rápido</Button></PageTitle>
+    {people.length > 0 && <button className="home-explorar" onClick={() => ctx.navigate('explorar')}>
+      <span className="home-explorar-icone"><Gift size={19} /></span>
+      <span className="home-explorar-copy"><strong>{data.progress.presentes?.[today()] ? 'Presente de hoje aberto — e tem mais' : 'Um presente espera por você'}</strong><small>Explorar: momentos, trilhas, mapa, tempo e desafios</small></span>
+      {(data.progress.exploracao?.sequencia || 0) > 0 && <span className="home-explorar-seq"><Flame size={14} />{data.progress.exploracao?.sequencia}</span>}
+      <ArrowRight size={16} />
+    </button>}
     <section className="home-banner" aria-roledescription="carrossel" aria-label="Conheça seu catálogo" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
       <img src={ARCHIVE_SCENE} alt="Pastas lilás e um caderno organizados em uma mesa" />
       <div className="banner-shade" />

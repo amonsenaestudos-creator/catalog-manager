@@ -32,6 +32,7 @@ import Dashboard from './components/Dashboard';
 import MySpace from './components/MySpace';
 import Agenda from './components/Agenda';
 import Discover from './components/Discover';
+import Explorar, { SobreposicaoDescoberta } from './components/Explorar';
 import NotificationCenter from './components/NotificationCenter';
 import QuickTools from './components/QuickTools';
 import Toolbox from './components/Toolbox';
@@ -41,15 +42,16 @@ import { FolhaDeAcoes } from './components/Folha';
 import type { AcaoDeFolha } from './components/Folha';
 import OnboardingTour from './components/OnboardingTour';
 import { playSound } from './lib/sound';
+import { efeitoDaSecao, pararSomContinuo, suspenderAmbiente } from './lib/ambiente';
 import { tickDoMundo } from './lib/dialogue/events';
 import { useBordaVoltar } from './lib/toque';
 
 const PAGE_NAMES: Record<string, string> = {
-  home: 'Visão geral', conversas: 'Conversas', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', favoritos: 'Favoritos', rua: 'Modo rua', pacotes: 'Pacotes', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
+  home: 'Visão geral', conversas: 'Conversas', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', explorar: 'Explorar', catalog: 'Catálogo', favoritos: 'Favoritos', rua: 'Modo rua', pacotes: 'Pacotes', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
 };
 const SHORTCUT_PAGES = ['home', 'catalog', 'ranking', 'tierlists', 'add', 'gallery', 'stories', 'settings'];
 // Atalhos de letra: chegam rápido às telas novas sem mudar os atalhos antigos.
-const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox', p: 'conversas', f: 'favoritos', s: 'rua', k: 'pacotes' };
+const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', e: 'explorar', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox', p: 'conversas', f: 'favoritos', s: 'rua', k: 'pacotes' };
 // Código Konami: ↑ ↑ ↓ ↓ ← → ← → B A liga (ou desliga) o tema disco.
 const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
 const MIRROR = ['arrowdown', 'arrowdown', 'arrowup', 'arrowup', 'arrowright', 'arrowleft', 'arrowright', 'arrowleft'];
@@ -126,6 +128,7 @@ function ActivePage() {
   if (page === 'toolbox') return <Toolbox />;
   if (page === 'conversas') return <Conversations />;
   if (page === 'discover') return <Discover />;
+  if (page === 'explorar') return <Explorar />;
   if (page === 'catalog') return <Catalog />;
   if (page === 'add') return <AddPerson />;
   if (page === 'favoritos') return <Favoritos />;
@@ -263,7 +266,28 @@ function Application() {
     document.documentElement.classList.toggle('density-compact', data.settings.density === 'compacto');
     document.documentElement.style.setProperty('--accent', data.settings.accent || '#c786ec');
     document.documentElement.style.setProperty('--accent-soft', `${data.settings.accent || '#c786ec'}22`);
-  }, [ctx.blur, authenticated, data.settings.density, data.settings.accent]);
+    // Visuais desbloqueados na coleção: fundo, moldura dos retratos e estilo dos cartões.
+    const raiz = document.documentElement;
+    if (data.settings.fundoEquipado) raiz.dataset.fundo = data.settings.fundoEquipado; else delete raiz.dataset.fundo;
+    if (data.settings.molduraEquipada) raiz.dataset.moldura = data.settings.molduraEquipada; else delete raiz.dataset.moldura;
+    if (data.settings.estiloCartao) raiz.dataset.cartao = data.settings.estiloCartao; else delete raiz.dataset.cartao;
+  }, [ctx.blur, authenticated, data.settings.density, data.settings.accent, data.settings.fundoEquipado, data.settings.molduraEquipada, data.settings.estiloCartao]);
+  // Identidade sonora da seção: um sinal curto ao trocar de tela (desligável nos Ajustes).
+  const primeiraPagina = useRef(true);
+  useEffect(() => {
+    if (primeiraPagina.current) { primeiraPagina.current = false; return; }
+    if (!authenticated || ctx.privacy || ctx.panic) return;
+    if (data.settings.somSecao === false) return;
+    const efeito = efeitoDaSecao(page);
+    if (efeito) playSound(efeito);
+  }, [page, authenticated, ctx.privacy, ctx.panic, data.settings.somSecao]);
+  // Sons contínuos (ambientes e trilhas) obedecem ao mudo geral: disfarce, pânico,
+  // privacidade, sons desligados ou logout suspendem/param tudo na hora.
+  useEffect(() => {
+    if (!authenticated) { pararSomContinuo(); return; }
+    const mudo = ctx.blur || ctx.panic || ctx.privacy || data.settings.sounds === false || data.settings.somAmbiente === false;
+    suspenderAmbiente(mudo);
+  }, [authenticated, ctx.blur, ctx.panic, ctx.privacy, data.settings.sounds, data.settings.somAmbiente]);
   useEffect(() => {
     if (!ctx.splash) return;
     const timer = setTimeout(ctx.dismissSplash, 4200);
@@ -420,6 +444,7 @@ function Application() {
     <AnimatePresence>{!ctx.privacy && ctx.celebration && (ctx.celebration.kind === 'nivel'
       ? <LevelUpBadge key={ctx.celebration.id} level={ctx.celebration.level || ctx.level.level} title={ctx.celebration.description} onClose={ctx.dismissCelebration} />
       : <AchievementToast key={ctx.celebration.id} title={ctx.celebration.title} description={ctx.celebration.description} onClose={ctx.dismissCelebration} />)}</AnimatePresence>
+    <AnimatePresence>{!ctx.privacy && !ctx.panic && ctx.descoberta && <SobreposicaoDescoberta key="descoberta" />}</AnimatePresence>
     {ctx.privacy && <PrivacyScreen />}
     {!ctx.privacy && <Toast />}
     {!ctx.privacy && <OnboardingTour />}

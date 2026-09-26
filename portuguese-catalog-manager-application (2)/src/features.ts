@@ -4,6 +4,14 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Explorar: presente diário e momentos do dia', 'Todo dia um presente surpresa espera por você — uma pessoa antiga, uma foto, uma coleção, um número bonito ou uma memória. E o que foi registrado hoje vira uma retrospectiva com botão de reproduzir.', 'explorar'],
+  ['Trilha aleatória e mapa de conexões', 'A trilha leva de pessoa a foto, coleção, relação, memória e outra pessoa, passo a passo. O mapa mostra os nós do seu universo para tocar e navegar sem fim.', 'explorar'],
+  ['Máquina do tempo e modo TV', 'Escolha o ano (e o mês) e veja o que existia no catálogo naquele período. O modo TV coloca fotos, pessoas, coleções, números e memórias em reprodução automática, com trilha à escolha.', 'explorar'],
+  ['Ambientes sonoros e trilhas', 'Chuva, café, oceano, cidade e lo-fi gerados na hora para deixar o app aberto enquanto você organiza. Cada seção também ganhou um sinal sonoro próprio — tudo desligável.', 'explorar'],
+  ['Momentos em vídeo nos perfis', 'Cada ficha ganhou a aba Momentos: clipes em reprodução vertical, com deslize para trocar, miniaturas, arquivo do aparelho ou link (YouTube e Vimeo valem).', 'catalog'],
+  ['Mini-desafios e sequência de descobertas', 'Três brincadeiras por dia (+20 XP cada), como reencontrar alguém de 6 meses atrás. A sequência só sobe quando algo foi realmente encontrado ou organizado.', 'explorar'],
+  ['Coleção de visuais e easter eggs', 'Fundos, molduras de retrato, estilos de cartão e cores liberados conforme o catálogo cresce — personalização pura. E ovos de páscoa raros escondidos pelo app.', 'explorar'],
+  ['Festa ao reencontrar memórias antigas', 'Abrir uma ficha de 8 meses ou mais mostra uma animação de descoberta com som. Uma vez por mês por ficha: surpresa boa não vira spam.', 'catalog'],
   ['Celular com UI própria', 'O celular deixou de ser o desktop espremido: folha que sobe do pé da tela, deslizar da borda para voltar, topo que se recolhe ao rolar e doca que sai da frente quando uma folha ou o visor assumem a tela.', 'home'],
   ['Galeria em mosaico de verdade', 'Cada foto aparece na sua própria proporção (retrato, paisagem, panorama). Há também a quadra de quadrados e a linha do tempo, que agrupa por dia e deixa a data grudada no topo enquanto você rola.', 'gallery'],
   ['Visor de fotos de aplicativo', 'Tela inteira, deslizar para o lado troca a foto, pinça ou toque duplo dão zoom, puxar para baixo fecha e um toque esconde as barras. Abaixo, a faixa de miniaturas.', 'gallery'],

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
-import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Footprints, Gauge, Heart, Home, Image, Layers, LogOut, MessageCircle, Minus, Package, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
+import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, Compass, FileText, Folder, Footprints, Gauge, Heart, Home, Image, Layers, LogOut, MessageCircle, Minus, Package, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
 import { useCatalog } from '../context';
 import { isActive } from '../store';
 import { Avatar, IconButton } from './ui';
@@ -25,6 +25,7 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
   // e o botão de voltar do aparelho fecha o menu em vez de sair do aplicativo.
   const fechar = useRef(onClose);
   fechar.current = onClose;
+  const toquesLogo = useRef<number[]>([]);
   useEffect(() => {
     if (!open) return;
     document.documentElement.classList.add('menu-aberto');
@@ -50,6 +51,7 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
     { id: 'conversas', label: 'Conversas', icon: MessageCircle, count: conversasAbertas || undefined },
     { id: 'dashboard', label: 'Painel', icon: Gauge },
     { id: 'discover', label: 'Descobrir', icon: Sparkles, tour: 'discover' },
+    { id: 'explorar', label: 'Explorar', icon: Compass },
     { id: 'ranking', label: 'Ranking', icon: Trophy, extra: true },
     { id: 'tierlists', label: 'Tierlists', icon: Layers, extra: true },
   ];
@@ -81,7 +83,18 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
 
   return <><button className={`sidebar-scrim ${open ? 'open' : ''}`} aria-label="Fechar menu" onClick={onClose} tabIndex={open ? 0 : -1} />
     <aside id="mobile-navigation" className={`sidebar ${open ? 'mobile-open' : ''}`} aria-label="Navegação principal">
-      <div className="sidebar-brand-row"><button className="brand" onClick={() => go('home')} aria-label="Catalog, ir para início"><span className="brand-symbol"><Heart size={23} fill="currentColor" strokeWidth={0} /></span><span>catalog<span className="brand-dot">.</span><small>seu universo pessoal</small></span></button><IconButton label="Fechar menu" className="sidebar-close" onClick={onClose}><X size={20} /></IconButton></div>
+      <div className="sidebar-brand-row"><button className="brand" onClick={() => {
+        // Ovo de páscoa: sete toques rápidos no logo. Ninguém precisa saber — até encontrar.
+        const agora = Date.now();
+        toquesLogo.current = [...toquesLogo.current.filter(t => agora - t < 2500), agora];
+        if (toquesLogo.current.length >= 7 && !data.progress.ovos?.['logo-sete']) {
+          toquesLogo.current = [];
+          ctx.commit(d => ({ ...d, progress: { ...d.progress, ovos: { ...(d.progress.ovos || {}), 'logo-sete': new Date().toISOString() } } }), undefined, false);
+          ctx.sound('descoberta');
+          ctx.notify('Ovo de páscoa encontrado: Sete toques.');
+        }
+        go('home');
+      }} aria-label="Catalog, ir para início"><span className="brand-symbol"><Heart size={23} fill="currentColor" strokeWidth={0} /></span><span>catalog<span className="brand-dot">.</span><small>seu universo pessoal</small></span></button><IconButton label="Fechar menu" className="sidebar-close" onClick={onClose}><X size={20} /></IconButton></div>
       <nav aria-label="Menu principal"><p className="nav-label">Seu espaço</p>{visiveis(nav).map(entrada => item(entrada, navAtivo(entrada.id)))}{expandir(nav)}
         <p className="nav-label library-label">Sua biblioteca</p>{visiveis(library).map(entrada => item(entrada, libAtivo(entrada.id)))}{expandir(library)}
       </nav>

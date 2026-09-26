@@ -6,7 +6,8 @@
  */
 export type SoundName =
   | 'pop' | 'like' | 'pass' | 'thud' | 'achievement' | 'levelup' | 'shutter' | 'unlock' | 'error'
-  | 'swoosh' | 'success' | 'tick' | 'disco' | 'mood1' | 'mood2' | 'mood3' | 'mood4' | 'mood5';
+  | 'swoosh' | 'success' | 'tick' | 'disco' | 'mood1' | 'mood2' | 'mood3' | 'mood4' | 'mood5'
+  | 'descoberta' | 'presente' | 'pagina';
 
 interface SoundState { enabled: boolean; muted: boolean; volume: number }
 const state: SoundState = { enabled: true, muted: false, volume: 0.55 };
@@ -118,10 +119,17 @@ const RECIPES: Record<SoundName, (ctx: AudioContext, out: AudioNode, t: number) 
   mood3: (ctx, out, t) => tone(ctx, out, { freq: 330, start: t, duration: 0.34, gain: 0.16 }),
   mood4: (ctx, out, t) => { tone(ctx, out, { freq: 392, start: t, duration: 0.34, gain: 0.13 }); tone(ctx, out, { freq: 494, start: t + 0.02, duration: 0.34, gain: 0.11 }); },
   mood5: (ctx, out, t) => [523, 659, 784].forEach((freq, index) => tone(ctx, out, { freq, start: t + index * 0.03, duration: 0.42, gain: 0.11 })),
+  // Descoberta / memória antiga: sininho mágico em mi maior, com brilho no fim.
+  descoberta: (ctx, out, t) => { [659, 831, 988, 1319].forEach((freq, index) => tone(ctx, out, { freq, start: t + index * 0.07, duration: 0.4, gain: 0.12 })); noise(ctx, out, { start: t + 0.2, duration: 0.5, from: 6000, to: 9000, gain: 0.03, type: 'highpass' }); },
+  // Presente diário: um “pop” de laço e duas notas de surpresa.
+  presente: (ctx, out, t) => { tone(ctx, out, { freq: 520, to: 880, start: t, duration: 0.08, gain: 0.18 }); tone(ctx, out, { freq: 784, start: t + 0.1, duration: 0.16, type: 'triangle', gain: 0.15 }); tone(ctx, out, { freq: 1175, start: t + 0.22, duration: 0.3, type: 'triangle', gain: 0.15 }); },
+  // Troca de seção: quase um sussurro — existe para dar identidade, não para cansar.
+  pagina: (ctx, out, t) => noise(ctx, out, { start: t, duration: 0.18, from: 500, to: 1800, gain: 0.045 }),
 };
 
 export const SOUND_PREVIEWS: { name: SoundName; label: string }[] = [
   { name: 'pop', label: 'Pop do coração' }, { name: 'like', label: 'Swipe' }, { name: 'achievement', label: 'Conquista' }, { name: 'levelup', label: 'Subiu de nível' }, { name: 'shutter', label: 'Foto' },
+  { name: 'descoberta', label: 'Descoberta' }, { name: 'presente', label: 'Presente' },
 ];
 
 /** Toca um som se estiver permitido. Nunca lança erro: som é enfeite, não pode derrubar a tela. */

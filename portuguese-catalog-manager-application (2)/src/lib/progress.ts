@@ -1,5 +1,5 @@
 import type { AppData, Person } from '../types';
-import { calculateOverallRating, completeness, getAllPhotos, isActive, rarityFor, today, weekKey } from '../store';
+import { calculateOverallRating, completeness, getAllPhotos, isActive, rarityFor, today, todosOsMomentos, weekKey } from '../store';
 
 export interface AchievementDef { id: string; title: string; description: string; icon: string; test: (data: AppData) => boolean }
 
@@ -28,6 +28,12 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'agenda', title: 'Encontros marcados', description: 'Três compromissos registrados na agenda.', icon: 'calendar', test: data => data.appointments.length >= 3 },
   { id: 'conversas', title: 'Boa de papo', description: 'Dez assuntos anotados no histórico de conversas.', icon: 'chat', test: data => data.conversations.length >= 10 },
   { id: 'mapa', title: 'Bairro a bairro', description: 'Pessoas registradas em cinco localizações diferentes.', icon: 'map', test: data => new Set(people(data).map(p => p.localizacaoMora).filter(Boolean)).size >= 5 },
+  { id: 'presente-1', title: 'Papel de presente', description: 'Você abriu o primeiro presente diário no Explorar.', icon: 'gift', test: data => Object.keys(data.progress.presentes || {}).length >= 1 },
+  { id: 'trilha-1', title: 'Andarilha do catálogo', description: 'Você completou uma trilha aleatória até o fim.', icon: 'route', test: data => (data.progress.exploracao?.trilhas || 0) >= 1 },
+  { id: 'desafios-3', title: 'Dia de brincadeira séria', description: 'Os três mini-desafios de um dia, concluídos.', icon: 'puzzle', test: data => (data.progress.desafiosDiarios?.concluidos || []).length >= 3 },
+  { id: 'momento-1', title: 'Estreia em vídeo', description: 'O primeiro Momento em vídeo entrou numa ficha.', icon: 'clapperboard', test: data => todosOsMomentos(data).length >= 1 },
+  { id: 'ovo-1', title: 'Caçadora de ovos', description: 'Você encontrou um easter egg escondido no app.', icon: 'egg', test: data => Object.keys(data.progress.ovos || {}).length >= 1 || !!data.progress.mirror },
+  { id: 'sequencia-3', title: 'Descobridora', description: 'Três dias seguidos encontrando algo de verdade.', icon: 'flame', test: data => (data.progress.exploracao?.sequencia || 0) >= 3 },
 ];
 
 export function evaluateAchievements(data: AppData) {

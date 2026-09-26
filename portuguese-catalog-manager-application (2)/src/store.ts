@@ -1,4 +1,4 @@
-import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, Person, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
+import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, MomentoVideo, Person, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
 import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS, VINCULO_PAPEIS } from './types';
 import { DEMO_PORTRAITS } from './assets';
 
@@ -134,16 +134,18 @@ export const retiredSubcategory = (value: string) => RETIRED_SUBCATEGORY_VALUES.
 export const safeImage = (url: string) => /^(data:image\/(png|jpeg|jpg|webp|gif|bmp|avif|svg\+xml);base64,|https:\/\/|\/images\/)/i.test(url) ? url : '';
 // Links externos só entram como http(s); nada de javascript: ou data: em anexos.
 export const safeLink = (url: string) => /^(https?:\/\/|mailto:|tel:)/i.test(url.trim()) ? url.trim() : '';
+/** Endereços aceitos para os Momentos em vídeo: arquivo guardado, link direto, sessão ou YouTube/Vimeo. */
+export const safeVideo = (url: string) => /^(data:video\/[a-z0-9.+-]+;base64,|blob:|https?:\/\/)/i.test(url.trim()) ? url.trim() : '';
 export const RARITIES = ['comum', 'raro', 'epico', 'lendario'];
 export const RARITY_LABELS: Record<string, string> = { comum: 'Comum', raro: 'Raro', epico: 'Épico', lendario: 'Lendário' };
 export const RARITY_COLORS: Record<string, string> = { comum: '#9aa0ad', raro: '#7ba3dc', epico: '#c786ec', lendario: '#e6b76a' };
 export const rarityFor = (score: number) => score >= 4.8 ? 'lendario' : score >= 4.3 ? 'epico' : score >= 3.6 ? 'raro' : 'comum';
 
 export function getDefaultPerson(): Person {
-  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '' };
+  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', momentos: [] };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
+  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false, exploracao: { ultimoDia: '', sequencia: 0, total: 0, visitadasDia: [], diaVisitas: '', trilhas: 0, festas: {} }, desafiosDiarios: { dia: '', concluidos: [] }, desbloqueaveis: {}, ovos: {}, presentes: {}, tvVistos: 0 }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null, somSecao: true, somAmbiente: true, ambienteVolume: 40, trilhaApresentacao: 'ambiente', fundoEquipado: '', molduraEquipada: '', estiloCartao: '' } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -358,6 +360,18 @@ export function normalizePerson(value: unknown): Person {
     .filter(v => v.personId && v.personId !== result.id)
     .filter((v, i, list) => list.findIndex(x => x.personId === v.personId && x.papel === v.papel) === i)
     .slice(0, 40);
+  // Momentos em vídeo da aba “Momentos”: no máximo 20 por ficha. Endereços de
+  // sessão (blob:) expiram ao recarregar — a tela avisa e oferece remover.
+  result.momentos = array(p.momentos).map(value => {
+    const m = object(value);
+    const momento: MomentoVideo = { id: text(m.id) || generateId(), url: safeVideo(text(m.url)), legenda: text(m.legenda).slice(0, 140), duracao: null, createdAt: text(m.createdAt, new Date().toISOString()) };
+    const duracao = numeric(m.duracao, NaN);
+    if (Number.isFinite(duracao) && duracao > 0) momento.duracao = Math.min(7200, duracao);
+    const capa = safeImage(text(m.capa));
+    if (capa) momento.capa = capa;
+    if (m.temporario === true) momento.temporario = true;
+    return momento;
+  }).filter(m => m.url).slice(0, 20);
   return result;
 }
 
@@ -397,6 +411,14 @@ export function normalizeData(value: unknown, strict = false): AppData {
   // Quem usa o catálogo: a idade (ou o nascimento) muda o jeito que ela fala com você.
   base.settings.ownerBirthday = /^\d{4}-\d{2}-\d{2}$/.test(text(s.ownerBirthday)) ? text(s.ownerBirthday) : null;
   base.settings.ownerAge = s.ownerAge === null || s.ownerAge === undefined || s.ownerAge === '' ? null : Math.max(0, Math.min(120, Math.round(numeric(s.ownerAge))));
+  // Explorar: sons ambientes e visual desbloqueado (tudo opcional, tudo desligável).
+  base.settings.somSecao = s.somSecao !== false;
+  base.settings.somAmbiente = s.somAmbiente !== false;
+  base.settings.ambienteVolume = Math.max(0, Math.min(100, Math.round(numeric(s.ambienteVolume, 40))));
+  base.settings.trilhaApresentacao = (['ambiente', 'cinematico', 'eletronico', 'minimalista', 'nenhuma'].includes(text(s.trilhaApresentacao)) ? s.trilhaApresentacao : 'ambiente') as AppData['settings']['trilhaApresentacao'];
+  base.settings.fundoEquipado = text(s.fundoEquipado).slice(0, 40);
+  base.settings.molduraEquipada = text(s.molduraEquipada).slice(0, 40);
+  base.settings.estiloCartao = text(s.estiloCartao).slice(0, 40);
   base.people = array(raw.people).map(normalizePerson).filter((p, i, list) => list.findIndex(q => q.id === p.id) === i);
   base.orphanPhotos = array(raw.orphanPhotos).map(v => photo(v, null)).filter(p => p.url);
   base.tierLists = array(raw.tierLists).map(v => {
@@ -530,6 +552,21 @@ export function normalizeData(value: unknown, strict = false): AppData {
     lastActive: text(progress.lastActive),
     celebrated: Object.fromEntries(Object.entries(object(progress.celebrated)).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
     konami: progress.konami === true,
+    mirror: progress.mirror === true,
+    exploracao: {
+      ultimoDia: text(object(progress.exploracao).ultimoDia),
+      sequencia: Math.max(0, Math.round(numeric(object(progress.exploracao).sequencia))),
+      total: Math.max(0, Math.round(numeric(object(progress.exploracao).total))),
+      visitadasDia: strings(object(progress.exploracao).visitadasDia).slice(-60),
+      diaVisitas: text(object(progress.exploracao).diaVisitas),
+      trilhas: Math.max(0, Math.round(numeric(object(progress.exploracao).trilhas))),
+      festas: Object.fromEntries(Object.entries(object(object(progress.exploracao).festas)).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
+    },
+    desafiosDiarios: { dia: text(object(progress.desafiosDiarios).dia), concluidos: strings(object(progress.desafiosDiarios).concluidos).slice(0, 12) },
+    desbloqueaveis: Object.fromEntries(Object.entries(object(progress.desbloqueaveis)).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
+    ovos: Object.fromEntries(Object.entries(object(progress.ovos)).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
+    presentes: Object.fromEntries(Object.entries(object(progress.presentes)).filter(([, v]) => typeof v === 'string')) as Record<string, string>,
+    tvVistos: Math.max(0, Math.round(numeric(progress.tvVistos))),
   };
   const vault = object(raw.vault);
   base.vault = { pin: /^\d{4,8}$/.test(text(vault.pin)) ? text(vault.pin) : null, photoIds: [...new Set(strings(vault.photoIds))] };
@@ -622,6 +659,8 @@ export function getFinalScore(p: Person) { const n = calculateOverallRating(p.ra
 export const rankedPeople = (people: Person[]) => [...people].filter(isActive).sort((a, b) => getFinalScore(b) - getFinalScore(a) || calculateOverallRating(b.rating) - calculateOverallRating(a.rating) || a.nome.localeCompare(b.nome, 'pt-BR') || a.id.localeCompare(b.id));
 export const getMainPhoto = (p: Person) => p.fotos.find(f => f.isMain) || p.fotos[0] || null;
 export const getAllPhotos = (data: AppData) => [...data.people.filter(p => !p.deletedAt).flatMap(p => p.fotos.map(f => ({ ...f, personId: p.id }))), ...data.orphanPhotos.map(f => ({ ...f, personId: null }))];
+/** Todos os Momentos em vídeo do catálogo, com a dona de cada um. */
+export const todosOsMomentos = (data: AppData) => data.people.filter(p => !p.deletedAt).flatMap(p => (p.momentos || []).map(m => ({ ...m, personId: p.id, personNome: p.nome })));
 export function getAllTagNames(data: AppData) { return [...new Set([...TAG_OPTIONS, ...data.settings.customTags.map(t => t.nome), ...data.people.flatMap(p => p.tags)])]; }
 export function getTagColor(tag: string, data: AppData) { return data.settings.customTags.find(t => t.nome === tag)?.cor || ({ crush: '#e6ad77', amiga: '#86bfa1', alvo: '#e89499', friendzone: '#86a8d8', conhecida: '#c19dde' } as Record<string, string>)[tag] || '#aba3b7'; }
 export function locationLabel(p: Person, data: AppData, sub = true) { const c = data.categories.find(c => c.value === p.localizacaoOnde); const s = c?.subs?.find(s => s.value === p.localizacaoSub); return [c?.label || p.localizacaoOnde || 'Sem categoria', sub ? s?.label || p.localizacaoSub : ''].filter(Boolean).join(' / '); }
@@ -840,6 +879,25 @@ export async function readImage(file: File, maxSize = 1440): Promise<string> {
   if (file.size > 20 * 1024 * 1024) throw new Error('A imagem deve ter menos de 20 MB.');
   const url = await new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = () => reject(new Error('Não foi possível ler a imagem.')); r.readAsDataURL(file); });
   return new Promise((resolve, reject) => { const img = new Image(); img.onload = () => { const scale = Math.min(1, maxSize / Math.max(img.width, img.height)); const canvas = document.createElement('canvas'); canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale); const ctx = canvas.getContext('2d'); if (!ctx) return resolve(url); ctx.drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/webp', 0.86)); }; img.onerror = () => reject(new Error('Esta imagem parece estar danificada.')); img.src = url; });
+}
+
+/**
+ * Lê um vídeo para a aba “Momentos”. Até 12 MB ele é guardado dentro do
+ * catálogo (data URL, como as fotos); acima disso vira um endereço temporário
+ * da sessão, que expira ao recarregar — a tela avisa na hora.
+ */
+export async function readVideo(file: File): Promise<{ url: string; temporario: boolean }> {
+  if (!file.type.startsWith('video/')) throw new Error('Escolha um arquivo de vídeo (MP4, WebM ou MOV).');
+  if (file.size > 12 * 1024 * 1024) {
+    try { return { url: URL.createObjectURL(file), temporario: true }; }
+    catch { throw new Error('Não foi possível carregar este vídeo.'); }
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ url: String(reader.result), temporario: false });
+    reader.onerror = () => reject(new Error('Não foi possível ler o vídeo.'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export function demoData(): AppData {
