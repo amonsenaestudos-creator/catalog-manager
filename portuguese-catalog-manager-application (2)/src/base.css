@@ -1,4 +1,25 @@
-@import "@fontsource-variable/inter";
+/*
+ * Inter Variable, só os dois recortes que o português usa.
+ * O `@import` do pacote traz também cirílico, grego e vietnamita — 213 KB de
+ * fonte para escrever "coração". Aqui ficam latim e latim estendido (acentos,
+ * ç, ã, õ) e o resto é o próprio sistema que resolve, via unicode-range.
+ */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2") format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
 @import "tailwindcss";
 
 :root {
@@ -2267,3 +2288,77 @@ html.visor-aberto, html.visor-aberto body { overflow: hidden; overscroll-behavio
 .app-status.offline svg { color: var(--gold); }
 .app-status > button { flex: 0 0 auto; min-height: 30px; padding: 6px 13px; color: #fff; border-radius: 999px; background: linear-gradient(140deg, #bf77d9, #e483b3); font-size: 10px; font-weight: 550; }
 .app-status > button:hover { filter: brightness(1.06); }
+
+/* ===== Voz da pessoa: áudios, gravação e voz sintetizada ===== */
+.voz-modal .scope-tabs { margin-bottom: 14px; }
+.voz-erro { margin-bottom: 12px; }
+.voz-bloco { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.voz-bloco h3 { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 550; }.voz-bloco h3 svg { color: var(--accent); }
+.voz-bloco p { margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.voz-bloco-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.voz-bloco .btn { min-height: 34px; padding: 7px 12px; font-size: 10px; }
+
+.voz-resumo { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.voz-resumo span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; }
+.voz-resumo span svg { color: var(--accent); }.voz-resumo b { color: var(--txt); font-weight: 600; }
+.voz-ouvir { display: grid; gap: 10px; }
+.voz-nota { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 12px; background: var(--surface); transition: border-color .2s, background .2s; }
+.voz-nota.tocando { border-color: #c786ec66; background: linear-gradient(150deg, var(--accent-soft), var(--surface)); }
+.voz-play { display: grid; place-items: center; width: 44px; height: 44px; color: #fff; border-radius: 50%; background: linear-gradient(140deg, #bf77d9, #e483b3); box-shadow: 0 6px 18px -8px #c786ec99; }
+.voz-play:hover { filter: brightness(1.07); }
+.voz-nota-copia { min-width: 0; }
+.voz-nota-copia strong { display: block; overflow: hidden; font-size: 12px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.voz-nota-copia small { display: block; margin-top: 3px; color: var(--faint); font-size: 9px; }
+.voz-nota-acoes { display: flex; gap: 2px; }
+.voz-ondinha { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-top: 7px; }
+.voz-ondinha i { display: block; width: 3px; height: 26%; border-radius: 2px; background: var(--faint); }
+.voz-ondinha i:nth-child(3n) { height: 52%; }.voz-ondinha i:nth-child(4n) { height: 88%; }.voz-ondinha i:nth-child(5n) { height: 40%; }
+.voz-ondinha.ativa i { background: var(--accent); animation: voz-bater .9s ease-in-out infinite; }
+.voz-ondinha.ativa i:nth-child(2n) { animation-delay: .12s; }.voz-ondinha.ativa i:nth-child(3n) { animation-delay: .24s; }
+.voz-ondinha.viva i { background: linear-gradient(var(--accent), var(--pink)); animation: voz-bater .6s ease-in-out infinite alternate; }
+@keyframes voz-bater { 0%, 100% { transform: scaleY(.45); } 50% { transform: scaleY(1); } }
+.voz-vazia { display: grid; justify-items: center; gap: 8px; padding: 30px 20px; border: 1px dashed var(--line-hover); border-radius: 14px; text-align: center; }
+.voz-vazia svg { color: var(--accent); }
+.voz-vazia h3 { font-size: 14px; font-weight: 550; }
+.voz-vazia p { max-width: 420px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.voz-vazia .btn { margin-top: 6px; min-height: 36px; padding: 8px 13px; font-size: 10px; }
+.voz-rodape { display: flex; justify-content: flex-end; margin-top: 4px; }
+.voz-rodape .btn, .voz-falar-acoes .btn, .voz-previa-acoes .btn, .voz-gravar > .btn { min-height: 36px; padding: 8px 13px; font-size: 10px; }
+
+.voz-gravar { display: grid; justify-items: center; gap: 14px; text-align: center; }
+.voz-micro { display: grid; justify-items: center; gap: 10px; }
+.voz-micro-botao { display: grid; place-items: center; width: 86px; height: 86px; color: #fff; border-radius: 50%; background: linear-gradient(140deg, #bf77d9, #e483b3); box-shadow: 0 14px 30px -14px #c786ec; transition: transform .18s; }
+.voz-micro-botao:hover { transform: scale(1.04); }.voz-micro-botao:active { transform: scale(.97); }
+.voz-micro p { max-width: 420px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.voz-dicas { display: grid; gap: 6px; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); text-align: left; }
+.voz-dicas span { color: var(--muted); font-size: 10px; line-height: 1.6; }.voz-dicas b { color: var(--txt); font-weight: 550; }
+.voz-ou { display: flex; align-items: center; gap: 10px; width: 100%; color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .12em; }
+.voz-ou::before, .voz-ou::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.voz-gravando { display: grid; justify-items: center; gap: 12px; width: 100%; padding: 22px 16px; border: 1px solid #d98a8a55; border-radius: 14px; background: #d98a8a12; }
+.voz-gravando-pulso { width: 14px; height: 14px; border-radius: 50%; background: #d98a8a; box-shadow: 0 0 0 0 #d98a8a88; animation: voz-pulso 1.4s ease-out infinite; }
+@keyframes voz-pulso { 70% { box-shadow: 0 0 0 16px #d98a8a00; } 100% { box-shadow: 0 0 0 0 #d98a8a00; } }
+.voz-gravando strong { font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+.voz-gravando .voz-ondinha { height: 42px; gap: 3px; }
+.voz-gravando .voz-ondinha i { width: 4px; height: 30%; background: linear-gradient(var(--accent), var(--pink)); }
+.voz-gravando-acoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.voz-gravando-acoes .btn { min-height: 40px; }
+.voz-previa { display: grid; gap: 12px; width: 100%; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); text-align: left; }
+.voz-previa h3 { font-size: 13px; font-weight: 550; }
+.voz-player { width: 100%; height: 40px; }
+.voz-previa-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.voz-falar { display: grid; gap: 14px; }
+.voz-falar-cabeca { display: flex; gap: 12px; }
+.voz-falar-cabeca svg { flex: 0 0 auto; margin-top: 2px; color: var(--accent); }
+.voz-falar-cabeca h3 { font-size: 13px; font-weight: 550; }
+.voz-falar-cabeca p { max-width: 620px; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.voz-controles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.voz-controles input[type="range"] { width: 100%; accent-color: var(--accent); }
+.voz-falar-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Bolha do chat: o botão de ouvir, do lado do responder. */
+.chat-ouvir-msg { display: grid; place-items: center; width: 26px; height: 26px; color: var(--faint); border: 1px solid var(--line); border-radius: 50%; background: var(--surface); opacity: 0; transition: opacity .16s, color .16s, border-color .16s; }
+.chat-bubble-wrap:hover .chat-ouvir-msg, .chat-ouvir-msg:focus-visible, .chat-ouvir-msg.falando { opacity: 1; }
+.chat-ouvir-msg:hover { color: var(--accent); border-color: #c786ec66; }
+.chat-ouvir-msg.falando { color: var(--accent); border-color: #c786ec88; animation: voz-bater .9s ease-in-out infinite; }
+.icon-btn.voz-ativa { color: var(--accent); background: var(--accent-soft); }

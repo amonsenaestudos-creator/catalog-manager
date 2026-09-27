@@ -3,7 +3,7 @@
  *
  * Nada aqui altera dados por conta própria. `analisarSaude` só conta o que
  * encontrou e `repararCatalogo` só remove ponteiro quebrado — nunca uma ficha,
- * uma foto ou um texto seu. Toda conta recebe `agora` por parâmetro para poder
+ * uma foto, um áudio de voz ou um texto seu. Toda conta recebe `agora` por parâmetro para poder
  * ser conferida com uma data fixa.
  */
 import type { AppData, Person } from '../../types';
@@ -23,7 +23,8 @@ export type AchadoId =
   | 'rascunhos_abandonados'
   | 'lembretes_atrasados'
   | 'backup_vencido'
-  | 'espaco_apertado';
+  | 'espaco_apertado'
+  | 'audios_pesados';
 
 export interface Achado {
   id: AchadoId;
@@ -63,6 +64,10 @@ export interface ResumoDoCatalogo {
   tierlists: number;
   lembretesPendentes: number;
   rascunhos: number;
+  /** Áudios de voz guardados nas fichas. */
+  audios: number;
+  /** Espaço ocupado pelos áudios de voz, em bytes. */
+  audiosBytes: number;
   pessoasComFoto: number;
   /** Completude média das fichas ativas, de 0 a 100. */
   completudeMedia: number;
@@ -116,6 +121,9 @@ function ponteirosQuebrados(data: AppData) {
 }
 
 export function resumoDoCatalogo(data: AppData): ResumoDoCatalogo {
+  const vozes = data.people.flatMap(pessoa => pessoa.vozes || []);
+  const audios = vozes.length;
+  const audiosBytes = vozes.reduce((total, nota) => total + Math.round((nota.url || '').length * 0.75), 0);
   const comFoto = data.people.filter(p => isActive(p) && p.fotos.length > 0);
   const ativas = data.people.filter(isActive);
   const completudes = ativas.map(p => completeness(p).percent);
@@ -132,6 +140,8 @@ export function resumoDoCatalogo(data: AppData): ResumoDoCatalogo {
     tierlists: data.tierLists.length,
     lembretesPendentes: data.reminders.filter(r => !r.concluido).length,
     rascunhos: Object.keys(data.drafts || {}).length,
+    audios,
+    audiosBytes,
     pessoasComFoto: comFoto.length,
     completudeMedia: completudes.length ? Math.round(completudes.reduce((total, valor) => total + valor, 0) / completudes.length) : 0,
     tamanhoBytes,
@@ -239,7 +249,15 @@ export function analisarSaude(data: AppData, contexto: ContextoDeSaude = {}): Sa
     descricao: 'Limpar os dados do navegador apaga o catálogo e as versões locais. Um arquivo externo resolve.',
   });
 
-  // 12. Espaço do navegador chegando ao fim.
+  // 12. Voz guardada demais: áudio é o dado que mais engorda o catálogo.
+  const LIMITE_AUDIOS = 25 * 1024 * 1024;
+  if (resumo.audiosBytes >= LIMITE_AUDIOS) achados.push({
+    id: 'audios_pesados', gravidade: resumo.audiosBytes >= 60 * 1024 * 1024 ? 'critico' : 'atencao', quantidade: resumo.audios, pagina: 'catalog',
+    titulo: `${resumo.audios} áudios de voz ocupando ${(resumo.audiosBytes / 1024 / 1024).toFixed(1)} MB`,
+    descricao: 'Um minuto de voz custa cerca de 200 KB — o mesmo que uma foto pequena. Baixe um backup e apague o que já está guardado em outro lugar.',
+  });
+
+  // 13. Espaço do navegador chegando ao fim.
   if (contexto.usoBytes && contexto.cotaBytes) {
     const percent = Math.round(contexto.usoBytes / contexto.cotaBytes * 100);
     if (percent >= 70) achados.push({

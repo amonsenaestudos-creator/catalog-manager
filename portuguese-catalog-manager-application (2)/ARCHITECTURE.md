@@ -15,7 +15,8 @@ src/
 │   ├── gallery/                 # fotos, vídeos, álbuns e órfãs
 │   ├── relationships/           # relações entre fichas e contexto
 │   ├── gamification/            # XP, desafios e conquistas
-│   └── health/                  # saúde do catálogo: diagnóstico e faxina de ponteiros
+│   ├── health/                  # saúde do catálogo: diagnóstico e faxina de ponteiros
+│   └── voice/                   # voz das pessoas: áudio gravado e voz sintetizada
 ├── components/                  # camada legada compartilhada; migração gradual
 ├── lib/                         # serviços e regras legadas, agrupados por domínio quando possível
 ├── shared/                      # contratos para vários domínios (em expansão)
@@ -94,6 +95,10 @@ uso de armazenamento por parâmetro, sem consultar relógio, IndexedDB ou navega
 com o navegador é a tela, não o domínio.
 
 - `features/health/diagnostico.ts`: análise e `repararCatalogo`.
+- `features/voice/voz.ts`: regras puras da voz (perfil estável por ficha, limites, apresentação).
+  Nada de microfone nem de `speechSynthesis` aqui — isso é `gravador.ts` e `sintetizador.ts`.
+- Áudio de voz é dado da ficha (`vozes`), entra no backup e só aceita `data:audio/...`
+  (`safeVoz`, no `store`). Arquivo de fora nunca é referenciado por URL.
 - `features/health/components/SaudeDoCatalogo.tsx`: a tela (ligada ao contexto como as demais).
 - A faxina só remove **ponteiro** que aponta para algo que não existe mais; nunca apaga ficha,
   foto, nota ou história, e passa pelo `commit` do contexto (portanto, desfazível).
@@ -108,5 +113,6 @@ com o navegador é a tela, não o domínio.
 4. `src/store.ts` e `src/types.ts`: extrair contratos por domínio sem quebrar o formato salvo.
 5. `src/lib/dialogue.ts` e `src/lib/voz.ts`: manter como motores independentes; não misturar regras de conversa com UI.
 6. `src/components/Settings.tsx` e `src/components/MySpace.tsx`: telas densas que ainda concentram abas, formulários e regras; candidatas naturais à próxima fatia.
+7. `src/lib/dialogue.ts` (3.050 linhas) e `src/lib/voz.ts` (2.632): bancos de respostas que poderiam virar arquivos por assunto, carregados sob demanda — hoje pesam no bundle inicial mesmo em quem nunca abre a conversa.
 
 A regra de ouro é: uma feature pode crescer, mas nenhum arquivo deve precisar conhecer tudo sobre ela.

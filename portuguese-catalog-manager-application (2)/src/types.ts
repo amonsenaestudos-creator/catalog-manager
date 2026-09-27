@@ -105,6 +105,41 @@ export interface Person {
   vinculoComigo?: string;
   /** Ajuste manual do jeito de falar: a idade sugere, você decide. */
   maturidadeAjuste?: 'auto' | 'seria' | 'solta';
+  /** Áudios de verdade dessa pessoa: a voz, os recados, o jeito de rir. */
+  vozes?: VozNota[];
+  /** Como ela soa quando o app fala por ela. */
+  perfilVoz?: PerfilDeVoz;
+}
+
+/**
+ * Nota de voz de uma pessoa: um áudio de verdade guardado no catálogo, como
+ * as fotos. Serve para reconhecer a voz, guardar um recado e ouvir depois.
+ */
+export interface VozNota {
+  id: string;
+  /** Nome curto do que foi gravado (ex.: "Bom dia", "Recado do aniversário"). */
+  titulo: string;
+  /** data:audio/... — o áudio inteiro, guardado no aparelho. */
+  url: string;
+  /** Duração em segundos, medida na gravação. */
+  duracao: number;
+  createdAt: string;
+  descricao?: string;
+  favorite?: boolean;
+}
+
+/**
+ * Como essa pessoa soa quando o aplicativo fala por ela.
+ * Sem escolha, o catálogo sorteia uma voz estável a partir do id — a mesma
+ * pessoa soa sempre igual, sem precisar configurar nada.
+ */
+export interface PerfilDeVoz {
+  /** Nome da voz do sistema (`SpeechSynthesisVoice.name`); vazio = automática. */
+  voz?: string | null;
+  /** 0.5 a 1.6 — mais grave ou mais agudo. */
+  tom?: number;
+  /** 0.6 a 1.4 — mais devagar ou mais rápido. */
+  ritmo?: number;
 }
 
 export interface CustomField { id: string; label: string; value: string }
@@ -548,6 +583,10 @@ export interface AppData {
     chatEmojis?: boolean;
     chatMeter?: boolean;
     chatAuto?: boolean;
+    /** Falar em voz alta as respostas dela na conversa. Desligado por padrão. */
+    chatVoz?: boolean;
+    /** Volume da voz sintetizada, de 0 a 100. */
+    chatVozVolume?: number;
     chatDoNada?: boolean;
     /**
      * Mundo vivo: o aplicativo continua acontecendo enquanto você não olha —

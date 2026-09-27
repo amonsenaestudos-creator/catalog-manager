@@ -1,10 +1,7 @@
 # O repositório guarda o projeto, não o resultado da instalação nem o build.
-# Estes caminhos já foram versionados: os arquivos antigos continuam no histórico
-# e o `.gitignore` não os remove daqui — só impede que cópias novas entrem por engano.
-# Tirar `node_modules/` e `dist/` do versionamento é o passo 0.4 de MELHORIAS.md:
-#
-#   git rm -r --cached "portuguese-catalog-manager-application (2)/node_modules"
-#   git rm -r --cached "portuguese-catalog-manager-application (2)/dist"
+# `node_modules/` e `dist/` já estiveram versionados (8.454 arquivos no total);
+# saíram do índice na rodada 2 de MELHORIAS.md (§0.4) e os arquivos antigos
+# continuam no histórico — aqui só se impede que cópias novas entrem por engano.
 node_modules/
 dist/
 coverage/

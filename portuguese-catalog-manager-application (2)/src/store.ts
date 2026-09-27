@@ -140,10 +140,10 @@ export const RARITY_COLORS: Record<string, string> = { comum: '#9aa0ad', raro: '
 export const rarityFor = (score: number) => score >= 4.8 ? 'lendario' : score >= 4.3 ? 'epico' : score >= 3.6 ? 'raro' : 'comum';
 
 export function getDefaultPerson(): Person {
-  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '' };
+  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', vozes: [], perfilVoz: {} };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
+  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, chatVoz: false, chatVozVolume: 70, ownerAge: null, ownerBirthday: null } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -306,6 +306,29 @@ export function medirImagem(url: string): Promise<{ width: number; height: numbe
     img.src = url;
   });
 }
+/** Áudio guardado no catálogo: só data:audio, com teto de tamanho por nota. */
+export const VOZ_TIPOS = ['audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/aac', 'audio/3gpp'];
+export const VOZ_MAX_NOTA_BYTES = 2 * 1024 * 1024;
+export function safeVoz(url: string) {
+  if (typeof url !== 'string' || url.length > VOZ_MAX_NOTA_BYTES * 1.4) return false;
+  return new RegExp(`^data:(${VOZ_TIPOS.join('|')})[;,]`, 'i').test(url);
+}
+function normalizarVozNotas(value: unknown) {
+  return array(value).map(item => {
+    const nota = object(item);
+    const url = text(nota.url);
+    return {
+      id: text(nota.id) || generateId(),
+      titulo: text(nota.titulo).slice(0, 80) || 'Nota de voz',
+      url: safeVoz(url) ? url : '',
+      duracao: Math.max(0, Math.round(numeric(nota.duracao))),
+      createdAt: text(nota.createdAt, new Date().toISOString()),
+      descricao: text(nota.descricao).slice(0, 400),
+      favorite: nota.favorite === true,
+    };
+  }).filter(nota => nota.url).filter((nota, indice, lista) => lista.findIndex(outra => outra.id === nota.id) === indice).slice(0, 60);
+}
+
 export function normalizePerson(value: unknown): Person {
   const p = object(value), base = getDefaultPerson();
   const result = { ...base };
@@ -358,6 +381,16 @@ export function normalizePerson(value: unknown): Person {
     .filter(v => v.personId && v.personId !== result.id)
     .filter((v, i, list) => list.findIndex(x => x.personId === v.personId && x.papel === v.papel) === i)
     .slice(0, 40);
+  // Voz: áudios de verdade e o perfil de como ela soa. Nada além de data:audio
+  // entra, para um backup estranho não virar fonte de áudio externa.
+  result.vozes = normalizarVozNotas(p.vozes);
+  const perfil = object(p.perfilVoz);
+  const tom = numeric(perfil.tom, 1), ritmo = numeric(perfil.ritmo, 1);
+  result.perfilVoz = {
+    voz: text(perfil.voz) || null,
+    tom: Math.max(0.5, Math.min(1.6, tom || 1)),
+    ritmo: Math.max(0.6, Math.min(1.4, ritmo || 1)),
+  };
   return result;
 }
 
@@ -393,6 +426,8 @@ export function normalizeData(value: unknown, strict = false): AppData {
   base.settings.chatEmojis = s.chatEmojis !== false;
   base.settings.chatMeter = s.chatMeter !== false;
   base.settings.chatAuto = s.chatAuto === true;
+  base.settings.chatVoz = s.chatVoz === true;
+  base.settings.chatVozVolume = Math.max(0, Math.min(100, Math.round(numeric(s.chatVozVolume, 70))));
   base.settings.chatDoNada = s.chatDoNada !== false;
   // Quem usa o catálogo: a idade (ou o nascimento) muda o jeito que ela fala com você.
   base.settings.ownerBirthday = /^\d{4}-\d{2}-\d{2}$/.test(text(s.ownerBirthday)) ? text(s.ownerBirthday) : null;

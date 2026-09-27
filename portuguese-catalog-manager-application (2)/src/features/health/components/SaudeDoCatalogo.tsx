@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { Activity, Archive, ArrowRight, BellRing, CameraOff, Check, Clock, Copy, Database, Download, Eraser, HardDrive, ImageOff, Images, Link2Off, ShieldCheck, Sparkles, TriangleAlert, UserRound } from 'lucide-react';
+import { Activity, Archive, ArrowRight, AudioLines, BellRing, CameraOff, Check, Clock, Copy, Database, Download, Eraser, HardDrive, ImageOff, Images, Link2Off, ShieldCheck, Sparkles, TriangleAlert, UserRound } from 'lucide-react';
 import { useCatalog } from '../../../context';
 import { Avatar, Button, EmptyState, IconButton, PageTitle, SectionHeading } from '../../../components/ui';
 import { loadBackups, storageEstimate } from '../../../lib/storage';
@@ -19,6 +19,7 @@ const ICONES: Record<AchadoId, typeof Activity> = {
   lembretes_atrasados: BellRing,
   backup_vencido: Database,
   espaco_apertado: HardDrive,
+  audios_pesados: AudioLines,
 };
 
 const GRAVIDADE_LABEL: Record<Gravidade, string> = { critico: 'Crítico', atencao: 'Atenção', dica: 'Dica' };
@@ -76,6 +77,7 @@ export default function SaudeDoCatalogo() {
   const cartoes = [
     { label: 'Fichas ativas', valor: resumo.ativas, detalhe: `${resumo.arquivadas} arquivadas · ${resumo.lixeira} na lixeira` },
     { label: 'Fotos guardadas', valor: resumo.fotos, detalhe: `${resumo.pessoasComFoto} fichas com foto` },
+    { label: 'Vozes guardadas', valor: resumo.audios, detalhe: resumo.audios ? `${(resumo.audiosBytes / 1024 / 1024).toFixed(1)} MB de áudio` : 'Nenhum áudio ainda' },
     { label: 'Completude média', valor: `${resumo.completudeMedia}%`, detalhe: 'Nome, descrição, foto, categoria, contato, nota, local e tags' },
     { label: 'Peso do catálogo', valor: bytes(resumo.tamanhoBytes), detalhe: `${resumo.notas} notas · ${resumo.historias} histórias · ${resumo.pastas} pastas` },
     { label: 'Último backup', valor: contexto.ultimoBackup ? formatDate(contexto.ultimoBackup) : 'Nenhum', detalhe: contexto.ultimoBackup ? 'Ponto de restauração local' : 'Só este navegador guarda o catálogo' },

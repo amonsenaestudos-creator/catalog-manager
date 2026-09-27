@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Archive, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, History, Lightbulb, Link2, MapPin, MessageCircle, MoreHorizontal, Pin, PinOff, Plus, Printer, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
+import { Archive, AudioLines, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, History, Lightbulb, Link2, MapPin, MessageCircle, Mic, MoreHorizontal, Pin, PinOff, Plus, Printer, Share2, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
 import { ADULT_APPEARANCE_TAGS } from '../types';
 import type { Person } from '../types';
 import VisorDeFotos from './VisorDeFotos';
@@ -15,6 +15,8 @@ import Icebreakers from './Icebreakers';
 import { averageRadar, personTimeline } from '../lib/stats';
 import { descreverVinculo } from '../lib/relacao';
 import { vinculoComigoLabel } from '../types';
+import { VozDaPessoa, notasDeVoz, resumoDaVoz } from '../features/voice';
+import { compartilharTexto, resumoDaPessoa } from '../lib/compartilhar';
 import type { TimelineEvent } from '../lib/stats';
 
 export default function PersonDrawer({ person }: { person: Person }) {
@@ -35,6 +37,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
     setFotoAberta(indice >= 0 ? indice : 0);
   };
   const [iceOpen, setIceOpen] = useState(false);
+  const [vozOpen, setVozOpen] = useState(false);
   const draft = usePersonDraft(`edit-${person.id}`, 'edit', person);
   const complete = completeness(person);
   const adult = isAdult(person);
@@ -50,6 +53,19 @@ export default function PersonDrawer({ person }: { person: Person }) {
     ...(person.aniversario ? [['Aniversário', `${formatDate(person.aniversario)}${upcomingBirthday(person.aniversario) !== null ? ` · faltam ${upcomingBirthday(person.aniversario)} dias` : ''}`]] : []),
     ...(person.customFields || []).map(custom => [custom.label, custom.value] as [string, string]),
   ];
+  const notas = notasDeVoz(person).length;
+  const resumoDaVozDaPessoa = resumoDaVoz(person);
+  const resumo = {
+    duracao: `${Math.floor(resumoDaVozDaPessoa.duracao / 60)}:${String(resumoDaVozDaPessoa.duracao % 60).padStart(2, '0')}`,
+    rotuloDoPeso: resumoDaVozDaPessoa.bytes >= 1024 * 1024 ? `${(resumoDaVozDaPessoa.bytes / 1024 / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB` : `${Math.max(1, Math.round(resumoDaVozDaPessoa.bytes / 1024))} KB`,
+  };
+  /** Resumo em texto da ficha, para mandar para alguém sem abrir o aplicativo. */
+  const compartilhar = async () => {
+    setMenu(false);
+    const resultado = await compartilharTexto({ titulo: `${person.nome} — Catalog`, texto: resumoDaPessoa(person, data) });
+    if (resultado === 'compartilhado' || resultado === 'copiado') ctx.sound('compartilhar');
+    ctx.notify(resultado === 'compartilhado' ? 'Ficha compartilhada.' : resultado === 'copiado' ? 'Resumo da ficha copiado para a área de transferência.' : 'Este navegador não compartilha texto.', resultado === 'indisponivel');
+  };
   const exportImage = async () => {
     if (ctx.privacy) return;
     setBusy(true);
@@ -76,7 +92,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
             <Button onClick={() => { ctx.openChat(person); ctx.closePerson(); }}><MessageCircle size={16} />Conversar</Button>
             <Button onClick={() => setIceOpen(true)}><Lightbulb size={16} />Puxar assunto</Button>
             <Button onClick={() => ctx.seenToday([person.id])}><Eye size={16} />Vi hoje <small>{person.viHojeCount}</small></Button>
-            <div className="menu-anchor"><IconButton label="Mais ações" onClick={() => setMenu(!menu)}><MoreHorizontal size={20} /></IconButton>{menu && <div className="dropdown-menu"><button onClick={exportImage} disabled={busy}><Download size={16} />{busy ? 'Gerando imagem...' : 'Exportar ficha PNG'}</button><button onClick={() => { downloadJson(person, `catalog-ficha-${person.id}.json`); setMenu(false); }}><FileText size={16} />Exportar ficha JSON</button><button onClick={() => { setMenu(false); window.print(); }}><Printer size={16} />Imprimir ficha</button><button onClick={() => ctx.duplicate(person)}><Copy size={16} />Duplicar ficha</button><button onClick={() => { ctx.togglePinned(person.id); setMenu(false); }}>{person.pinned ? <PinOff size={16} /> : <Pin size={16} />}{person.pinned ? 'Soltar do topo' : 'Fixar no topo do catálogo'}</button><button onClick={() => { ctx.navigate('reminders'); ctx.closePerson(); }}><Plus size={16} />Criar lembrete</button><button onClick={moveArchive}><Archive size={16} />{person.archivedAt ? 'Desarquivar' : 'Arquivar ficha'}</button><button className="danger-text" onClick={() => { setConfirmTrash(true); setMenu(false); }}><Trash2 size={16} />Mover para lixeira</button></div>}</div>
+            <div className="menu-anchor"><IconButton label="Mais ações" onClick={() => setMenu(!menu)}><MoreHorizontal size={20} /></IconButton>{menu && <div className="dropdown-menu"><button onClick={() => { setVozOpen(true); setMenu(false); }}><Mic size={16} />{notas ? `Ouvir a voz (${notas})` : 'Gravar a voz dela'}</button><button onClick={() => void compartilhar()}><Share2 size={16} />Compartilhar resumo</button><button onClick={exportImage} disabled={busy}><Download size={16} />{busy ? 'Gerando imagem...' : 'Exportar ficha PNG'}</button><button onClick={() => { downloadJson(person, `catalog-ficha-${person.id}.json`); setMenu(false); }}><FileText size={16} />Exportar ficha JSON</button><button onClick={() => { setMenu(false); window.print(); }}><Printer size={16} />Imprimir ficha</button><button onClick={() => ctx.duplicate(person)}><Copy size={16} />Duplicar ficha</button><button onClick={() => { ctx.togglePinned(person.id); setMenu(false); }}>{person.pinned ? <PinOff size={16} /> : <Pin size={16} />}{person.pinned ? 'Soltar do topo' : 'Fixar no topo do catálogo'}</button><button onClick={() => { ctx.navigate('reminders'); ctx.closePerson(); }}><Plus size={16} />Criar lembrete</button><button onClick={moveArchive}><Archive size={16} />{person.archivedAt ? 'Desarquivar' : 'Arquivar ficha'}</button><button className="danger-text" onClick={() => { setConfirmTrash(true); setMenu(false); }}><Trash2 size={16} />Mover para lixeira</button></div>}</div>
           </div>
           <div className="completion-line"><div><span>Ficha {complete.percent}% completa</span><span>{complete.percent === 100 ? <Check size={14} /> : `${complete.missing.length} detalhes a preencher`}</span></div><span className="progress-track"><i style={{ width: `${complete.percent}%` }} /></span></div>
         </div>
@@ -93,6 +109,14 @@ export default function PersonDrawer({ person }: { person: Person }) {
       {tab === 'goals' && <PersonGoals personId={person.id} personName={person.nome} />}
       {tab === 'timeline' && <PersonTimeline person={person} />}
       {tab === 'notes' && <ReadNotes person={person} />}
+      {tab === 'info' && <div className="read-text voz-bloco">
+        <h3><AudioLines size={15} />A voz de {person.nome.split(' ')[0]}</h3>
+        {notas > 0
+          ? <><p>{notas} {notas === 1 ? 'áudio guardado' : 'áudios guardados'} · {resumo.duracao} de voz · {resumo.rotuloDoPeso} no catálogo.</p>
+            <div className="voz-bloco-acoes"><Button onClick={() => setVozOpen(true)}><Mic size={15} />Ouvir a voz</Button><Button variant="ghost" onClick={() => setVozOpen(true)}><Plus size={15} />Gravar outro</Button></div></>
+          : <><p>Guarde um “oi”, uma risada ou um recado. Depois é só tocar quando quiser lembrar como ela soa — e o aplicativo também pode falar por ela.</p>
+            <Button onClick={() => setVozOpen(true)}><Mic size={15} />Gravar a voz</Button></>}
+      </div>}
       {tab === 'photos' && <div className="gallery-grid drawer-gallery">{person.fotos.map((file, index) => <button key={file.id} onClick={() => setFotoAberta(index)}><PhotoView src={file.url} alt={person.nome} />{file.isMain && <span className="photo-caption"><Star size={13} />Foto principal</span>}</button>)}{!person.fotos.length && <EmptyState icon={Camera} title="Sua galeria começa aqui" action="Adicionar fotos" onAction={() => setEditing(true)} />}</div>}
     </div>}
     <article className="print-only print-region"><h1>{person.nome}</h1><p>{locationLabel(person, data)}</p><PhotoView person={person} /><p>{person.descricao}</p><dl>{details.map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl><h2>Avaliações</h2>{RATING_FIELDS.filter(field => !field.adult || adult).map(field => <p key={field.key}>{field.label}: {formatNumber(person.rating[field.key])} / 5</p>)}<h2>Notas</h2>{person.notas.map(note => <section key={note.id}><h3>{note.title}</h3><p>{note.content}</p></section>)}<h3>Observações</h3><p>{person.observacoesGerais}</p>{(person.customFields || []).map(custom => <p key={custom.id}>{custom.label}: {custom.value}</p>)}<p>{person.comportamento}</p><p>{person.descricaoCorporal}</p></article>
@@ -109,6 +133,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
           } catch { ctx.notify('Não foi possível baixar esta imagem.', true); }
         }} />
     )}
+    {vozOpen && <VozDaPessoa person={person} onClose={() => setVozOpen(false)} />}
     {iceOpen && <Icebreakers person={person} onClose={() => setIceOpen(false)} onStartChat={() => { setIceOpen(false); ctx.openChat(person); ctx.closePerson(); }} />}
   </Modal>;
 }

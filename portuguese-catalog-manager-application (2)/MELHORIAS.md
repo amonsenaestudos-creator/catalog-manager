@@ -19,10 +19,10 @@ priorizadas, (3) o que já foi implementado nesta rodada.
 | Dimensão | Situação |
 | --- | --- |
 | Código | ~33.000 linhas em `src` e `tests`; 118 arquivos em `src` |
-| Testes | 32 arquivos, 469 testes, suíte completa em ~4 min (antes: 30 arquivos, 445 testes, 2 falhando) |
+| Testes | 34 arquivos, 491 testes, suíte completa em ~4 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) |
 | Verificação | `tsc --noEmit` limpo; build de produção em ~7 s; CI a cada PR *(novo)* |
-| Build | `dist/index.html` **3.520 kB** (1.847 kB gzip) — JS, CSS, imagens e fonte embutidos |
-| Repositório | 8.454 arquivos versionados, dos quais **8.282 são `node_modules`** (~226 MB) e 7 são `dist` |
+| Build | `dist/index.html` **2.419 kB** (990 kB gzip) — era 3.520 kB (1.847 kB) antes da rodada 2 |
+| Repositório | **165 arquivos versionados** — era 8.454, dos quais 8.282 eram `node_modules` (~226 MB) e 7 eram `dist` |
 | Maior dívida declarada | `dialogue.ts` 3.050 linhas, `voz.ts` 2.632, `toolkit.ts` 1.695, `ChatSimulator.tsx` 669 |
 | Auditoria npm | 3 alertas pendentes (1 baixo, 1 moderado, 1 alto), como o próprio README registra |
 | Automação | nenhum CI, nenhum lint, nenhuma cobertura medida |
@@ -129,11 +129,38 @@ a partir do `package-lock.json`. O item 0.4 resolve a causa em vez do sintoma.
 
 ---
 
+## 3.1 Rodada 2 — voz, compartilhamento e peso
+
+| # | Entrega | O que mudou | Onde |
+| --- | --- | --- | --- |
+| V1 | **Voz das pessoas** | Áudio de verdade na ficha: gravação pelo microfone (MediaRecorder, mono, ~24 kbps) ou arquivo enviado, com título, favorito, player, download e exclusão. Limites explícitos: 2 MB por áudio, 8 MB por pessoa. | `src/features/voice/` |
+| V2 | **Voz sintetizada** | Cada ficha ganha tom e ritmo **estáveis a partir do id** (e uma pista de idade); a voz do sistema é escolhida por ficha e o app fala a apresentação, o nome e as mensagens da conversa. | `sintetizador.ts`, `voz.ts` |
+| V3 | **Conversa falada** | Botão de ouvir em cada mensagem dela e um modo no cabeçalho que fala as respostas em voz alta; nas configurações, chave própria, volume e amostra. | `ChatSimulator.tsx`, `Settings.tsx` |
+| C1 | **Compartilhar** | Resumo da ficha em texto (Web Share API com queda para a área de transferência) e áudio de voz como arquivo compartilhável, com queda para download. Nada sai sozinho e nenhum dado sai sem pedido. | `src/lib/compartilhar.ts` |
+| S1 | **Sons novos** | `gravando`, `parar`, `voz` (antes de falar) e `compartilhar`, com prévia em Ajustes. | `src/lib/sound.ts` |
+| L1 | **Peso do repositório** | `node_modules/` e `dist/` saíram do versionamento: **8.454 → 165 arquivos**. O `dist` volta com `npm run build`. | histórico do Git |
+| L2 | **Peso do pacote** | **3.520 → 2.419 kB** (gzip **1.847 → 990 kB**): imagens de demonstração comprimidas (1,1 MB → 328 KB) e fonte restrita a latim + latim estendido (213 → 118 KB). | `public/images/`, `src/base.css` |
+| L3 | **Saúde do catálogo acompanha a voz** | Cartão de vozes guardadas e achado novo para áudio acumulado (25 MB de atenção, 60 MB de crítico). | `features/health/` |
+
+### Ideias na fila (com dono e tamanho)
+
+| Ideia | Por que vale | Esforço |
+| --- | --- | --- |
+| **Transcrever os áudios** (Web Speech ou IA opcional) | Transforma voz em texto pesquisável e alimenta as notas da ficha | M |
+| **Linha do tempo da voz** | Ouvir a mesma pessoa ao longo dos anos — a mudança da voz é uma história por si | P |
+| **Playlist “boas-vindas”** | Tocar os “oi” de várias pessoas em sequência, como um álbum | P |
+| **Voz de recado no lembrete** | O lembrete chega com o áudio dela, não com um bipe | P |
+| **Mensagem de voz na conversa** | Enviar um áudio na conversa simulada — hoje só foto | M |
+| **Compartilhar pasta/tierlist como imagem** | Já existe PNG de ficha e ranking; falta o álbum e a lista | P |
+| **Kit de importação de voz** | Trazer um áudio e cortar só o trecho bom, sem editor externo | M |
+| **Modo “só voz” no celular** | Tela grande com um botão: apertar e ouvir a pessoa sorteada | P |
+| **Gráfico de peso por dado** | Mostrar o que ocupa espaço (foto, áudio, texto) dentro de Ajustes | P |
+
 ## 4. Como saber se melhorou
 
-- `npm test` verde e CI verde em todo PR (hoje: 32 arquivos, 469 testes).
+- `npm test` verde e CI verde em todo PR (hoje: 34 arquivos, 491 testes).
 - Lighthouse no `dist/index.html`: instalável, funcional offline, sem erro de console.
-- `git ls-files | wc -l` abaixo de 500 depois do item 0.4 (hoje: 8.454).
+- `git ls-files | wc -l` abaixo de 500 depois do item 0.4 (**feito**: 165 arquivos).
 - Nota da Saúde do catálogo acima de 90 num catálogo de uso diário.
 - Um único arquivo JSON de backup que abre em outro aparelho e restaura tudo, incluindo
   fotos — hoje isso já funciona; o item 1.2 só troca “arquivo legível” por “arquivo cifrado”.

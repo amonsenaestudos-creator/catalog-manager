@@ -19,6 +19,8 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Pastas:** grupos mistos de pessoas, fotos, notas e histórias, sem duplicar os itens.
 - **Quadro de investigação:** cartões pessoais em etapas de observação, conexão, confirmação e arquivo.
 - **Organizar:** coleções legadas, categorias, subcategorias, localizações, tags, rascunhos, possíveis duplicatas e atividade.
+- **Voz das pessoas:** na ficha, o bloco **A voz de …** reúne três coisas — os **áudios de verdade** dela (grave pelo microfone ou envie um arquivo: “bom dia”, uma risada, um recado), a **voz sintetizada** que o aparelho usa para falar por ela e o **compartilhamento**. Cada ficha ganha tom e ritmo próprios a partir do próprio id (a idade pesa um pouco), então a mesma pessoa soa sempre igual; dá para escolher a voz do sistema, ajustar tom e ritmo e salvar na ficha. Na conversa, o botão de alto-falante em cada mensagem dela lê aquele texto, e o do cabeçalho liga o modo voz (as respostas passam a ser faladas). Limites declarados: 2 MB por áudio e 8 MB por pessoa — um minuto de voz custa cerca de 200 KB.
+- **Compartilhar:** o resumo de uma ficha sai como texto pelo compartilhamento do aparelho (WhatsApp, Telegram, e-mail) ou vai para a área de transferência quando não houver; o áudio de voz sai como arquivo (`.webm`), com download como plano B. Nada é enviado sozinho e o link do catálogo nunca carrega dado de ninguém.
 - **Saúde do catálogo:** a leitura de manutenção — nota de 0 a 100, 12 tipos de achado (ficha sem foto ou pela metade, duplicata, referência quebrada, foto repetida, lixeira parada, rascunho esquecido, lembrete atrasado, backup vencido, espaço apertado) e uma **faxina de ponteiros** que limpa só o vínculo que aponta para quem não existe mais, sem apagar ficha, foto ou texto. Fica em Biblioteca → Mais, na busca global e no atalho da tela. O que a máquina não resolve leva você à tela certa — ou já abre o catálogo filtrado (ex.: só quem está sem foto).
 - **Tierlists:** participantes por categoria/subcategoria, faixas personalizadas, cores, ordenação, duplicação independente e **listas especiais** com nomes e fotos opcionais que não criam fichas no catálogo.
 - **Galeria:** mosaico com a proporção real de cada arquivo, quadra de quadrados iguais e linha do tempo agrupada por dia com a data grudada no topo; busca por nome/anotação/pessoa, filtros de tipo, pessoa, pasta e álbum numa folha, com chips removíveis — tudo numa faixa que segura o topo da tela enquanto o álbum rola; seleção em lote (toque, Shift para intervalo, barra fixa no pé da tela com pasta, álbum, favoritar, cofre e excluir); upload múltiplo, fotos não vinculadas, vínculos, duplicatas, álbuns e antes/depois — no antes/depois o divisor é arrastado com o dedo em cima da foto (a linha fina ganha 34px de alvo, a página continua rolando por cima, e as setas do teclado também movem).
@@ -109,6 +111,23 @@ A tela responde a uma pergunta só: **o que está guardado aqui precisa de aten�
 - Toda conta usa uma data de referência explícita (`agora`), então a mesma entrada dá sempre o mesmo resultado — e os testes não dependem do relógio da máquina.
 - O domínio é `src/features/health/`, com facade pública (`index.ts`), README próprio e limites iguais aos das outras features.
 
+## Voz das pessoas
+
+Um catálogo de fotos lembra o rosto; o Catalog também guarda o som.
+
+- **Áudios de verdade:** grave pelo microfone (mono, ~24 kbps opus, cerca de 3 KB por segundo) ou envie um arquivo que já existe. Cada áudio tem nome, duração, tamanho, favorito, player, download, compartilhamento e exclusão. Tudo entra no backup, no peso do catálogo e na faxina, como qualquer outro dado — e só `data:audio/…` é aceito, para um backup estranho não virar fonte de áudio externa.
+- **Limites escritos na tela:** 2 MB por áudio e 8 MB por pessoa. Acima disso o app explica o motivo em vez de estourar. A tela **Saúde do catálogo** avisa quando o conjunto passa de 25 MB (atenção) ou 60 MB (crítico).
+- **Voz sintetizada:** quem fala é o `speechSynthesis` do próprio aparelho, com a voz do sistema escolhida por ficha. Sem configuração, o catálogo sorteia tom e ritmo **estáveis a partir do id** da pessoa, com um ajuste leve pela idade — a mesma ficha soa sempre igual, mesmo depois de fechar o aplicativo. O que você ajustar na mão vence o automático, e o ajuste fica salvo na ficha.
+- **Onde ela fala:** em **Ajustes → Conversas** (chave, volume e “Ouvir uma amostra”, usando o perfil da primeira ficha ativa) e na conversa — o botão de alto-falante lê uma mensagem, o do cabeçalho liga o modo voz e a última resposta dela é falada em voz alta.
+- **A voz sintetizada não imita ninguém.** Ela dá presença à ficha e deixa você ouvir a conversa; a voz real é a que você gravou. Em navegador sem suporte a tela explica o que aconteceu em vez de ficar muda.
+
+## Compartilhar
+
+- **Resumo da ficha em texto:** nome, idade, categoria, local, nota pessoal, descrição, marcas (favorita, arquivada, quantos áudios e fotos, tags) e a data — sem HTML e sem dado que você não vê na tela. Sai pelo compartilhamento do aparelho; onde ele não existe, vai para a área de transferência.
+- **Áudio de voz como arquivo:** vai pelo compartilhamento de arquivos quando o navegador aceita; onde não aceita, o mesmo conteúdo é baixado.
+- Cancelar a folha do sistema **não** é erro: nada acontece e nada é copiado sem você pedir.
+- O resumo do catálogo inteiro (`resumoDoCatalogoParaCompartilhar`) conta números — pessoas, fotos, áudios, histórias — sem mostrar nome de ninguém.
+
 ## Privacidade
 
 `Ctrl+Shift+P` cobre o catálogo e os modais. O PIN é um bloqueio de interface, não criptografia. O login é local, sem autenticação de servidor. Backups incluem as configurações de acesso e devem ser guardados com cuidado. Use somente dados e imagens que você tem autorização para armazenar. Conteúdo íntimo exige pessoas adultas.
@@ -164,6 +183,8 @@ A tela responde a uma pergunta só: **o que está guardado aqui precisa de aten�
 - `src/celular.css`: todo o sistema de toque (seções 11 a 17: casca, doca, folhas, gestos, galeria, visor, cofre e a UI refeita do aparelho). Nenhuma regra nasce fora de um `@media`, então o computador não é alcançado por ela.
 - `src/computador.css`: só bloco `@media (min-width: 1101px)` — conversa em tela cheia, janela média e os rótulos dos modos na galeria.
 - `src/assets.ts`: imagens locais embutidas no build. A fonte Inter também é incluída localmente.
+- `src/features/voice/`: domínio da voz — `voz.ts` (regras puras: perfil estável por ficha, limites, texto de apresentação), `sintetizador.ts` (voz do sistema), `gravador.ts` (MediaRecorder e arquivos) e a tela `components/VozDaPessoa.tsx`.
+- `src/lib/compartilhar.ts`: compartilhamento do aparelho com queda para área de transferência e download, e os resumos em texto (ficha e catálogo).
 - `src/features/health/`: domínio da saúde do catálogo — `diagnostico.ts` (análise pura, com data de referência) e a tela `components/SaudeDoCatalogo.tsx`.
 - `src/lib/pwa.ts`: registro do service worker, convite de instalação e status de conexão do aparelho.
 - `public/sw.js` e `public/manifest.webmanifest`: casca offline e identidade do aplicativo instalado.
@@ -185,7 +206,7 @@ nada foi perdido e nada foi inventado por engano no caminho.
 
 ## Validação
 
-O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos. Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira, além de:
+O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos — **2.419 kB** (990 kB gzip). O `dist/` não é versionado: ele é resultado, não código. O mesmo para `node_modules/` (o `.gitignore` e o item 0.4 de `MELHORIAS.md` cuidam disso). Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira, além de:
 
 - `tests/chat.test.ts`: persona derivada da ficha, detecção de intenções, química e estágios, travas de idade e de clima, memória, variedade das respostas, sugestões e análise da conversa.
 - `tests/toolbox.test.ts`: as 50 ferramentas (contagem, grupos, ids únicos), execução sem quebrar com catálogo vazio, resultado visível nas ferramentas de leitura, uso do `commit` nas que alteram dados e conferência das contas do dia a dia.
@@ -194,6 +215,8 @@ O build de produção é gerado pelo script `npm run build`, com saída em `dist
 - `tests/isolamento.test.ts`: o contrato da separação — a porta importa os três na ordem, nenhum `mobile.css` legado de volta, nada solto fora de `@media` no arquivo do celular e nada de largura de bolso na base.
 - `tests/saude-catalogo.test.ts`: a análise e a faxina do domínio de saúde — catálogo em ordem não inventa pendência, a mesma data de referência dá o mesmo resultado, duplicata é crítica, ponteiro quebrado é reparável, lixeira/lembrete/backup são contados pela data de referência, a faxina limpa só o ponteiro e não toca em ficha, foto, álbum ou conversa.
 - `tests/saude-ui.test.tsx`: a tela navegando de verdade — nota, cartões do resumo, achados com gravidade, filtro por gravidade, faxina com relatório e o achado que leva ao catálogo com o filtro pronto.
+- `tests/voz-pessoas.test.ts`: a voz por dentro — perfil estável por ficha, idade como pista, ajuste manual vencendo o automático, limites de tamanho com motivo escrito, resumo das contas, apresentação montada da ficha, backup aceitando só `data:audio` e o compartilhamento nas quatro situações (aparelho, área de transferência, cancelado, arquivo).
+- `tests/voz-ui.test.tsx`: a ficha ganhando o bloco de voz e abrindo a tela de gravar, o aviso claro quando não há microfone, e as travas de peso do pacote (fonte só em latim, imagens de demonstração abaixo do teto).
 - `tests/pwa.test.ts`: o contrato do aplicativo instalável — manifest completo, ícones existindo no disco, casca guardada pelo service worker, registro fora do desenvolvimento e dispensar o convite valendo só na sessão.
 - `tests/celular.test.ts`: o CSS do celular por inteiro — as seções 14.1 a 14.20 (medidas, topo, navegação, listas, gestos, formulários, conversa, toque), a doca sem gradiente e o círculo do “+” com rótulo e afundar no toque, o cluster do topo com o sino, o “⋯” e o retrato na mesma linha e a seta de voltar ocupando a mesma caixa do menu, o voltar pelo histórico, o deslizar da borda e o pânico por toque longo; a **seção 16** (mosaico foto-primeiro, anel do cartão fixado, pílula da doca atrás do ícone, ficha em tela cheia com a ação no pé, capa do cabeçalho com as ações rolando) e a **seção 17** (fatos em lista de definição, avaliações e metas em linha de 54px, trilha da linha do tempo no centro do ponto, painel com ritmo de seção, ajustes com campo em linha de cartão e gaveta com pílula atrás do ícone).
 

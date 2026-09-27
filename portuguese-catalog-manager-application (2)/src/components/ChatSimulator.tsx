@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowDown, ArrowLeft, Brain, Camera, Download, Eraser, Flame, Heart, Info, Lock, MessageCircle, MoreVertical, Reply, Send, Shuffle, Smile, Sparkles, Timer, Wand2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Brain, Camera, Download, Eraser, Flame, Heart, Info, Lock, MessageCircle, MoreVertical, Reply, Send, Shuffle, Smile, Sparkles, Timer, Volume2, VolumeX, Wand2, X } from 'lucide-react';
 import type { ChatMessage, Person } from '../types';
 import { useCatalog } from '../context';
 import { Avatar, Button, IconButton, Modal } from './ui';
@@ -17,6 +17,7 @@ import {
   processarAbertura, processarPuxada, processarResposta, type PlanoEstendido,
 } from '../lib/dialogue/engine';
 import { seloDaRelacao } from '../lib/relacao';
+import { falar, pararDeFalar, perfilDeVoz, vozSuportada } from '../features/voice';
 
 /** Emojis de uso rápido no campo de mensagem. */
 const EMOJIS = ['😊', '😍', '😂', '😏', '🥰', '😅', '🙈', '😉', '💕', '🔥', '😢', '😳', '🤔', '👏', '💛', '😴', '🍕', '☕', '🌙', '✨'];
@@ -37,6 +38,10 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const [cardOpen, setCardOpen] = useState(false);
   const [photoPicker, setPhotoPicker] = useState(false);
   const [auto, setAuto] = useState(!!s.chatAuto);
+  // Voz: falar em voz alta o que ela escreveu, com o tom e o ritmo da ficha.
+  const [falarAlto, setFalarAlto] = useState(!!s.chatVoz && vozSuportada());
+  const [falando, setFalando] = useState<string | null>(null);
+  const perfilVozDaPessoa = useMemo(() => perfilDeVoz(person), [person]);
   // Retrato do momento: o estado que a última mensagem produziu — agora com
   // a camada viva: humor contínuo, objetivo, tópico atual e iniciativa.
   const [retrato, setRetrato] = useState(false);
@@ -84,11 +89,44 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const humor = estado.humor;
   const humorAtual = HUMORES.find(item => item.id === humor) || HUMORES[HUMORES.length - 1];
 
+  /** Fala uma mensagem dela em voz alta (ou cala, se já estiver falando). */
+  /**
+   * Fala a resposta nova quando o modo voz está ligado. Só a última: falar o
+   * histórico inteiro de uma vez seria um podcast, não uma conversa.
+   */
+  const ultimaFalada = useRef<string>('');
+  useEffect(() => {
+    if (!falarAlto || !vozSuportada()) return;
+    const dela = [...mensagens].reverse().find(mensagem => mensagem.role === 'them' && mensagem.text.trim());
+    if (!dela || ultimaFalada.current === dela.id) return;
+    ultimaFalada.current = dela.id;
+    falar({ texto: dela.text, perfil: perfilVozDaPessoa, aoTerminar: () => setFalando(null) });
+    setFalando(dela.id);
+  }, [mensagens, falarAlto, perfilVozDaPessoa]);
+
+  const ouvirMensagem = (mensagem: ChatMessage) => {
+    if (falando === mensagem.id) { pararDeFalar(); setFalando(null); return; }
+    const deuCerto = falar({
+      texto: mensagem.text,
+      perfil: perfilVozDaPessoa,
+      aoTerminar: () => setFalando(null),
+    });
+    if (!deuCerto) { ctx.notify('Este navegador não fala texto. A conversa continua funcionando por escrito.', true); return; }
+    ctx.sound('voz');
+    setFalando(mensagem.id);
+  };
+  const alternarVoz = () => {
+    const proximo = !falarAlto;
+    setFalarAlto(proximo);
+    if (!proximo) { pararDeFalar(); setFalando(null); }
+    ctx.commit(d => ({ ...d, settings: { ...d.settings, chatVoz: proximo } }), proximo ? 'Ela vai falar as respostas em voz alta.' : 'A conversa voltou a ser só por escrito.', false);
+  };
+
   const limparTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; if (autoTimer.current) clearTimeout(autoTimer.current); if (leituraTimer.current) clearTimeout(leituraTimer.current); };
   const limparTickTimers = () => { tickTimers.current.forEach(clearTimeout); tickTimers.current = []; };
   useEffect(() => {
     if (!mensagens.length) abrirConversa();
-    return () => { timers.current.forEach(clearTimeout); tickTimers.current.forEach(clearTimeout); autoTimer.current && clearTimeout(autoTimer.current); };
+    return () => { timers.current.forEach(clearTimeout); tickTimers.current.forEach(clearTimeout); autoTimer.current && clearTimeout(autoTimer.current); pararDeFalar(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -386,6 +424,11 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
             </div>
           </div>
           <div className="chat-header-actions">
+            <IconButton
+              label={falarAlto ? 'Deixar a conversa só por escrito' : 'Falar as respostas em voz alta'}
+              className={falarAlto ? 'voz-ativa' : ''}
+              onClick={alternarVoz}
+            >{falarAlto ? <Volume2 size={18} /> : <VolumeX size={18} />}</IconButton>
             <IconButton label="Mais opções" onClick={() => setMenuOpen(!menuOpen)}><MoreVertical size={18} /></IconButton>
           </div>
         </div>
@@ -535,6 +578,16 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
                         )}
                       </time>
                     </div>
+                    {mensagem.role === 'them' && mensagem.text.trim() && vozSuportada() && (
+                      <button
+                        className={`chat-ouvir-msg ${falando === mensagem.id ? 'falando' : ''}`}
+                        title={falando === mensagem.id ? 'Parar de ouvir' : 'Ouvir esta mensagem'}
+                        aria-label={falando === mensagem.id ? `Parar de ouvir a mensagem de ${person.nome.split(' ')[0]}` : `Ouvir a mensagem de ${person.nome.split(' ')[0]}`}
+                        onClick={() => ouvirMensagem(mensagem)}
+                      >
+                        {falando === mensagem.id ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                      </button>
+                    )}
                     <button
                       className="chat-responder-msg"
                       title="Responder essa mensagem"
