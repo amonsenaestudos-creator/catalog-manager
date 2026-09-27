@@ -59,6 +59,12 @@ git commit -m "Parar de versionar dependências e build"
 O arquivo `.gitignore` já está no lugar, então nada volta por engano. Quem clona passa a
 rodar `npm install` — que hoje leva 3 segundos com o cache do npm.
 
+Enquanto isso não acontece, o problema não é só tamanho: `npm install` enxerga o
+`node_modules` versionado como “já instalado” e **não recria os atalhos de `node_modules/.bin`,
+que chegam do Git sem permissão de execução** — foi exatamente assim que o primeiro run do CI
+morreu com `tsc: Permission denied`. Por isso o CI usa `npm ci`, que apaga e reinstala a árvore
+a partir do `package-lock.json`. O item 0.4 resolve a causa em vez do sintoma.
+
 ### Prioridade 1 — o que evita perda de dados e sustenta o crescimento
 
 | # | Melhoria | Problema que resolve | Onde | Esforço |

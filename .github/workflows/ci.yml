@@ -23,8 +23,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: portuguese-catalog-manager-application (2)/package-lock.json
+      # `npm ci` (e não `npm install`) porque o repositório ainda versiona
+      # node_modules: o install enxerga os pacotes presentes e não refaz os
+      # atalhos de node_modules/.bin, que chegam sem permissão de execução.
       - name: Instalar dependências
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Tipos
         run: npm run typecheck
       - name: Testes
