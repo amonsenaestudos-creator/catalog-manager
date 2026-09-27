@@ -184,3 +184,24 @@
   .azulejo.escolhendo { cursor: pointer; }
   .visor-detalhes-foto { display: none; }   /* a foto já está atrás da folha */
 }
+
+/* O laptop não deve transformar o topo em uma fileira de ícones apertados.
+   Ações de baixa frequência ficam no mesmo menu “Mais” usado no aparelho;
+   busca, gravação, avisos e perfil continuam visíveis. */
+@media (min-width: 1101px) and (max-width: 1420px) {
+  .topbar { padding-left: 24px; padding-right: 24px; gap: 12px; }
+  .topbar-start { gap: 16px; }
+  .global-search { max-width: min(300px, 32vw); }
+  .topbar-actions { gap: 4px; }
+  .topbar-actions .desktop-so { display: none; }
+  .topbar-more {
+    display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2);
+  }
+  .topbar-more:hover { border-color: var(--line-hover); background: var(--surface-3); }
+}
+
+@media (min-width: 1101px) and (max-width: 1200px) {
+  .global-search { max-width: 245px; }
+  .save-status { display: none; }
+}

@@ -401,10 +401,16 @@ export function normalizeData(value: unknown, strict = false): AppData {
   base.orphanPhotos = array(raw.orphanPhotos).map(v => photo(v, null)).filter(p => p.url);
   base.tierLists = array(raw.tierLists).map(v => {
     const t = object(v), tiers = [...new Set(strings(t.tiers).map(n => n.trim()).filter(Boolean))];
+    const tipo = t.tipo === 'especial' ? 'especial' : 'catalogo';
+    const pessoasAvulsas = array(t.pessoasAvulsas).map(value => {
+      const guest = object(value);
+      return { id: text(guest.id) || generateId(), nome: text(guest.nome).trim().slice(0, 120), foto: safeImage(text(guest.foto)) };
+    }).filter((guest, index, list) => guest.nome && list.findIndex(item => item.id === guest.id) === index);
+    const guestIds = new Set(pessoasAvulsas.map(guest => guest.id));
     const colors = Object.fromEntries(Object.entries(object(t.colors)).filter(([, color]) => typeof color === 'string' && /^#[\da-f]{6}$/i.test(color))) as Record<string, string>;
     return {
-      id: text(t.id) || generateId(), nome: text(t.nome, 'Minha tierlist'), tiers: tiers.length ? tiers : ['S', 'A', 'B', 'C', 'D'], colors, updatedAt: text(t.updatedAt),
-      items: array(t.items).map(v => { const i = object(v); return { personId: text(i.personId), tier: text(i.tier) }; }).filter((v, i, list) => base.people.some(p => p.id === v.personId) && list.findIndex(x => x.personId === v.personId) === i),
+      id: text(t.id) || generateId(), nome: text(t.nome, 'Minha tierlist'), tipo, pessoasAvulsas, tiers: tiers.length ? tiers : ['S', 'A', 'B', 'C', 'D'], colors, updatedAt: text(t.updatedAt),
+      items: array(t.items).map(v => { const i = object(v); return { personId: text(i.personId), tier: text(i.tier) }; }).filter((v, i, list) => (tipo === 'especial' ? guestIds.has(v.personId) : base.people.some(p => p.id === v.personId)) && list.findIndex(x => x.personId === v.personId) === i),
       allowedCategories: Array.isArray(t.allowedCategories) ? strings(t.allowedCategories) : ['todas'],
       allowedSubcategories: Array.isArray(t.allowedSubcategories) ? strings(t.allowedSubcategories) : ['todas'],
     };

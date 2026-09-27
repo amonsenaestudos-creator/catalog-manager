@@ -170,6 +170,13 @@ export interface TierListItem {
   tier: string;
 }
 
+/** Pessoa que existe apenas dentro de uma tierlist especial. */
+export interface TierListGuest {
+  id: string;
+  nome: string;
+  foto: string;
+}
+
 export interface TierList {
   id: string;
   nome: string;
@@ -177,6 +184,9 @@ export interface TierList {
   items: TierListItem[];
   allowedCategories: string[];
   allowedSubcategories: string[];
+  /** Listas especiais não alteram o catálogo: guardam apenas nome e foto opcional. */
+  tipo?: 'catalogo' | 'especial';
+  pessoasAvulsas?: TierListGuest[];
   colors?: Record<string, string>;
   updatedAt?: string;
 }

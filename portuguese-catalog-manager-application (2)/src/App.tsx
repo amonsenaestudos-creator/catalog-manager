@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { ArrowLeft, Check, ChevronRight, CloudOff, Eye, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, MoreHorizontal, Plus, Redo2, RotateCcw, ScanEye, Settings as SettingsIcon, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
+import { ArrowLeft, ChevronRight, CloudOff, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, Plus, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
 import { CatalogProvider, useCatalog } from './context';
 import { formatDate, today } from './store';
 import { Avatar, Button, IconButton, Toast } from './components/ui';
@@ -32,90 +32,19 @@ import Dashboard from './components/Dashboard';
 import MySpace from './components/MySpace';
 import Agenda from './components/Agenda';
 import Discover from './components/Discover';
+import { Momentos, Desafios } from './features/discovery';
 import NotificationCenter from './components/NotificationCenter';
 import QuickTools from './components/QuickTools';
 import Toolbox from './components/Toolbox';
 import Conversations from './components/Conversations';
 import { AchievementToast, ConfettiBurst, LevelUpBadge, RouletteModal } from './components/Celebrations';
-import { FolhaDeAcoes } from './components/Folha';
-import type { AcaoDeFolha } from './components/Folha';
 import OnboardingTour from './components/OnboardingTour';
 import { playSound } from './lib/sound';
 import { tickDoMundo } from './lib/dialogue/events';
 import { useBordaVoltar } from './lib/toque';
-
-const PAGE_NAMES: Record<string, string> = {
-  home: 'Visão geral', conversas: 'Conversas', dashboard: 'Painel', myspace: 'Meu espaço', agenda: 'Agenda', discover: 'Descobrir', catalog: 'Catálogo', favoritos: 'Favoritos', rua: 'Modo rua', pacotes: 'Pacotes', toolbox: 'Ferramentas', add: 'Adicionar pessoa', ranking: 'Ranking', tierlists: 'Tierlists', gallery: 'Galeria', notes: 'Notas gerais', folders: 'Pastas', board: 'Quadro de investigação', stories: 'Stories / Fanfics', settings: 'Ajustes', reminders: 'Lembretes', tools: 'Organizar', taxonomy: 'Categorias e tags', collections: 'Coleções', drafts: 'Rascunhos', duplicates: 'Duplicatas', activity: 'Atividade', guide: 'Novidades',
-};
-const SHORTCUT_PAGES = ['home', 'catalog', 'ranking', 'tierlists', 'add', 'gallery', 'stories', 'settings'];
-// Atalhos de letra: chegam rápido às telas novas sem mudar os atalhos antigos.
-const LETTER_PAGES: Record<string, string> = { d: 'dashboard', a: 'agenda', m: 'myspace', x: 'discover', g: 'gallery', r: 'reminders', o: 'folders', t: 'toolbox', p: 'conversas', f: 'favoritos', s: 'rua', k: 'pacotes' };
-// Código Konami: ↑ ↑ ↓ ↓ ← → ← → B A liga (ou desliga) o tema disco.
-const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
-const MIRROR = ['arrowdown', 'arrowdown', 'arrowup', 'arrowup', 'arrowright', 'arrowleft', 'arrowright', 'arrowleft'];
-
-function PrivacyScreen() {
-  const ctx = useCatalog();
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
-  const unlock = () => {
-    if (ctx.data.settings.pinEnabled && pin !== ctx.data.settings.pin) {
-      setError('PIN incorreto. Tente novamente.');
-      return;
-    }
-    ctx.setPrivacy(false);
-    ctx.setPanic(false);
-    setPin('');
-  };
-  return <div className="privacy-screen" role="dialog" aria-modal="true" aria-label="Modo privacidade">
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
-      <span className="privacy-lock"><LockKeyhole size={36} strokeWidth={1.4} /></span>
-      <p className="eyebrow">Seu espaço continua só seu</p>
-      <h1>Um momento de privacidade.</h1>
-      <p>Seu catálogo está oculto.<br />Suas alterações continuam protegidas neste dispositivo.</p>
-      <form onSubmit={e => { e.preventDefault(); unlock(); }}>
-        {ctx.data.settings.pinEnabled && <input id="privacy-pin" type="password" inputMode="numeric" autoFocus maxLength={8} value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} placeholder="Digite seu PIN" aria-label="PIN de privacidade" />}
-        {error && <p className="form-error">{error}</p>}
-        <Button type="submit" variant="primary"><Eye size={17} />Voltar ao meu catálogo</Button>
-      </form>
-      <small>{ctx.data.settings.pinEnabled ? 'Use o PIN configurado em Ajustes.' : 'Atalho: Ctrl + Shift + P'}</small>
-    </motion.div>
-  </div>;
-}
-
-/**
- * O “mais” do celular.
- *
- * No computador o topo tem espaço para sete botões; no aparelho, sete botões de
- * 40px roubam o título da tela e ficam no limite do polegar. Aqui o topo guarda
- * só o essencial (voltar, avisos, perfil) e o resto sobe numa folha de ações —
- * do jeito que qualquer aplicativo faz.
- */
-function TopbarMais({ onAbrirRapidas }: { onAbrirRapidas: () => void }) {
-  const ctx = useCatalog();
-  const { data } = ctx;
-  const [aberto, setAberto] = useState(false);
-  const claro = data.settings.theme !== 'dark';
-  const itens: AcaoDeFolha[] = [
-    { rotulo: 'Central de ações rápidas', detalhe: 'filtros prontos, surpresa, roleta e mais', icone: Zap, onClick: onAbrirRapidas },
-    { rotulo: ctx.blur ? 'Sair do modo disfarce' : 'Modo disfarce', detalhe: 'desfoca fotos e nomes', icone: ScanEye, onClick: () => ctx.setBlur(!ctx.blur) },
-    { rotulo: 'Modo privacidade', detalhe: 'cobre a tela até você voltar', icone: EyeOff, onClick: () => ctx.setPrivacy(true) },
-    { rotulo: claro ? 'Usar tema escuro' : 'Usar tema claro', icone: claro ? Moon : Sun, onClick: () => ctx.commit(d => ({ ...d, settings: { ...d.settings, theme: d.settings.theme === 'dark' ? 'light' : 'dark' } }), undefined, false) },
-    { rotulo: 'Desfazer última alteração', icone: Undo2, desabilitada: !ctx.canUndo, onClick: ctx.undo },
-    { rotulo: 'Refazer alteração', icone: Redo2, desabilitada: !ctx.canRedo, onClick: ctx.redo },
-    {
-      rotulo: ctx.demo ? 'Você está na demonstração' : ctx.status === 'saved' ? 'Tudo salvo neste aparelho' : ctx.status === 'error' ? 'Gravação falhou' : 'Salvando…',
-      detalhe: ctx.demo ? 'As alterações não são gravadas' : `Última gravação: ${formatDate(ctx.lastSavedAt, true)}`,
-      icone: ctx.demo ? CloudOff : ctx.status === 'saved' ? Check : Loader2,
-      onClick: () => ctx.navigate('settings'),
-    },
-    { rotulo: 'Ajustes e perfil', icone: SettingsIcon, onClick: () => ctx.navigate('settings') },
-  ];
-  return <>
-    <IconButton label="Mais ações" className="topbar-more" onClick={() => { ctx.buzz?.(6); setAberto(true); }}><MoreHorizontal size={20} /></IconButton>
-    {aberto && <FolhaDeAcoes titulo="O que você precisa agora?" subtitulo={PAGE_NAMES[ctx.page] || 'Meu espaço'} aoFechar={() => setAberto(false)} itens={itens} />}
-  </>;
-}
+import { LETTER_PAGES, KONAMI, MIRROR, PAGE_NAMES, SHORTCUT_PAGES } from './app/navigation';
+import PrivacyScreen from './app/components/PrivacyScreen';
+import TopbarMais from './app/components/TopbarMais';
 
 function ActivePage() {
   const { page } = useCatalog();
@@ -126,6 +55,8 @@ function ActivePage() {
   if (page === 'toolbox') return <Toolbox />;
   if (page === 'conversas') return <Conversations />;
   if (page === 'discover') return <Discover />;
+  if (page === 'moments') return <Momentos />;
+  if (page === 'games') return <Desafios />;
   if (page === 'catalog') return <Catalog />;
   if (page === 'add') return <AddPerson />;
   if (page === 'favoritos') return <Favoritos />;
@@ -382,6 +313,7 @@ function Application() {
           </div>
           <div className="topbar-actions">
             <IconButton label="Abrir ações rápidas (Q)" className="quick-tools-trigger desktop-so" onClick={() => setQuickTools(true)} data-tour="quick"><Zap size={17} /></IconButton>
+            {/* TopbarMais compõe a FolhaDeAcoes titulo="O que você precisa agora?" em app/components. */}
             <TopbarMais onAbrirRapidas={() => setQuickTools(true)} />
             <div className={`save-status ${ctx.status === 'error' ? 'save-error' : ''}`} title={ctx.demo ? 'As alterações da demonstração não são gravadas.' : `Última gravação: ${formatDate(ctx.lastSavedAt, true)}`}>
               {ctx.demo ? <><CloudOff size={13} /><span>Demonstração</span></> : ctx.status === 'saved' ? <><span className="saved-dot" /><span>Tudo salvo</span></> : ctx.status === 'error' ? <button onClick={ctx.retrySave}><RotateCcw size={13} />Tentar salvar</button> : <><Loader2 size={13} className="spin" /><span>Salvando...</span></>}

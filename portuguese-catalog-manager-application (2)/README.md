@@ -19,13 +19,15 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Pastas:** grupos mistos de pessoas, fotos, notas e histórias, sem duplicar os itens.
 - **Quadro de investigação:** cartões pessoais em etapas de observação, conexão, confirmação e arquivo.
 - **Organizar:** coleções legadas, categorias, subcategorias, localizações, tags, rascunhos, possíveis duplicatas e atividade.
-- **Tierlists:** participantes por categoria/subcategoria, faixas personalizadas, cores, ordenação e duplicação independente.
+- **Tierlists:** participantes por categoria/subcategoria, faixas personalizadas, cores, ordenação, duplicação independente e **listas especiais** com nomes e fotos opcionais que não criam fichas no catálogo.
 - **Galeria:** mosaico com a proporção real de cada arquivo, quadra de quadrados iguais e linha do tempo agrupada por dia com a data grudada no topo; busca por nome/anotação/pessoa, filtros de tipo, pessoa, pasta e álbum numa folha, com chips removíveis — tudo numa faixa que segura o topo da tela enquanto o álbum rola; seleção em lote (toque, Shift para intervalo, barra fixa no pé da tela com pasta, álbum, favoritar, cofre e excluir); upload múltiplo, fotos não vinculadas, vínculos, duplicatas, álbuns e antes/depois — no antes/depois o divisor é arrastado com o dedo em cima da foto (a linha fina ganha 34px de alvo, a página continua rolando por cima, e as setas do teclado também movem).
 - O modo de ver (mosaico, quadra, linha do tempo) fica salvo por tela: galeria e cofre têm chaves próprias.
 - **Visor de fotos:** tela inteira com deslizar para trocar de foto, pinça e toque duplo para zoom, puxar para baixo para fechar, um toque para esconder as barras, faixa de miniaturas, coração com animação, baixar, folha de detalhes (vincular ficha, mover de pasta, tipo, excluir) e, no computador, setas, `+`/`-`, `F`, `I` e `Esc`. `Esc` fecha. A mesma tela abre as fotos da ficha (aba **Fotos** e a capa) e as do cofre do Meu espaço.
 - **Lembretes:** datas, edição, prioridade, conclusão e adiamento.
 - **Ajustes:** perfil, tema, acessibilidade, sons e comemorações, PIN opcional, importação, exportação e pontos de restauração.
 - **Painel:** nível e XP, desafios da semana (marcados automaticamente), aniversários e revisitas, roleta, cinturão da campeã do duelo, gráficos e conquistas.
+- **Momentos:** uma surpresa do dia baseada no catálogo, resumo de fotos/vídeos/pessoas/notas, exploração por conexões, máquina do tempo, ambientes visuais e Modo apresentação com reprodução de fotos, miniaturas e trilha escolhida. Tudo é opcional: não há streak de login nem bloqueio de conteúdo.
+- **Desafios:** Quiz do próprio catálogo, Modo Detetive com casos gerados a partir de relações reais, quebra-cabeça de fotos, “Quem é?”, objetivos semanais, cartas colecionáveis, editor rápido de cards, álbum paginado, Hall da fama, lugares/contextos e exportação de mural visual. As respostas usam somente dados já registrados.
 - **Ficha:** aba **Linha do tempo** com cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota; opção **Fixar no topo** no menu.
 - **Agenda:** exportação `.ics` para Google Agenda, Outlook e iPhone; cronômetro que dá um tique a cada 10 minutos.
 - **Tierlists:** exportação em PNG pelo menu **Mais**.
@@ -113,6 +115,9 @@ Os sons são sintetizados na hora com a Web Audio API (`src/lib/sound.ts`): não
 
 ## Implementação
 
+- `ARCHITECTURE.md`: mapa de domínios, regras de dependência, limites de tamanho e plano de migração incremental. Cada feature nova deve começar por esse contrato.
+- `src/features/discovery/`: domínio de exploração com facades (`index.ts`), README próprio e as telas `Momentos` e `Desafios` separadas de `src/components`.
+- `src/features/people/`, `gallery/`, `relationships/` e `gamification/`: facades públicas e contratos de domínio para reduzir imports diretos de arquivos legados.
 - `src/App.tsx`: entrada, navegação, atalhos e privacidade.
 - `src/context.tsx`: estado, comandos, salvamento e histórico de desfazer.
 - `src/store.ts`: migração, avaliações, filtros, normalização, duplicatas e CSV.
