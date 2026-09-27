@@ -1,4 +1,4 @@
-import type { AppData, Person, TierList } from '../types';
+import type { AppData, Person, TierList, TierListGuest } from '../types';
 import { calculateOverallRating, downloadBlob, formatNumber, getFinalScore, getMainPhoto, locationLabel, PALETTE, tierAllows, today } from '../store';
 
 async function image(url?: string): Promise<HTMLImageElement | null> {
@@ -11,7 +11,8 @@ function write(ctx: CanvasRenderingContext2D, text: string, x: number, y: number
   if (width) { while (ctx.measureText(text).width > width && text.length > 1) text = text.slice(0, -2) + '…'; }
   ctx.fillText(text, x, y);
 }
-function portrait(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, p: Person, x: number, y: number, size: number, r = size / 2) {
+type PortraitSubject = Pick<Person, 'nome'> & { fotos?: Person['fotos']; foto?: string };
+function portrait(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, p: PortraitSubject, x: number, y: number, size: number, r = size / 2) {
   ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, size, size, r); ctx.clip(); ctx.fillStyle = '#302238'; ctx.fillRect(x, y, size, size);
   if (img) { const d = Math.min(img.width, img.height); ctx.drawImage(img, (img.width - d) / 2, (img.height - d) / 2, d, d, x, y, size, size); }
   else { ctx.textAlign = 'center'; write(ctx, p.nome.split(' ').slice(0, 2).map(n => n[0]).join(''), x + size / 2, y + size / 2 + size * 0.14, size * 0.35, '#dbc0ee', 600); }
@@ -82,10 +83,11 @@ export async function exportRankingPng(people: Person[], data: AppData, full: bo
 export async function exportTierListPng(list: TierList, data: AppData) {
   await document.fonts.ready;
   const allowed = data.people.filter(p => tierAllows(p, list));
+  const guests = list.pessoasAvulsas || [];
   const rows = list.tiers.map((tier, index) => {
     const storedColor = list.colors?.[tier];
     const color = typeof storedColor === 'string' && /^#[\da-f]{6}$/i.test(storedColor) ? storedColor : PALETTE[index % PALETTE.length];
-    const members = list.items.filter(item => item.tier === tier).map(item => allowed.find(p => p.id === item.personId)).filter((p): p is Person => !!p);
+    const members = list.items.filter(item => item.tier === tier).map(item => list.tipo === 'especial' ? guests.find(guest => guest.id === item.personId) : allowed.find(person => person.id === item.personId)).filter((person): person is Person | TierListGuest => !!person);
     return { tier, color, members };
   });
   const perRow = 8, cell = 128, labelWidth = 170, padding = 48;
@@ -102,7 +104,8 @@ export async function exportTierListPng(list: TierList, data: AppData) {
     ctx.textAlign = 'center'; write(ctx, row.tier, padding + labelWidth / 2, y + (height - 12) / 2 + 12, row.tier.length > 6 ? 22 : 34, row.color, 700, labelWidth - 20); ctx.textAlign = 'left';
     for (const [position, person] of row.members.entries()) {
       const x = padding + labelWidth + 16 + (position % perRow) * cell, top = y + 14 + Math.floor(position / perRow) * (cell + 40);
-      portrait(ctx, await image(getMainPhoto(person)?.url), person, x, top, cell - 28, 18);
+      const photoUrl = 'foto' in person ? person.foto : getMainPhoto(person)?.url;
+      portrait(ctx, await image(photoUrl), person, x, top, cell - 28, 18);
       ctx.textAlign = 'center'; write(ctx, person.nome.split(' ')[0], x + (cell - 28) / 2, top + cell + 2, 15, '#e8e2ee', 500, cell - 24); ctx.textAlign = 'left';
     }
     if (!row.members.length) write(ctx, 'Faixa vazia', padding + labelWidth + 22, y + (height - 12) / 2 + 6, 16, '#6f6779', 400);

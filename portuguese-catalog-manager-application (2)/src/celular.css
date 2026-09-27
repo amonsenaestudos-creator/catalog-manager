@@ -1900,3 +1900,240 @@
   .new-features-link { min-height: 48px; padding: 0 12px; border-radius: var(--raio-p); }
   .new-features-link small { font-size: 10.5px; }
 }
+
+/* ------------------------------------------------------------ Momentos: mobile */
+@media (max-width: 1100px) {
+  .moments-page { max-width: 100%; }
+  .moments-hero { grid-template-columns: minmax(0, 1fr) 38%; min-height: 265px; }
+  .moments-hero-copy { padding: 27px 25px; }
+  .moments-hero-media { min-height: 265px; }
+  .moments-hero-copy h2 { font-size: 30px; }
+  .moments-feature-grid, .moments-bottom-grid { grid-template-columns: minmax(0, 1fr); }
+  .presentation-controls { grid-template-columns: auto minmax(0, 1fr); }
+  .presentation-thumbs { display: none; }
+}
+
+@media (max-width: 760px) {
+  .home-moments-prompt { align-items: flex-start; margin: 20px 0 22px; padding: 14px; border-radius: 17px; }
+  .home-moments-prompt h2 { font-size: 14px; line-height: 1.35; }
+  .home-moments-prompt p:not(.eyebrow) { font-size: 10.5px; }
+  .home-moments-prompt > button { position: absolute; right: 12px; bottom: 8px; padding: 5px 0; font-size: 10px; }
+  .home-moments-prompt-photo { display: none; }
+
+  .moments-page .page-title { align-items: flex-start; flex-direction: column; gap: 13px; margin-bottom: 17px; }
+  .moments-page .page-title h1 { font-size: 28px; }
+  .moments-page .page-actions { width: 100%; overflow-x: auto; padding-bottom: 2px; }
+  .moments-page .page-actions .btn { min-height: 42px; }
+  .moments-hero { display: flex; flex-direction: column-reverse; min-height: 0; border-radius: 21px; }
+  .moments-hero-media { min-height: 181px; max-height: 220px; }
+  .moments-hero-copy { padding: 21px 19px 20px; }
+  .moments-kicker { font-size: 9px; }
+  .moments-hero-copy h2 { margin-top: 11px; font-size: 27px; letter-spacing: -1px; }
+  .moments-hero-copy > p { margin-top: 9px; font-size: 12px; line-height: 1.6; }
+  .moments-hero-meta { margin: 13px 0 16px; font-size: 9px; }
+  .moments-hero-label { right: 17px; bottom: 17px; }
+  .moments-day-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .moments-stat { padding: 12px; border-radius: 14px; }
+  .moments-stat strong { font-size: 18px; }
+  .moments-stat small { font-size: 9px; }
+  .moments-soft-note { line-height: 1.5; }
+  .moments-panel { padding: 16px 14px; border-radius: 17px; }
+  .moments-panel-heading h2 { font-size: 15px; }
+  .moments-panel-description { font-size: 11px; }
+  .discovery-chain { gap: 1px; margin: 18px -7px 17px; min-height: 123px; overflow-x: auto; padding: 2px 3px 5px; scrollbar-width: none; }
+  .discovery-chain::-webkit-scrollbar { display: none; }
+  .chain-node-wrap { min-width: 96px; }
+  .chain-node-wrap + .chain-node-wrap { padding-left: 5px; }
+  .chain-node { padding-top: 7px; border-radius: 12px; }
+  .chain-node-media { width: 40px; height: 40px; margin-bottom: 6px; }
+  .chain-node strong { font-size: 9px; }
+  .chain-arrow { display: none; }
+  .moments-panel-footer { align-items: flex-start; flex-direction: column; gap: 11px; }
+  .moments-panel-footer .btn { width: 100%; }
+  .ambient-options { gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .ambient-options::-webkit-scrollbar { display: none; }
+  .ambient-options button { min-width: 64px; min-height: 52px; }
+  .ambient-options button small { display: none; }
+  .time-years { overflow-x: auto; scrollbar-width: none; margin: 18px -2px 15px; padding: 2px; }
+  .time-years::-webkit-scrollbar { display: none; }
+  .time-years button { min-width: 62px; min-height: 39px; }
+  .time-capsule { padding-left: 0; }
+  .time-capsule-line { left: 16px; }
+  .time-item { grid-template-columns: 57px 34px minmax(0, 1fr) 14px; gap: 7px; min-height: 57px; padding-right: 1px; }
+  .time-item-date { font-size: 8px; }
+  .time-item-media { width: 30px; height: 30px; border-width: 3px; }
+  .time-item-copy strong { font-size: 11px; }
+  .time-item-copy small { font-size: 9px; }
+  .unlock-grid { gap: 5px; margin-top: 15px; }
+  .unlock-grid button { padding: 8px 3px; }
+  .unlock-grid strong { font-size: 8px; }
+  .unlock-grid small { font-size: 7px; }
+  .progress-orbit { margin-top: 15px; }
+  .presentation-overlay { align-items: stretch; padding: 0; }
+  .presentation-shell { width: 100%; height: 100%; border: 0; border-radius: 0; }
+  .presentation-topbar { padding: 16px 14px; }
+  .presentation-topbar h2 { font-size: 15px; }
+  .presentation-stage { min-height: 0; }
+  .presentation-photo { padding: 14px 32px; }
+  .presentation-arrow { width: 38px; height: 38px; }
+  .presentation-prev { left: 9px; }.presentation-next { right: 9px; }
+  .presentation-counter { right: 14px; bottom: 12px; }
+  .presentation-controls { display: flex; align-items: stretch; flex-direction: column; gap: 10px; padding: 12px 14px calc(13px + env(safe-area-inset-bottom, 0px)); }
+  .presentation-play { justify-content: center; min-height: 42px; border: 1px solid #ffffff1a; border-radius: 9px; }
+  .presentation-tracks { overflow-x: auto; padding-bottom: 1px; scrollbar-width: none; }
+  .presentation-tracks::-webkit-scrollbar { display: none; }
+  .presentation-tracks button { min-height: 35px; }
+}
+
+/* ------------------------------------------------------------ Desafios: mobile */
+@media (max-width: 1100px) {
+  .challenges-page { max-width: 100%; }
+  .collectibles-grid { grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr); }
+  .virtual-album { grid-column: span 2; }
+  .hall-place-grid { grid-template-columns: 1fr; }
+  .profile-story-panel { grid-column: auto; }
+}
+
+@media (max-width: 760px) {
+  .challenges-page .page-title { align-items: flex-start; flex-direction: column; gap: 13px; }
+  .challenges-page .page-actions { width: 100%; overflow-x: auto; padding-bottom: 2px; }
+  .challenge-hero { align-items: flex-start; flex-direction: column; gap: 18px; min-height: 0; margin: 0 -1px 13px; padding: 19px 17px; border-radius: 19px; }
+  .challenge-hero h2 { font-size: 24px; }
+  .challenge-hero p:not(.eyebrow) { font-size: 11px; }
+  .challenge-hero-stats { width: 100%; justify-content: space-between; padding: 13px 0 0; border-top: 1px solid #ffffff1b; border-left: 0; }
+  .challenge-hero-stats strong { font-size: 20px; }
+  .challenge-tabs { margin: 0 -2px 12px; }
+  .challenge-tabs button { min-height: 57px; padding: 6px 10px 11px; }
+  .challenge-tabs button > span { font-size: 10.5px; }
+  .challenge-tabs button small { font-size: 8px; }
+  .challenge-game-panel { min-height: 400px; padding: 15px 12px; border-radius: 17px; }
+  .game-progress-line { margin-bottom: 20px; }
+  .quiz-question h2 { font-size: 22px; line-height: 1.2; }
+  .quiz-options { grid-template-columns: 1fr; gap: 7px; margin-top: 20px; }
+  .quiz-options button { min-height: 53px; padding: 10px 11px; }
+  .quiz-actions { align-items: stretch; flex-direction: column; gap: 9px; }
+  .quiz-actions .btn { width: 100%; min-height: 42px; }
+  .game-result { min-height: 350px; }
+  .game-result h2 { font-size: 42px; }
+  .game-result > div { flex-direction: column; width: 100%; }
+  .game-result > div .btn { width: 100%; }
+  .detective-case-head { align-items: flex-start; gap: 14px; flex-direction: column; }
+  .detective-stamp { width: 60px; height: 60px; font-size: 8px; }
+  .detective-case-head h2 { font-size: 20px; }
+  .detective-clues { grid-template-columns: 1fr; gap: 7px; margin: 16px 0 19px; }
+  .detective-clues > div { padding: 10px; }
+  .detective-options { grid-template-columns: repeat(2, 1fr); gap: 7px; }
+  .detective-photo { width: 58px; height: 58px; }
+  .puzzle-layout, .who-layout { grid-template-columns: 1fr; gap: 17px; }
+  .puzzle-stage { height: 225px; border-radius: 14px; }
+  .puzzle-copy h2 { font-size: 22px; }
+  .puzzle-options, .who-options { grid-template-columns: 1fr; }
+  .puzzle-copy .quiz-actions { align-items: center; flex-direction: row; }
+  .puzzle-copy .quiz-actions .btn { width: auto; }
+  .who-mystery, .who-guess { padding: 17px 14px; border-radius: 15px; }
+  .who-mystery h2 { font-size: 27px; }
+  .who-clues > div { grid-template-columns: 24px 58px 1fr; }
+  .weekly-objectives, .collectibles-area { padding: 16px 14px; border-radius: 17px; }
+  .weekly-list { grid-template-columns: 1fr; gap: 4px; margin-top: 13px; }
+  .weekly-list > div { min-height: 38px; }
+  .weekly-footer { line-height: 1.5; }
+  .collectibles-header { align-items: flex-start; flex-direction: column; gap: 11px; }
+  .collectibles-header > .btn { width: 100%; }
+  .collectibles-grid { grid-template-columns: 1fr; gap: 10px; margin-top: 16px; }
+  .card-collection { grid-template-columns: repeat(3, 1fr); }
+  .card-editor { display: grid; grid-template-columns: minmax(0, 1fr) 116px; gap: 0 11px; }
+  .card-editor-heading { grid-column: span 2; }
+  .big-collectible { min-height: 190px; }
+  .card-color-picker, .card-editor > .btn { grid-column: 2; }
+  .card-color-picker { grid-row: 2; align-self: end; }
+  .card-editor > .btn { grid-row: 3; }
+  .virtual-album { grid-column: auto; }
+  .album-page { min-height: 174px; }
+  .hall-place-grid { gap: 10px; margin-bottom: 20px; }
+  .hall-panel, .places-panel, .mural-panel, .profile-story-panel { padding: 16px 14px; border-radius: 17px; }
+  .mural-panel, .profile-story-panel { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .mural-preview { order: -1; }
+  .mural-panel > .btn, .profile-story-panel > .btn { width: 100%; }
+  .profile-story-panel { grid-column: auto; }
+}
+
+/* --------------------------------------------------------------------------
+   Ranking e tierlists no celular: primeiro a leitura, depois as ações.
+   O pódio mantém o clima visual; a tabela vira uma pilha de cartões.
+-------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  .ranking-page .page-title .page-actions { overflow-x: auto; }
+  .ranking-toolbar { display: grid; gap: 10px; padding: 0 0 14px; border-bottom: 1px solid var(--line); }
+  .ranking-toolbar .segmented { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ranking-toolbar .segmented button { justify-content: center; min-height: 42px; }
+  .ranking-filter-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ranking-filter-group select { min-width: 0; width: 100%; min-height: 42px; font-size: 13px; }
+  .ranking-filter-group .text-action { grid-column: 1 / -1; justify-content: flex-start; margin: 0; min-height: 36px; }
+  .ranking-rules { margin-top: 12px; padding: 13px; font-size: 12px; }
+  .ranking-rules p { line-height: 1.6; }
+
+  .podium-stage { padding: 22px 0 0; }
+  .podium-caption { margin-bottom: 7px; }
+  .podium-caption h2 { font-size: 13px; }
+  .podium-people { gap: 4px; padding: 47px 0 0; align-items: flex-end; }
+  .podium-place, .podium-place.gold { width: 33.333%; }
+  .podium-person, .gold .podium-person { height: 177px; }
+  .podium-crown { top: -34px; width: 25px; height: 25px; }
+  .podium-avatar, .gold .podium-avatar { margin-bottom: 8px; padding: 3px; }
+  .podium-avatar .avatar { width: 82px !important; height: 82px !important; }
+  .gold .podium-avatar .avatar { width: 96px !important; height: 96px !important; }
+  .podium-name, .gold .podium-name { max-width: 31vw; font-size: 10.5px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gold .podium-name { font-size: 12px; }
+  .podium-location { max-width: 29vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 8px; }
+  .podium-score { margin: 5px 0; gap: 2px; }
+  .podium-score strong, .gold .podium-score strong { font-size: 15px; }
+  .podium-score small { font-size: 7px; }
+  .podium-score > svg { width: 11px; height: 11px; }
+  .podium-person .star-rating { transform: scale(.8); transform-origin: center top; }
+  .pedestal { min-height: 77px; }
+  .podium-floor { margin: 0 -14px; }
+
+  .ranking-list { margin-top: 24px; }
+  .ranking-list .section-heading { align-items: center; }
+  .ranking-list table, .ranking-list tbody { display: block; }
+  .ranking-list thead { display: none; }
+  .ranking-list tr { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 3px 8px; padding: 9px 10px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  .ranking-list td { display: block; padding: 0; border: 0; min-width: 0; }
+  .ranking-list td:nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
+  .ranking-list td:nth-child(2) { grid-column: 2; grid-row: 1 / span 2; }
+  .ranking-list td:nth-child(3) { grid-column: 3; grid-row: 1; }
+  .ranking-list td:nth-child(4) { grid-column: 3; grid-row: 2; justify-self: end; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+  .ranking-list td:nth-child(5) { grid-column: 1 / -1; grid-row: 3; border-top: 1px solid var(--line); margin-top: 6px; padding-top: 5px; }
+  .rank-number { font-size: 15px; }
+  .table-person { gap: 9px; }
+  .table-person .avatar { width: 43px !important; height: 43px !important; }
+  .table-person > span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .table-person small { font-size: 9px; }
+  .table-score { align-items: flex-end; gap: 2px; }
+  .table-score strong { font-size: 14px; }
+  .table-actions { justify-content: flex-end; }
+  .ranking-footnote { align-items: flex-start; line-height: 1.45; margin: 18px 10px 0; }
+
+  .tierlist-type-choice { grid-template-columns: 1fr; }
+  .tier-board { gap: 12px; }
+  .tier-row { min-height: 112px; border-radius: 14px; }
+  .tier-row-special { border-color: color-mix(in srgb, var(--accent) 28%, var(--line)); }
+  .tier-label { width: 78px; padding: 12px 5px; gap: 6px; }
+  .tier-label > strong { font-size: 15px; }
+  .tier-label > small { font-size: 8px; }
+  .tier-row-controls .icon-btn { width: 23px; height: 22px; }
+  .tier-dropzone { padding: 10px 8px; gap: 6px; align-content: flex-start; }
+  .tier-person { padding: 6px; gap: 5px; border-radius: 10px; flex: 1 1 145px; min-height: 58px; }
+  .tier-person .avatar { width: 38px !important; height: 38px !important; }
+  .tier-person-open { gap: 6px; }
+  .tier-person > span, .tier-person-open > span:last-child { font-size: 10px; }
+  .tier-person small { margin-top: 2px; font-size: 8px; }
+  .tier-chip-actions .icon-btn { width: 22px; height: 21px; }
+  .unclassified { position: static; padding: 13px; border-radius: 14px; }
+  .unclassified-list { max-height: none; gap: 7px; }
+  .unclassified .tier-person { min-height: 58px; }
+  .special-tierlist-actions { align-items: stretch; flex-wrap: wrap; }
+  .special-photo-button { min-height: 42px; }
+  .special-tierlist-actions .btn { min-height: 42px; }
+  .special-photo-preview { width: 60px; height: 60px; }
+}
