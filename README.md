@@ -20,7 +20,7 @@ fichas fictícias sem tocar no catálogo real.
 
 ```bash
 npm run typecheck  # TypeScript sem emitir
-npm test           # suíte completa (491 testes, 34 arquivos)
+npm test           # suíte completa (492 testes, 34 arquivos)
 npm run build      # dist/index.html, um arquivo só (2,4 MB · 990 KB gzip)
 ```
 

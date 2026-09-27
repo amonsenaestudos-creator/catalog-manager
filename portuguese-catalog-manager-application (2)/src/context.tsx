@@ -139,6 +139,13 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   void historyVersion;
 
   const notify = useCallback((message: string, error = false) => { setNotice({ message, error }); if (noticeTimer.current) clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(null), error ? 9000 : 4500); }, []);
+  // Nenhum temporizador sobrevive à tela: um aviso (ou um salvamento adiado)
+  // despachado depois de o componente sair do ar não serve a ninguém — e, em
+  // ambiente de teste, derruba a suíte com "window is not defined".
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+  }, []);
   const flush = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     if (demoRef.current || !pending.current) return;

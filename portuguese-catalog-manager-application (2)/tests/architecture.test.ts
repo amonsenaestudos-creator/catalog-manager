@@ -16,7 +16,7 @@ function filesInside(directory: string): string[] {
 describe('contratos de arquitetura', () => {
   it('mantém o mapa do aplicativo e facades de domínio', () => {
     expect(existsSync(join(root, 'ARCHITECTURE.md'))).toBe(true);
-    for (const feature of ['discovery', 'people', 'gallery', 'gamification', 'relationships', 'health']) {
+    for (const feature of ['discovery', 'people', 'gallery', 'gamification', 'relationships', 'health', 'voice']) {
       expect(existsSync(join(src, 'features', feature, 'README.md')), feature).toBe(true);
       expect(existsSync(join(src, 'features', feature, 'index.ts')), feature).toBe(true);
     }
@@ -31,6 +31,14 @@ describe('contratos de arquitetura', () => {
       .map(file => ({ file: relative(root, file), lines: readFileSync(file, 'utf8').split('\n').length }))
       .filter(entry => entry.lines > 800);
     expect(oversized, 'componentes acima do limite: separar antes de ampliar').toEqual([]);
+  });
+
+  it('não deixa temporizador sobreviver ao desmonte do provedor', () => {
+    // O aviso e o salvamento adiado são temporizadores do provedor. Se um deles
+    // sobrevive ao desmonte, ele despacha estado com a tela já fora do ar: em
+    // navegador é trabalho perdido, em teste é "window is not defined" no CI.
+    const contexto = readFileSync(join(src, 'context.tsx'), 'utf8');
+    expect(contexto).toMatch(/useEffect\(\(\) => \(\) => \{[^}]*clearTimeout\(timer\.current\)[^}]*clearTimeout\(noticeTimer\.current\)/);
   });
 
   it('mantém os módulos de descoberta dentro do domínio', () => {

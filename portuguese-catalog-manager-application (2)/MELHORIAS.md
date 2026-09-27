@@ -19,7 +19,7 @@ priorizadas, (3) o que já foi implementado nesta rodada.
 | Dimensão | Situação |
 | --- | --- |
 | Código | ~33.000 linhas em `src` e `tests`; 118 arquivos em `src` |
-| Testes | 34 arquivos, 491 testes, suíte completa em ~4 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) |
+| Testes | 34 arquivos, 492 testes, suíte completa em ~3 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) |
 | Verificação | `tsc --noEmit` limpo; build de produção em ~7 s; CI a cada PR *(novo)* |
 | Build | `dist/index.html` **2.419 kB** (990 kB gzip) — era 3.520 kB (1.847 kB) antes da rodada 2 |
 | Repositório | **165 arquivos versionados** — era 8.454, dos quais 8.282 eram `node_modules` (~226 MB) e 7 eram `dist` |
@@ -141,6 +141,7 @@ a partir do `package-lock.json`. O item 0.4 resolve a causa em vez do sintoma.
 | L1 | **Peso do repositório** | `node_modules/` e `dist/` saíram do versionamento: **8.454 → 165 arquivos**. O `dist` volta com `npm run build`. | histórico do Git |
 | L2 | **Peso do pacote** | **3.520 → 2.419 kB** (gzip **1.847 → 990 kB**): imagens de demonstração comprimidas (1,1 MB → 328 KB) e fonte restrita a latim + latim estendido (213 → 118 KB). | `public/images/`, `src/base.css` |
 | L3 | **Saúde do catálogo acompanha a voz** | Cartão de vozes guardadas e achado novo para áudio acumulado (25 MB de atenção, 60 MB de crítico). | `features/health/` |
+| B1 | **Correção que o CI encontrou** | Um temporizador de aviso continuava disparando depois de a tela sair do ar (`window is not defined` na esteira). O provedor agora limpa aviso **e** salvamento adiado ao desmontar, com contrato em `tests/architecture.test.ts` para não voltar. | `src/context.tsx` |
 
 ### Ideias na fila (com dono e tamanho)
 
@@ -158,7 +159,7 @@ a partir do `package-lock.json`. O item 0.4 resolve a causa em vez do sintoma.
 
 ## 4. Como saber se melhorou
 
-- `npm test` verde e CI verde em todo PR (hoje: 34 arquivos, 491 testes).
+- `npm test` verde e CI verde em todo PR (hoje: 34 arquivos, 492 testes).
 - Lighthouse no `dist/index.html`: instalável, funcional offline, sem erro de console.
 - `git ls-files | wc -l` abaixo de 500 depois do item 0.4 (**feito**: 165 arquivos).
 - Nota da Saúde do catálogo acima de 90 num catálogo de uso diário.
