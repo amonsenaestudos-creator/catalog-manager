@@ -2137,3 +2137,27 @@
   .special-tierlist-actions .btn { min-height: 42px; }
   .special-photo-preview { width: 60px; height: 60px; }
 }
+
+/* ===== Seção 18: Saúde do catálogo na palma da mão ===== */
+@media (max-width: 760px) {
+  .saude-page { gap: 14px; }
+  .saude-nota { grid-template-columns: 1fr; justify-items: center; gap: 16px; padding: 18px 15px; text-align: center; }
+  .saude-nota-aro { width: 104px; height: 104px; }
+  .saude-nota-copia p { margin-inline: auto; }
+  .saude-nota-acoes { justify-content: center; }
+  .saude-nota-acoes .btn { min-height: 44px; }
+  .saude-cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .saude-cartoes article { padding: 13px; }
+  .saude-cartoes strong { font-size: 18px; }
+  .saude-achado { padding: 14px; }
+  .saude-achado header { grid-template-columns: 34px minmax(0, 1fr); }
+  .saude-selo { grid-column: 2; justify-self: start; }
+  .saude-fichas button { max-width: 150px; min-height: 44px; }
+  .saude-achado footer .btn { flex: 1; min-height: 44px; justify-content: center; }
+}
+
+/* ===== Seção 19: faixa de status no aparelho ===== */
+@media (max-width: 760px) {
+  .app-status { padding: 10px 15px; font-size: 11px; }
+  .app-status > button { min-height: 36px; padding: 8px 15px; }
+}

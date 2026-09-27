@@ -50,8 +50,8 @@ describe("pacotes: tela", () => {
     const user = userEvent.setup();
     await bootApp(user);
     const aside = document.querySelector(".sidebar") as HTMLElement;
-    // “Pacotes” mora no + da biblioteca.
-    await act(async () => { (aside.querySelector<HTMLButtonElement>(".nav-expand") as HTMLElement).click(); });
+    // “Pacotes” mora no “Mais” da Biblioteca — não no primeiro “+” do menu.
+    await act(async () => { (aside.querySelector<HTMLButtonElement>(".world-library .nav-expand") as HTMLElement).click(); });
     const nav = [...aside.querySelectorAll<HTMLButtonElement>("button.nav-item")].find(b => /Pacotes/i.test(b.textContent || ""));
     expect(nav, "item Pacotes precisa estar no menu").toBeTruthy();
     await act(async () => { nav!.click(); });

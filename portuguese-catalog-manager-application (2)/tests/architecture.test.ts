@@ -16,7 +16,7 @@ function filesInside(directory: string): string[] {
 describe('contratos de arquitetura', () => {
   it('mantém o mapa do aplicativo e facades de domínio', () => {
     expect(existsSync(join(root, 'ARCHITECTURE.md'))).toBe(true);
-    for (const feature of ['discovery', 'people', 'gallery', 'gamification', 'relationships']) {
+    for (const feature of ['discovery', 'people', 'gallery', 'gamification', 'relationships', 'health']) {
       expect(existsSync(join(src, 'features', feature, 'README.md')), feature).toBe(true);
       expect(existsSync(join(src, 'features', feature, 'index.ts')), feature).toBe(true);
     }

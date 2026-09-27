@@ -794,21 +794,26 @@ export function deadlineState(date: string | null | undefined, leadDays = 3): { 
   return { state: 'futuro', days };
 }
 export const DEADLINE_LABELS: Record<DeadlineState, string> = { atrasado: 'Atrasado', hoje: 'Vence hoje', amanha: 'Vence amanhã', perto: 'Prazo acabando', futuro: 'Agendado', 'sem-data': 'Sem data' };
-export function ageFromBirthday(aniversario?: string | null) {
+export function ageFromBirthday(aniversario?: string | null, referencia: Date = new Date()) {
   if (!aniversario) return null;
   const birth = new Date(`${aniversario}T12:00:00`);
   if (!Number.isFinite(birth.getTime())) return null;
-  const now = new Date();
+  const now = referencia;
   let age = now.getFullYear() - birth.getFullYear();
   const before = now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
   if (before) age -= 1;
   return age >= 0 && age <= 120 ? age : null;
 }
-export function upcomingBirthday(aniversario?: string | null) {
+/**
+ * Quantos dias faltam para o próximo aniversário (0 = hoje).
+ * `referencia` existe para telas e testes que trabalham com uma data fixa:
+ * sem ela, a conta sairia sempre do relógio real.
+ */
+export function upcomingBirthday(aniversario?: string | null, referencia: Date = new Date()) {
   if (!aniversario) return null;
   const birth = new Date(`${aniversario}T12:00:00`);
   if (!Number.isFinite(birth.getTime())) return null;
-  const now = new Date(`${today()}T12:00:00`);
+  const now = new Date(referencia.getFullYear(), referencia.getMonth(), referencia.getDate(), 12);
   const next = new Date(now.getFullYear(), birth.getMonth(), birth.getDate(), 12);
   if (next < now) next.setFullYear(next.getFullYear() + 1);
   return Math.round((next.getTime() - now.getTime()) / 86400000);

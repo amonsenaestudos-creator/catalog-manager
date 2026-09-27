@@ -4,6 +4,8 @@
  * A lista antiga (FEATURES) continua intacta logo abaixo.
  */
 export const NEW_FEATURES: [string, string, string][] = [
+  ['Saúde do catálogo', 'Uma tela que lê o que está guardado e diz o que precisa de atenção: ficha sem foto ou pela metade, duplicata, referência apontando para quem não existe, foto repetida, lixeira parada, rascunho esquecido, lembrete atrasado, backup vencido e espaço do navegador chegando ao fim. O que dá para arrumar sozinho sai num clique, sem apagar ficha, foto ou texto — e com Ctrl+Z de volta.', 'saude'],
+  ['Aplicativo instalável e offline', 'O Catalog agora instala no celular e no computador, com ícone próprio, tela cheia e abertura mesmo sem internet: a casca fica guardada pelo service worker. Uma faixa discreta avisa quando você está sem conexão e oferece a instalação quando o navegador permite.', 'settings'],
   ['Celular com UI própria', 'O celular deixou de ser o desktop espremido: folha que sobe do pé da tela, deslizar da borda para voltar, topo que se recolhe ao rolar e doca que sai da frente quando uma folha ou o visor assumem a tela.', 'home'],
   ['Galeria em mosaico de verdade', 'Cada foto aparece na sua própria proporção (retrato, paisagem, panorama). Há também a quadra de quadrados e a linha do tempo, que agrupa por dia e deixa a data grudada no topo enquanto você rola.', 'gallery'],
   ['Visor de fotos de aplicativo', 'Tela inteira, deslizar para o lado troca a foto, pinça ou toque duplo dão zoom, puxar para baixo fecha e um toque esconde as barras. Abaixo, a faixa de miniaturas.', 'gallery'],

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
-import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Footprints, Gamepad2, Gauge, Heart, Home, Image, Layers, LogOut, MessageCircle, Minus, Package, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
+import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Footprints, Gamepad2, Gauge, Heart, HeartPulse, Home, Image, Layers, LogOut, MessageCircle, Minus, Package, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
 import { useCatalog } from '../context';
 import { isActive } from '../store';
 import { Avatar, IconButton } from './ui';
@@ -90,6 +90,7 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
     { id: 'board', label: 'Quadro', icon: ClipboardList, extra: true },
     { id: 'stories', label: 'Stories / Fanfics', icon: BookOpen, extra: true },
     { id: 'reminders', label: 'Lembretes', icon: Bell, count: pending || undefined, extra: true },
+    { id: 'saude', label: 'Saúde do catálogo', icon: HeartPulse, extra: true },
     { id: 'tools', label: 'Organizar', icon: Shapes, extra: true },
   ];
   const visiveis = (lista: ItemMenu[], expandida: boolean) => expandida ? lista : lista.filter(entrada => !entrada.extra);
