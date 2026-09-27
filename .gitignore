@@ -13,3 +13,7 @@ Thumbs.db
 .env
 .env.local
 .arena/
+
+# Cache da prévia desta sandbox (binários nativos de Linux + build pronto).
+# Só existe para subir a prévia rápido aqui; nada disso é código do projeto.
+preview/
