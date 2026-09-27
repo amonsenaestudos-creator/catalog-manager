@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import type { AppData, CatalogFilter, Person, PersonDraft, Profile } from './types';
 import { calculateOverallRating, DEFAULT_FILTER, demoData, duplicatePerson, emptyData, generateId, getAllTagNames, makeActivity, normalizePhotos, PALETTE, today, valoresDaAvaliacao } from './store';
-import { DEFAULT_PROFILE, deleteProfileData, loadProfiles, persistData, pushBackup, readStoredData, saveProfiles, writeJournal } from './lib/storage';
+import { avisoDoDiario, DEFAULT_PROFILE, deleteProfileData, loadProfiles, motivoDoDiario, persistData, pushBackup, readStoredData, saveProfiles, writeJournal } from './lib/storage';
 import { computeXp, evaluateAchievements, levelInfo, weeklyChallenges } from './lib/progress';
 import { newNotifications, pushBrowserNotification } from './lib/notifications';
 import { configureSound, playSound, primeSound, vibrate } from './lib/sound';
@@ -133,6 +133,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef(false), saving = useRef(false);
+  const diarioAvisado = useRef(false);
   const chain = useRef(Promise.resolve());
   const past = useRef<AppData[]>([]), future = useRef<AppData[]>([]);
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -162,10 +163,13 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     current.current = next; setData(next);
     if (demoRef.current) { setStatus('saved'); return; }
     pending.current = true; setStatus('pending');
-    writeJournal(next); // a cópia de emergência é limitada e escrita com intervalo
+    // A cópia de emergência é limitada e escrita com intervalo. Quando ela não
+    // cabe mais (catálogo com áudio, por exemplo), avisamos uma vez: o silêncio
+    // faria a pessoa achar que tinha plano B quando não tinha.
+    if (!writeJournal(next) && !diarioAvisado.current) { diarioAvisado.current = true; notify(avisoDoDiario(motivoDoDiario), true); }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(flush, 350);
-  }, [flush]);
+  }, [flush, notify]);
   const commit = useCallback((updater: Mutator, message?: string, undoable = true) => {
     const previous = current.current; let next = updater(previous);
     if (next === previous) return;

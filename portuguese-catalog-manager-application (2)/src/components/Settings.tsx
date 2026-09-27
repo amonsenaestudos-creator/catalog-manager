@@ -24,6 +24,8 @@ export default function Settings() {
     playSound('voz', true);
     falar({ texto, perfil, volume: (data.settings.chatVozVolume ?? 70) / 100 });
   };
+  // A voz é do sistema: ao sair dos Ajustes, ela para com a tela.
+  useEffect(() => () => pararDeFalar(), []);
   const [tab, setTab] = useState('profile'); const [profileName, setProfileName] = useState(s.profileName); const [username, setUsername] = useState(s.username); const [avatar, setAvatar] = useState(s.avatar);
   const [currentPassword, setCurrentPassword] = useState(''); const [password, setPassword] = useState(''); const [confirmPassword, setConfirmPassword] = useState(''); const [showPassword, setShowPassword] = useState(false); const [pin, setPin] = useState(s.pin || '');
   const [backups, setBackups] = useState<BackupVersion[]>([]); const [busy, setBusy] = useState(false); const [restore, setRestore] = useState<BackupVersion | null>(null); const [removeVersion, setRemoveVersion] = useState<string | null>(null);

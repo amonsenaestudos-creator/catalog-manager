@@ -49,24 +49,39 @@ export async function readStoredData(profileId = DEFAULT_PROFILE): Promise<{ dat
 const JOURNAL_LIMIT_BYTES = 4 * 1024 * 1024;
 const JOURNAL_INTERVAL_MS = 2500;
 const lastJournalAt = new Map<string, number>();
-export let journalTooLarge = false;
+/** Última razão pela qual o diário não pôde ser escrito — a tela avisa uma vez. */
+export type MotivoDoDiario = 'grande' | 'sem-espaco' | null;
+export let motivoDoDiario: MotivoDoDiario = null;
 
 export function serializeForJournal(data: AppData): string | null {
   try {
     const raw = JSON.stringify(data);
-    journalTooLarge = raw.length > JOURNAL_LIMIT_BYTES;
-    return journalTooLarge ? null : raw;
-  } catch { journalTooLarge = true; return null; }
+    if (raw.length > JOURNAL_LIMIT_BYTES) { motivoDoDiario = 'grande'; return null; }
+    return raw;
+  } catch { motivoDoDiario = 'grande'; return null; }
 }
 
+/**
+ * Escreve a cópia de emergência. Devolve `false` quando ela não cabe ou não há
+ * espaço — e deixa o motivo em `motivoDoDiario`, porque um catálogo com áudio
+ * passa do limite sem que ninguém perceba, e a pessoa precisa saber que o
+ * plano B deixou de existir (o IndexedDB continua salvando normalmente).
+ */
 export function writeJournal(data: AppData, force = false): boolean {
   const key = journalKey(data.activeProfile || DEFAULT_PROFILE);
   const now = Date.now();
   if (!force && now - (lastJournalAt.get(key) || 0) < JOURNAL_INTERVAL_MS) return true;
+  motivoDoDiario = null;
   const raw = serializeForJournal(data);
   if (!raw) return false;
-  try { localStorage.setItem(key, raw); lastJournalAt.set(key, now); return true; } catch { return false; }
+  try { localStorage.setItem(key, raw); lastJournalAt.set(key, now); return true; }
+  catch { motivoDoDiario = 'sem-espaco'; return false; }
 }
+
+/** Texto do aviso, para a tela não inventar o próprio. */
+export const avisoDoDiario = (motivo: MotivoDoDiario) => motivo === 'grande'
+  ? 'Seu catálogo passou de 4 MB e a cópia de emergência do navegador deixou de ser escrita. Os dados continuam salvos no IndexedDB — exporte um backup para não depender só dele.'
+  : 'O navegador ficou sem espaço para a cópia de emergência. Os dados continuam salvos no IndexedDB — exporte um backup e libere espaço.';
 
 export function clearJournal(profileId = DEFAULT_PROFILE) {
   try { localStorage.removeItem(journalKey(profileId)); lastJournalAt.delete(journalKey(profileId)); } catch { /* A cópia principal já foi gravada. */ }

@@ -10,7 +10,7 @@
  * Nada sai daqui sozinho: só o que a pessoa pediu para compartilhar.
  */
 import type { AppData, Person } from '../types';
-import { calculateOverallRating, downloadBlob, formatDate, formatNumber, getFinalScore, getMainPhoto, isActive, locationLabel } from '../store';
+import { calculateOverallRating, downloadBlob, formatDate, formatNumber, getFinalScore, isActive, locationLabel } from '../store';
 
 export type ResultadoDeCompartilhar = 'compartilhado' | 'copiado' | 'baixado' | 'indisponivel';
 
@@ -128,8 +128,30 @@ export async function compartilharArquivo({ blob, dataUrl, nome, titulo, texto }
   try { downloadBlob(conteudo, nome); return 'baixado'; } catch { return 'indisponivel'; }
 }
 
-/** Link do catálogo: nunca inclui dado de ninguém, só o endereço do app. */
-export const enderecoDoApp = () => (typeof window === 'undefined' ? '' : window.location.origin);
+// ---------------------------------------------------------------------------
+// Atalhos usados pela tela: um lugar só decide o que tentar e o que dizer.
+// ---------------------------------------------------------------------------
 
-/** Foto de capa de uma ficha, quando existe — usada no compartilhamento visual. */
-export const capaDaPessoa = (person: Person) => getMainPhoto(person)?.url || '';
+/** Compartilha o resumo de uma ficha — pelo aparelho ou pela área de transferência. */
+export const compartilharResumoDaPessoa = (person: Person, data: AppData) =>
+  compartilharTexto({ titulo: `${person.nome} — Catalog`, texto: resumoDaPessoa(person, data) });
+
+/** Compartilha o retrato do catálogo inteiro (números, sem nome de ninguém). */
+export const compartilharResumoDoCatalogo = (data: AppData) =>
+  compartilharTexto({ titulo: 'Meu Catalog por dentro', texto: resumoDoCatalogoParaCompartilhar(data) });
+
+export type AlvoDoCompartilhamento = 'ficha' | 'catalogo' | 'voz' | 'arquivo';
+
+/**
+ * A frase que a tela mostra depois de compartilhar. Fica aqui, e não em cada
+ * componente, porque as três telas que compartilham dizem a mesma coisa — e
+ * antes diziam cada uma do seu jeito.
+ */
+export function mensagemDoCompartilhamento(resultado: ResultadoDeCompartilhar, alvo: AlvoDoCompartilhamento): { texto: string; erro: boolean } {
+  if (resultado === 'compartilhado') return { texto: alvo === 'voz' ? 'Áudio enviado pelo compartilhamento do aparelho.' : 'Compartilhado pelo aparelho.', erro: false };
+  if (resultado === 'copiado') return { texto: alvo === 'catalogo' ? 'Resumo do catálogo copiado para a área de transferência.' : 'Resumo copiado para a área de transferência.', erro: false };
+  if (resultado === 'baixado') return { texto: 'O navegador não compartilha arquivos: o conteúdo foi baixado.', erro: false };
+  // Cancelar a folha do sistema cai aqui: não é erro, mas a tela precisa dizer
+  // que nada saiu — e o que fazer quando o navegador simplesmente não coopera.
+  return { texto: alvo === 'arquivo' ? 'Nada foi enviado. Sem compartilhamento de arquivos neste navegador, tente baixar.' : 'Nada foi enviado. Este navegador não compartilha — o resumo continua aqui.', erro: true };
+}

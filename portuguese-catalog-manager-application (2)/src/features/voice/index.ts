@@ -1,8 +1,8 @@
 /** API pública do domínio de voz: áudio das pessoas e voz falada. */
 export { default as VozDaPessoa } from './components/VozDaPessoa';
 export {
-  cabeNovaNota, formatarDuracao, formatarPeso, notasDeVoz, perfilDeVoz, pesoDoAudio,
-  resumoDaVoz, sementeDeVoz, textoDeApresentacao, tituloDaNota,
+  cabeNovaNota, formatarDuracao, formatarPeso, formatoDoAudio, nomeDoArquivoDeVoz, notasDeVoz,
+  perfilDeVoz, pesoDoAudio, resumoDaVoz, sementeDeVoz, textoDeApresentacao, tituloDaNota,
   VOZ_MAX_NOTA_BYTES, VOZ_MAX_PESSOA_BYTES, VOZ_RITMO, VOZ_TOM,
 } from './voz';
 export {

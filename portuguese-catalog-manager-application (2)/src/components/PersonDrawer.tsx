@@ -16,7 +16,7 @@ import { averageRadar, personTimeline } from '../lib/stats';
 import { descreverVinculo } from '../lib/relacao';
 import { vinculoComigoLabel } from '../types';
 import { VozDaPessoa, notasDeVoz, resumoDaVoz } from '../features/voice';
-import { compartilharTexto, resumoDaPessoa } from '../lib/compartilhar';
+import { compartilharResumoDaPessoa, mensagemDoCompartilhamento } from '../lib/compartilhar';
 import type { TimelineEvent } from '../lib/stats';
 
 export default function PersonDrawer({ person }: { person: Person }) {
@@ -62,9 +62,10 @@ export default function PersonDrawer({ person }: { person: Person }) {
   /** Resumo em texto da ficha, para mandar para alguém sem abrir o aplicativo. */
   const compartilhar = async () => {
     setMenu(false);
-    const resultado = await compartilharTexto({ titulo: `${person.nome} — Catalog`, texto: resumoDaPessoa(person, data) });
+    const resultado = await compartilharResumoDaPessoa(person, data);
+    const aviso = mensagemDoCompartilhamento(resultado, 'ficha');
     if (resultado === 'compartilhado' || resultado === 'copiado') ctx.sound('compartilhar');
-    ctx.notify(resultado === 'compartilhado' ? 'Ficha compartilhada.' : resultado === 'copiado' ? 'Resumo da ficha copiado para a área de transferência.' : 'Este navegador não compartilha texto.', resultado === 'indisponivel');
+    ctx.notify(aviso.texto, aviso.erro);
   };
   const exportImage = async () => {
     if (ctx.privacy) return;

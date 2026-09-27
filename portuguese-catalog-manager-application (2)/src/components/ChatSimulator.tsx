@@ -42,6 +42,8 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
   const [falarAlto, setFalarAlto] = useState(!!s.chatVoz && vozSuportada());
   const [falando, setFalando] = useState<string | null>(null);
   const perfilVozDaPessoa = useMemo(() => perfilDeVoz(person), [person]);
+  // O volume é o mesmo das Ajustes → Conversas: um ajuste só para a voz falada.
+  const volumeDaVoz = (s.chatVozVolume ?? 70) / 100;
   // Retrato do momento: o estado que a última mensagem produziu — agora com
   // a camada viva: humor contínuo, objetivo, tópico atual e iniciativa.
   const [retrato, setRetrato] = useState(false);
@@ -95,12 +97,15 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
    * histórico inteiro de uma vez seria um podcast, não uma conversa.
    */
   const ultimaFalada = useRef<string>('');
+  // Sair da conversa (ou fechar o aplicativo) emudece a voz: a fala é do
+  // sistema, então continua sozinha se ninguém mandar parar.
+  useEffect(() => () => pararDeFalar(), []);
   useEffect(() => {
     if (!falarAlto || !vozSuportada()) return;
     const dela = [...mensagens].reverse().find(mensagem => mensagem.role === 'them' && mensagem.text.trim());
     if (!dela || ultimaFalada.current === dela.id) return;
     ultimaFalada.current = dela.id;
-    falar({ texto: dela.text, perfil: perfilVozDaPessoa, aoTerminar: () => setFalando(null) });
+    falar({ texto: dela.text, perfil: perfilVozDaPessoa, volume: volumeDaVoz, aoTerminar: () => setFalando(null) });
     setFalando(dela.id);
   }, [mensagens, falarAlto, perfilVozDaPessoa]);
 
@@ -109,6 +114,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
     const deuCerto = falar({
       texto: mensagem.text,
       perfil: perfilVozDaPessoa,
+      volume: volumeDaVoz,
       aoTerminar: () => setFalando(null),
     });
     if (!deuCerto) { ctx.notify('Este navegador não fala texto. A conversa continua funcionando por escrito.', true); return; }

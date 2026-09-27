@@ -9,7 +9,6 @@
  */
 import type { PerfilDeVoz } from '../../types';
 import { formatarDuracao } from './voz';
-import type { VozNota } from '../../types';
 
 type Fala = {
   texto: string;
@@ -100,6 +99,3 @@ export const duracaoEstimada = (texto: string, ritmo = 1) => formatarDuracao(((t
 
 /** Rótulo curto para a lista de vozes do sistema. */
 export const rotuloDaVoz = (voz: SpeechSynthesisVoice) => `${voz.name} · ${voz.lang}${voz.localService ? '' : ' (online)'}`;
-
-/** Nota de voz, em segundos, para o resumo da tela. */
-export const duracaoDaNota = (nota: Pick<VozNota, 'duracao'>) => formatarDuracao(nota.duracao || 0);

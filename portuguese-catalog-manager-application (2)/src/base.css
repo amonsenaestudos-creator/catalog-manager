@@ -2292,6 +2292,9 @@ html.visor-aberto, html.visor-aberto body { overflow: hidden; overscroll-behavio
 /* ===== Voz da pessoa: áudios, gravação e voz sintetizada ===== */
 .voz-modal .scope-tabs { margin-bottom: 14px; }
 .voz-erro { margin-bottom: 12px; }
+.voz-tabs { gap: 14px; flex-wrap: wrap; row-gap: 2px; }
+.voz-tabs > button { font-size: 12.5px; }
+
 .voz-bloco { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .voz-bloco h3 { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 550; }.voz-bloco h3 svg { color: var(--accent); }
 .voz-bloco p { margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.7; }

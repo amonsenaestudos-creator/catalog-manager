@@ -99,5 +99,37 @@ export function textoDeApresentacao(person: Person, data: AppData) {
   return partes.join(' ');
 }
 
+/**
+ * Extensão e tipo do áudio guardado, lidos do próprio `data:`.
+ *
+ * Sem isso, tudo que saía do aplicativo virava `.webm` — inclusive um MP3 que a
+ * pessoa enviou do aparelho, que o sistema abria como arquivo quebrado.
+ */
+const TIPOS_DE_AUDIO: [RegExp, string[]][] = [
+  [/webm/i, ['webm', 'audio/webm']],
+  [/ogg|opus/i, ['ogg', 'audio/ogg']],
+  [/mpeg|mp3/i, ['mp3', 'audio/mpeg']],
+  [/mp4|m4a|aac/i, ['m4a', 'audio/mp4']],
+  [/wav/i, ['wav', 'audio/wav']],
+  [/flac/i, ['flac', 'audio/flac']],
+];
+
+export function formatoDoAudio(url: string): { extensao: string; tipo: string } {
+  const cabecalho = url.slice(0, 80);
+  for (const [padrao, [extensao, tipo]] of TIPOS_DE_AUDIO) if (padrao.test(cabecalho)) return { extensao, tipo };
+  return { extensao: 'audio', tipo: 'audio/webm' };
+}
+
+/**
+ * Nome de arquivo para baixar ou compartilhar a voz: legível, sem acento e com
+ * a extensão certa — é o que a outra pessoa vê ao receber.
+ */
+export function nomeDoArquivoDeVoz(person: Pick<Person, 'nome'>, nota: Pick<VozNota, 'id' | 'url' | 'titulo'>) {
+  const quem = person.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'ficha';
+  const apelido = (nota.titulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 24);
+  const { extensao } = formatoDoAudio(nota.url);
+  return `catalog-voz-${quem}${apelido ? `-${apelido}` : ''}-${nota.id.slice(0, 6)}.${extensao}`;
+}
+
 /** O que a tela mostra no lugar do nome quando a nota não tem título. */
 export const tituloDaNota = (nota: Pick<VozNota, 'titulo'>) => nota.titulo?.trim() || 'Nota de voz';

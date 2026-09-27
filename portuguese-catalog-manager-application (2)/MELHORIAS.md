@@ -19,7 +19,7 @@ priorizadas, (3) o que já foi implementado nesta rodada.
 | Dimensão | Situação |
 | --- | --- |
 | Código | ~33.000 linhas em `src` e `tests`; 118 arquivos em `src` |
-| Testes | 34 arquivos, 492 testes, suíte completa em ~3 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) |
+| Testes | 35 arquivos, 503 testes, suíte completa em ~3 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) |
 | Verificação | `tsc --noEmit` limpo; build de produção em ~7 s; CI a cada PR *(novo)* |
 | Build | `dist/index.html` **2.419 kB** (990 kB gzip) — era 3.520 kB (1.847 kB) antes da rodada 2 |
 | Repositório | **165 arquivos versionados** — era 8.454, dos quais 8.282 eram `node_modules` (~226 MB) e 7 eram `dist` |
@@ -44,17 +44,12 @@ tarde), M (um a dois dias), G (uma semana ou mais).
 | 0.1 | **CI a cada PR** *(feito)* | Nada garante que `main` compila e passa nos 469 testes | `.github/workflows/ci.yml` | P |
 | 0.2 | **Saúde do catálogo** *(feito)* | Ficha pela metade, ponteiro quebrado, foto repetida, lixeira e backup passavam despercebidos | `src/features/health/` | M |
 | 0.3 | **Aplicativo instalável e offline** *(feito)* | Sem internet o app não abria; não dava para instalar no celular | `public/sw.js`, `public/manifest.webmanifest`, `src/lib/pwa.ts` | M |
-| 0.4 | **Tirar `node_modules` e `dist` do Git** | 98% dos arquivos do repositório são dependências; clone de 226 MB, diffs ilegíveis, revisão de PR inviável | comandos abaixo | P |
+| 0.4 | ~~**Tirar `node_modules` e `dist` do Git**~~ ✅ **feito** (rodada 2) | 98% dos arquivos do repositório eram dependências; clone de 226 MB, diffs ilegíveis, revisão de PR inviável | `.gitignore` + `git rm -r --cached` | P |
 | 0.5 | **Lint e formatação** | Convenções dependem de disciplina; não há `eslint.config.js` apesar de comentários `eslint-disable` espalhados | `eslint` + `typescript-eslint` + `eslint-plugin-react-hooks` | P |
 | 0.6 | **Cobertura visível** | Não se sabe quais caminhos críticos não têm teste | `vitest --coverage` + limite mínimo por pasta | P |
 
-Para o item 0.4, depois deste commit, na raiz do repositório:
-
-```bash
-git rm -r --cached "portuguese-catalog-manager-application (2)/node_modules"
-git rm -r --cached "portuguese-catalog-manager-application (2)/dist"
-git commit -m "Parar de versionar dependências e build"
-```
+O item 0.4 foi feito na rodada 2 (`git rm -r --cached`), e o repositório passou de
+8.454 para 165 arquivos versionados. O histórico preserva as cópias antigas.
 
 O arquivo `.gitignore` já está no lugar, então nada volta por engano. Quem clona passa a
 rodar `npm install` — que hoje leva 3 segundos com o cache do npm.
@@ -157,9 +152,28 @@ a partir do `package-lock.json`. O item 0.4 resolve a causa em vez do sintoma.
 | **Modo “só voz” no celular** | Tela grande com um botão: apertar e ouvir a pessoa sorteada | P |
 | **Gráfico de peso por dado** | Mostrar o que ocupa espaço (foto, áudio, texto) dentro de Ajustes | P |
 
+## 3.2 Rodada 3 — o que estava pela metade
+
+Revisão de fundo: cada item abaixo era um comportamento que prometia uma coisa e
+fazia outra, ou uma peça que ninguém usava.
+
+| # | O que estava torto | O que passou a acontecer | Onde |
+| --- | --- | --- | --- |
+| R1 | O **volume da voz sintetizada** só valia na amostra dos Ajustes — na conversa e na ficha a fala saía sempre no volume do sistema | O volume configurado vale em **todo lugar** que fala: conversa, ficha e amostra | `ChatSimulator.tsx`, `VozDaPessoa.tsx` |
+| R2 | O botão **“Ler a descrição”** lia o *título do primeiro áudio* quando havia voz guardada | Lê a descrição escrita na ficha — e fica desabilitado, com explicação, quando não há uma | `VozDaPessoa.tsx` |
+| R3 | Baixar ou compartilhar um áudio **sempre** entregava `.webm`, mesmo para um MP3 enviado do aparelho (arquivo que o sistema abre como corrompido) | Extensão e tipo saem do próprio arquivo; o nome fica legível e sem acento | `voz.ts` (`formatoDoAudio`, `nomeDoArquivoDeVoz`) |
+| R4 | A **cópia de emergência** (diário local) parava de ser escrita acima de 4 MB **em silêncio** — e um catálogo com voz passa disso rápido | A tela avisa uma vez, explica o motivo e lembra de exportar um backup (o IndexedDB continua salvando) | `context.tsx`, `storage.ts` |
+| R5 | Sair da conversa ou dos Ajustes deixava a **voz do sistema falando sozinha** | As telas emudecem ao desmontar | `ChatSimulator.tsx`, `Settings.tsx` |
+| R6 | O player da ficha **segurava o áudio na memória** depois de fechar a tela | O áudio é solto (pausa + `src` limpo) ao sair | `VozDaPessoa.tsx` |
+| R7 | Compartilhar dizia a mesma coisa em **três redações diferentes** | Uma frase por caso, num lugar só, com cancelamento explicado | `lib/compartilhar.ts` (`mensagemDoCompartilhamento`) |
+| R8 | `resumoDoCatalogoParaCompartilhar`, `enderecoDoApp`, `capaDaPessoa` e `duracaoDaNota` eram **código morto** | O retrato do catálogo virou comando na paleta (⌘K) e os outros três saíram | `CommandPalette.tsx`, `lib/compartilhar.ts`, `sintetizador.ts` |
+| R9 | `.voz-tabs` era classe usada **sem estilo** nenhum; abas apertavam em tela estreita | Regra própria, com quebra de linha | `base.css` |
+
+Suíte: 35 arquivos, 503 testes (`tests/correcoes.test.ts` cobre R1–R4 e R7–R8).
+
 ## 4. Como saber se melhorou
 
-- `npm test` verde e CI verde em todo PR (hoje: 34 arquivos, 492 testes).
+- `npm test` verde e CI verde em todo PR (hoje: 35 arquivos, 503 testes).
 - Lighthouse no `dist/index.html`: instalável, funcional offline, sem erro de console.
 - `git ls-files | wc -l` abaixo de 500 depois do item 0.4 (**feito**: 165 arquivos).
 - Nota da Saúde do catálogo acima de 90 num catálogo de uso diário.

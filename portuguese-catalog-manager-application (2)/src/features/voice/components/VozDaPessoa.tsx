@@ -4,10 +4,10 @@ import type { Person, VozNota } from '../../../types';
 import { useCatalog } from '../../../context';
 import { Button, Confirm, Field, IconButton, Modal } from '../../../components/ui';
 import { downloadBlob, generateId } from '../../../store';
-import { compartilharArquivo, compartilharTexto, resumoDaPessoa } from '../../../lib/compartilhar';
+import { compartilharArquivo, mensagemDoCompartilhamento, resumoDaPessoa, compartilharTexto } from '../../../lib/compartilhar';
 import { iniciarGravacao, lerArquivoDeAudio, motivoSemMicrofone, type Gravador } from '../gravador';
-import { falar, pararDeFalar, rotuloDaVoz, vozSuportada, vozesDisponiveis } from '../sintetizador';
-import { cabeNovaNota, formatarDuracao, formatarPeso, notasDeVoz, perfilDeVoz, pesoDoAudio, resumoDaVoz, textoDeApresentacao, tituloDaNota, VOZ_RITMO, VOZ_TOM } from '../voz';
+import { duracaoEstimada, falar, pararDeFalar, rotuloDaVoz, vozSuportada, vozesDisponiveis } from '../sintetizador';
+import { cabeNovaNota, formatarDuracao, formatarPeso, formatoDoAudio, nomeDoArquivoDeVoz, notasDeVoz, perfilDeVoz, pesoDoAudio, resumoDaVoz, textoDeApresentacao, tituloDaNota, VOZ_RITMO, VOZ_TOM } from '../voz';
 
 type Aba = 'ouvir' | 'gravar' | 'falar';
 
@@ -47,7 +47,14 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
   }, []);
   const automatico = perfilDeVoz(person);
 
-  useEffect(() => () => { gravador.current?.cancelar(); pararDeFalar(); }, []);
+  useEffect(() => () => {
+    // Fechar a tela solta o áudio na hora: cada gravação é um data URL grande,
+    // e deixar o player tocando (ou com o src preso) segura o arquivo na memória.
+    gravador.current?.cancelar();
+    pararDeFalar();
+    player.current?.pause();
+    if (player.current) player.current.src = '';
+  }, []);
 
   const salvarNotas = (lista: VozNota[], mensagem: string) => {
     setNotas(lista);
@@ -130,6 +137,8 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
     const deuCerto = falar({
       texto,
       perfil: { voz: vozEscolhida || null, tom, ritmo },
+      // O volume é o mesmo da conversa (Ajustes → Conversas): um ajuste só.
+      volume: (data.settings.chatVozVolume ?? 70) / 100,
       aoTerminar: () => setFalandoAgora(false),
     });
     if (!deuCerto) { setErro('Não foi possível falar agora.'); return; }
@@ -146,15 +155,17 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
   };
 
   const compartilharNota = async (nota: VozNota) => {
-    const resultado = await compartilharArquivo({ dataUrl: nota.url, nome: `catalog-voz-${person.nome.replace(/[^\w]+/g, '-').toLowerCase()}-${nota.id.slice(0, 6)}.webm`, titulo: `${tituloDaNota(nota)} — ${person.nome}` });
+    const resultado = await compartilharArquivo({ dataUrl: nota.url, nome: nomeDoArquivoDeVoz(person, nota), titulo: `${tituloDaNota(nota)} — ${person.nome}` });
+    const aviso = mensagemDoCompartilhamento(resultado, 'voz');
     if (resultado === 'compartilhado' || resultado === 'baixado') { ctx.sound('compartilhar'); ctx.buzz?.(10); }
-    ctx.notify(resultado === 'compartilhado' ? 'Voz enviada pelo compartilhamento do aparelho.' : resultado === 'baixado' ? 'O navegador não compartilha arquivos: o áudio foi baixado.' : 'Não foi possível compartilhar este áudio.', resultado === 'indisponivel');
+    ctx.notify(aviso.texto, aviso.erro);
   };
 
   const compartilharFicha = async () => {
     const resultado = await compartilharTexto({ titulo: `${person.nome} — Catalog`, texto: resumoDaPessoa(person, data) });
+    const aviso = mensagemDoCompartilhamento(resultado, 'ficha');
     if (resultado === 'compartilhado' || resultado === 'copiado') { ctx.sound('compartilhar'); ctx.buzz?.(10); }
-    ctx.notify(resultado === 'compartilhado' ? 'Ficha compartilhada.' : resultado === 'copiado' ? 'Resumo da ficha copiado para a área de transferência.' : 'Este navegador não compartilha texto.', resultado === 'indisponivel');
+    ctx.notify(aviso.texto, aviso.erro);
   };
 
   return <Modal title={`A voz de ${person.nome.split(' ')[0]}`} description="Guarde a voz dela, ouça quando quiser e deixe o aplicativo falar por ela." onClose={onClose} wide className="voz-modal">
@@ -184,7 +195,7 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
         <div className="voz-nota-acoes">
           <IconButton label={nota.favorite ? 'Tirar dos favoritos' : 'Marcar como favorita'} onClick={() => salvarNotas(notas.map(item => item.id === nota.id ? { ...item, favorite: !item.favorite } : item), nota.favorite ? 'Voz desafixada.' : 'Voz marcada como favorita.')}><Heart size={15} fill={nota.favorite ? 'currentColor' : 'none'} /></IconButton>
           <IconButton label="Compartilhar este áudio" onClick={() => void compartilharNota(nota)}><Share2 size={15} /></IconButton>
-          <IconButton label="Baixar este áudio" onClick={() => { const base64 = nota.url.split(',')[1] || ''; const bytes = Uint8Array.from(atob(base64), caractere => caractere.charCodeAt(0)); downloadBlob(new Blob([bytes], { type: 'audio/webm' }), `catalog-voz-${person.nome.replace(/[^\w]+/g, '-').toLowerCase()}-${nota.id.slice(0, 6)}.webm`); }}><Upload size={15} /></IconButton>
+          <IconButton label="Baixar este áudio" onClick={() => { const { tipo } = formatoDoAudio(nota.url); const base64 = nota.url.split(',')[1] || ''; const bytes = Uint8Array.from(atob(base64), caractere => caractere.charCodeAt(0)); downloadBlob(new Blob([bytes], { type: tipo }), nomeDoArquivoDeVoz(person, nota)); }}><Upload size={15} /></IconButton>
           <IconButton label="Apagar este áudio" onClick={() => setApagar(nota)}><Trash2 size={15} /></IconButton>
         </div>
       </article>)}
@@ -264,11 +275,11 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
       <div className="voz-falar-acoes">
         <Button variant="primary" onClick={() => falarTexto(textoDeApresentacao(person, data))} disabled={!vozSuportada()}><Play size={16} />Ouvir a apresentação</Button>
         <Button onClick={() => falarTexto(`Oi, aqui é ${person.nome.split(' ')[0]}.`)} disabled={!vozSuportada()}><Mic size={16} />Ela diz o nome</Button>
-        <Button onClick={() => falarTexto(notas.length ? `${tituloDaNota(notas[0])}` : person.descricao.slice(0, 240))} disabled={!vozSuportada() || (!notas.length && !person.descricao.trim())}><AudioLines size={16} />Ler a descrição</Button>
+        <Button onClick={() => falarTexto(person.descricao.trim().replace(/\s+/g, ' ').slice(0, 400))} disabled={!vozSuportada() || !person.descricao.trim()} title={person.descricao.trim() ? 'Lê a descrição escrita na ficha' : 'Esta ficha ainda não tem descrição escrita'}><AudioLines size={16} />Ler a descrição</Button>
         {falandoAgora && <Button onClick={() => { pararDeFalar(); setFalandoAgora(false); }}><X size={16} />Parar</Button>}
         <Button onClick={salvarPerfil}><Sparkles size={16} />Salvar esta voz na ficha</Button>
       </div>
-      <p className="form-help">A voz sintetizada é do sistema — serve para dar presença à ficha, não para imitar ninguém. Um áudio gravado continua sendo a voz real. {automatico.tom !== tom || automatico.ritmo !== ritmo ? `Sugestão automática para esta ficha: tom ${automatico.tom} e ritmo ${automatico.ritmo}.` : ''}</p>
+      <p className="form-help">A voz sintetizada é do sistema — serve para dar presença à ficha, não para imitar ninguém. A apresentação leva cerca de {duracaoEstimada(textoDeApresentacao(person, data), ritmo)} para ser falada, no volume de {(data.settings.chatVozVolume ?? 70)}% (Ajustes → Conversas). Um áudio gravado continua sendo a voz real. {automatico.tom !== tom || automatico.ritmo !== ritmo ? `Sugestão automática para esta ficha: tom ${automatico.tom} e ritmo ${automatico.ritmo}.` : ''}</p>
     </div>}
 
     {apagar && <Confirm title="Apagar este áudio?" description={`“${tituloDaNota(apagar)}” sai da ficha e libera ${formatarPeso(pesoDoAudio(apagar.url))} do catálogo. Não tem como desfazer depois de salvar.`} danger confirmLabel="Apagar áudio" onClose={() => setApagar(null)} onConfirm={() => { salvarNotas(notas.filter(item => item.id !== apagar.id), 'Áudio apagado da ficha.'); setApagar(null); ctx.sound('pass'); }} />}
