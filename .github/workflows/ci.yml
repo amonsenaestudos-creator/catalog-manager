@@ -56,6 +56,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      # `contents: read` é obrigatório: ao declarar `permissions` qualquer
+      # escopo não listado vira `none` e o checkout do repositório falha.
+      contents: read
       pages: write
       id-token: write
     environment:
