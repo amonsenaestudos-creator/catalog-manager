@@ -2169,10 +2169,8 @@
   .voz-nota-acoes { grid-column: 2; justify-content: space-between; }
   .voz-nota-acoes .icon-btn { width: 42px; height: 42px; }
   .voz-micro-botao { width: 104px; height: 104px; }
-  .voz-gravar > .btn, .voz-rodape .btn, .voz-falar-acoes .btn, .voz-previa-acoes .btn { min-height: 44px; }
+  .voz-gravar > .btn, .voz-rodape .btn, .voz-previa-acoes .btn { min-height: 44px; }
   .voz-bloco .btn { min-height: 44px; }
   .voz-vazia { padding: 24px 16px; }
   .voz-gravando-acoes .btn { min-height: 46px; }
-  /* No dedo o botão de ouvir fica sempre visível: não existe hover. */
-  .chat-ouvir-msg { opacity: 1; width: 34px; height: 34px; }
 }

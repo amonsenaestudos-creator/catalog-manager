@@ -19,7 +19,7 @@ priorizadas, (3) o que já foi implementado nesta rodada.
 | Dimensão | Situação |
 | --- | --- |
 | Código | ~33.000 linhas em `src` e `tests`; 118 arquivos em `src` |
-| Testes | 35 arquivos, 503 testes, suíte completa em ~3 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) |
+| Testes | 35 arquivos, 497 testes, suíte completa em ~3,5 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) — a queda vem da limpeza da rodada 4, que apagou os testes do recurso retirado |
 | Verificação | `tsc --noEmit` limpo; build de produção em ~7 s; CI a cada PR *(novo)* |
 | Build | `dist/index.html` **2.419 kB** (990 kB gzip) — era 3.520 kB (1.847 kB) antes da rodada 2 |
 | Repositório | **165 arquivos versionados** — era 8.454, dos quais 8.282 eram `node_modules` (~226 MB) e 7 eram `dist` |
@@ -129,8 +129,8 @@ a partir do `package-lock.json`. O item 0.4 resolve a causa em vez do sintoma.
 | # | Entrega | O que mudou | Onde |
 | --- | --- | --- | --- |
 | V1 | **Voz das pessoas** | Áudio de verdade na ficha: gravação pelo microfone (MediaRecorder, mono, ~24 kbps) ou arquivo enviado, com título, favorito, player, download e exclusão. Limites explícitos: 2 MB por áudio, 8 MB por pessoa. | `src/features/voice/` |
-| V2 | **Voz sintetizada** | Cada ficha ganha tom e ritmo **estáveis a partir do id** (e uma pista de idade); a voz do sistema é escolhida por ficha e o app fala a apresentação, o nome e as mensagens da conversa. | `sintetizador.ts`, `voz.ts` |
-| V3 | **Conversa falada** | Botão de ouvir em cada mensagem dela e um modo no cabeçalho que fala as respostas em voz alta; nas configurações, chave própria, volume e amostra. | `ChatSimulator.tsx`, `Settings.tsx` |
+| V2 | ~~**Voz sintetizada**~~ — **removida na rodada 4** | O app falava por ela com a voz do aparelho. Não é a voz de ninguém e ocupava o lugar do que importa (ver §3.3). | `sintetizador.ts` (removido) |
+| V3 | ~~**Conversa falada**~~ — **removida na rodada 4** | Botão de ouvir por mensagem e modo voz no cabeçalho, ambos sobre a voz do aparelho. | `ChatSimulator.tsx` (limpo) |
 | C1 | **Compartilhar** | Resumo da ficha em texto (Web Share API com queda para a área de transferência) e áudio de voz como arquivo compartilhável, com queda para download. Nada sai sozinho e nenhum dado sai sem pedido. | `src/lib/compartilhar.ts` |
 | S1 | **Sons novos** | `gravando`, `parar`, `voz` (antes de falar) e `compartilhar`, com prévia em Ajustes. | `src/lib/sound.ts` |
 | L1 | **Peso do repositório** | `node_modules/` e `dist/` saíram do versionamento: **8.454 → 165 arquivos**. O `dist` volta com `npm run build`. | histórico do Git |
@@ -159,7 +159,7 @@ fazia outra, ou uma peça que ninguém usava.
 
 | # | O que estava torto | O que passou a acontecer | Onde |
 | --- | --- | --- | --- |
-| R1 | O **volume da voz sintetizada** só valia na amostra dos Ajustes — na conversa e na ficha a fala saía sempre no volume do sistema | O volume configurado vale em **todo lugar** que fala: conversa, ficha e amostra | `ChatSimulator.tsx`, `VozDaPessoa.tsx` |
+| R1 | ~~O **volume da voz sintetizada** só valia na amostra~~ | Corrigido na rodada 3; o recurso inteiro saiu na rodada 4 | — |
 | R2 | O botão **“Ler a descrição”** lia o *título do primeiro áudio* quando havia voz guardada | Lê a descrição escrita na ficha — e fica desabilitado, com explicação, quando não há uma | `VozDaPessoa.tsx` |
 | R3 | Baixar ou compartilhar um áudio **sempre** entregava `.webm`, mesmo para um MP3 enviado do aparelho (arquivo que o sistema abre como corrompido) | Extensão e tipo saem do próprio arquivo; o nome fica legível e sem acento | `voz.ts` (`formatoDoAudio`, `nomeDoArquivoDeVoz`) |
 | R4 | A **cópia de emergência** (diário local) parava de ser escrita acima de 4 MB **em silêncio** — e um catálogo com voz passa disso rápido | A tela avisa uma vez, explica o motivo e lembra de exportar um backup (o IndexedDB continua salvando) | `context.tsx`, `storage.ts` |
@@ -169,13 +169,74 @@ fazia outra, ou uma peça que ninguém usava.
 | R8 | `resumoDoCatalogoParaCompartilhar`, `enderecoDoApp`, `capaDaPessoa` e `duracaoDaNota` eram **código morto** | O retrato do catálogo virou comando na paleta (⌘K) e os outros três saíram | `CommandPalette.tsx`, `lib/compartilhar.ts`, `sintetizador.ts` |
 | R9 | `.voz-tabs` era classe usada **sem estilo** nenhum; abas apertavam em tela estreita | Regra própria, com quebra de linha | `base.css` |
 
-Suíte: 35 arquivos, 503 testes (`tests/correcoes.test.ts` cobre R1–R4 e R7–R8).
+Suíte na época: 35 arquivos, 503 testes (`tests/correcoes.test.ts` cobre R1–R4 e R7–R8); depois da rodada 4, 497.
+
+## 3.3 Rodada 4 — limpeza: nada de TTS, nomes honestos
+
+Revisão pedida depois da rodada 3. O foco foi **tirar do produto o que não é
+produto** e dar nome certo ao que existe.
+
+| # | O que saiu ou mudou | Por quê |
+| --- | --- | --- |
+| L1 | **Voz sintetizada removida por completo** (`sintetizador.ts` apagado, aba da ficha, botão de ouvir por mensagem, modo voz do cabeçalho, chave/volume/amostra em Ajustes, `Person.perfilVoz`, `settings.chatVoz`, `settings.chatVozVolume` e o CSS da fala) | Uma voz de máquina dizendo “Oi, eu sou Ana” **não é a voz da Ana**. Era caro de manter, difícil de explicar e ocupava o lugar do que importa: o áudio que a pessoa gravou. Nada de `speechSynthesis` no código. |
+| L2 | `src/lib/voz.ts` → **`src/lib/repertorio.ts`** (`FamiliaVoz`→`FamiliaDeFala`, `BancoVoz`→`BancoDeFalas`) | O nome mentia: eram 2.632 linhas de **frases escritas**, sem relação com áudio. O conteúdo textual continua inteiro; o cabeçalho agora diz que é a última etapa do motor (gerar texto), não o entendimento. |
+| L3 | `tests/voz.test.ts` → **`tests/repertorio.test.ts`** | Mesmo motivo, do lado dos testes. |
+| L4 | O que era **experimento na lateral** passou a se chamar **“Laboratório e extras (n)”** | Roleta, easter eggs, quadro de investigação, stories, pacotes e cia. continuam existindo — mas atrás de um nome que avisa o que são, sem disputar espaço com o caminho principal (§4, fase 3). |
+| L5 | A tela da ficha ficou com **duas abas** (Áudios e Gravar) | Menos superfície, menos promessa. |
+
+A limpeza apagou ~430 linhas de código de produto e ~120 de teste, e o app
+continua passando inteiro.
 
 ## 4. Como saber se melhorou
 
-- `npm test` verde e CI verde em todo PR (hoje: 35 arquivos, 503 testes).
+- `npm test` verde e CI verde em todo PR (hoje: 35 arquivos, 497 testes).
 - Lighthouse no `dist/index.html`: instalável, funcional offline, sem erro de console.
 - `git ls-files | wc -l` abaixo de 500 depois do item 0.4 (**feito**: 165 arquivos).
 - Nota da Saúde do catálogo acima de 90 num catálogo de uso diário.
 - Um único arquivo JSON de backup que abre em outro aparelho e restaura tudo, incluindo
   fotos — hoje isso já funciona; o item 1.2 só troca “arquivo legível” por “arquivo cifrado”.
+
+## 5. Fases de execução (mapa do que falta)
+
+Plano de trabalho acordado depois da rodada 4. A ordem importa: limpeza antes
+de arquitetura, arquitetura antes de produto novo.
+
+### Fase 1 — limpeza ✅ (rodada 4)
+
+| Item | Situação |
+| --- | --- |
+| 1. Renomear o `voz.ts` enganoso | ✅ `lib/voz.ts` → `lib/repertorio.ts` |
+| 2. Garantir que não existe TTS | ✅ removido por completo (nenhum `speechSynthesis` no código) |
+| 3. Dividir `dialogue.ts` (3.050 linhas) | ⏳ próxima — por assunto, com importação sob demanda. Hoje o repertório entra **dentro** desse arquivo, e `dialogue/engine.ts` (orquestrador) importa de `../dialogue` — a inversão de camada a resolver |
+| 4. Dividir `toolkit.ts` (1.695) | ⏳ |
+| 5. Dividir `types.ts` (897) | ⏳ |
+| 6. Dividir `store.ts` (901) | ⏳ |
+| 7. Dividir `ChatSimulator.tsx` (722) | ⏳ |
+
+### Fase 2 — arquitetura
+
+| Item | Situação |
+| --- | --- |
+| 8. `features/` com contratos | ✅ já existe (`people`, `gallery`, `gamification`, `relationships`, `discovery`, `health`, `voice`) — falta um `index.ts` de contrato por feature |
+| 9. Contratos entre features | ⏳ |
+| 10. `App.tsx` (374) e `context.tsx` (515) menores | ⏳ |
+| 11. Separar CSS (`base.css` 2.120 + `celular.css` 1.902) | ⏳ — `styles/` por assunto, mantendo os contratos de `isolamento.test.ts` |
+
+### Fase 3 — produto
+
+| Item | Situação |
+| --- | --- |
+| 12. Revisar a navegação (25+ telas) | ⏳ |
+| 13. Esconder o experimental | ✅ começou: “Laboratório e extras”; falta revisar tela por tela |
+| 14. Unificar funções duplicadas | ⏳ (fusão de telas: `tools` já agrupa categorias/coleções/rascunhos/duplicatas/atividade) |
+| 15. Revisar fluxos mobile | ⏳ |
+
+### Fase 4 — qualidade
+
+| Item | Situação |
+| --- | --- |
+| 16. Instalar limpo de verdade | ✅ é o que o CI faz a cada push (`npm ci` + `typecheck` + testes + build, verdes) |
+| 17. `typecheck` | ✅ sem erros, no CI |
+| 18. Todos os testes | ✅ 35 arquivos, no CI |
+| 19. Testes dos fluxos críticos | ⏳ (o que falta: importar/exportar backup grande, trocar de perfil, faxina) |
+| 20. Lint (item 0.5) | ⏳ |

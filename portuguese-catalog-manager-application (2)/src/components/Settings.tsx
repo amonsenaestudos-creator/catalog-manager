@@ -7,7 +7,6 @@ import { deleteBackup, loadBackups, pushBackup } from '../lib/storage';
 import { notificationPermission, requestNotificationPermission } from '../lib/notifications';
 import { playSound, SOUND_PREVIEWS, soundAvailable } from '../lib/sound';
 import { importarPacote, lerPacote, montarPacote, nomeDoArquivo, resumoDoPacote, type PacoteCategoria } from '../lib/pack';
-import { falar, pararDeFalar, vozSuportada, perfilDeVoz, textoDeApresentacao } from '../features/voice';
 import { collectAlerts } from '../lib/notifications';
 import { URL_PADRAO_IA } from '../lib/ia';
 import { PALETTE } from '../store';
@@ -15,17 +14,6 @@ import { Avatar, Button, CheckBox, Confirm, Field, IconButton, Modal, PageTitle 
 
 export default function Settings() {
   const ctx = useCatalog(), { data } = ctx; const s = data.settings;
-  // Amostra de voz: usa o perfil da primeira ficha ativa (para ouvir como ela
-  // soa de verdade) e cai num perfil neutro quando o catálogo está vazio.
-  const ouvirAmostraDeVoz = () => {
-    const ativa = data.people.filter(p => !p.deletedAt && !p.archivedAt)[0];
-    const perfil = ativa ? perfilDeVoz(ativa) : { voz: null, tom: 1, ritmo: 1 };
-    const texto = ativa ? textoDeApresentacao(ativa, data) : 'Oi! Esta é a voz que o catálogo usa quando fala pelas suas fichas.';
-    playSound('voz', true);
-    falar({ texto, perfil, volume: (data.settings.chatVozVolume ?? 70) / 100 });
-  };
-  // A voz é do sistema: ao sair dos Ajustes, ela para com a tela.
-  useEffect(() => () => pararDeFalar(), []);
   const [tab, setTab] = useState('profile'); const [profileName, setProfileName] = useState(s.profileName); const [username, setUsername] = useState(s.username); const [avatar, setAvatar] = useState(s.avatar);
   const [currentPassword, setCurrentPassword] = useState(''); const [password, setPassword] = useState(''); const [confirmPassword, setConfirmPassword] = useState(''); const [showPassword, setShowPassword] = useState(false); const [pin, setPin] = useState(s.pin || '');
   const [backups, setBackups] = useState<BackupVersion[]>([]); const [busy, setBusy] = useState(false); const [restore, setRestore] = useState<BackupVersion | null>(null); const [removeVersion, setRemoveVersion] = useState<string | null>(null);
@@ -140,10 +128,7 @@ export default function Settings() {
           <CheckBox checked={s.chatMeter !== false} onChange={() => setting('chatMeter', s.chatMeter === false)} label="Mostrar o medidor de química e o estágio da relação" />
           <CheckBox checked={!!s.chatSlang} onChange={() => setting('chatSlang', !s.chatSlang)} label="Abreviações de celular (vc, hj, tá, tbm) — vem desligado: ela escreve as palavras por inteiro e ri com kkkk conforme a personalidade da ficha" />
           <CheckBox checked={s.chatEmojis !== false} onChange={() => setting('chatEmojis', s.chatEmojis === false)} label="Usar emojis no ritmo da ficha (quem escreve seco continua seco)" />
-          <CheckBox checked={s.chatVoz === true} onChange={() => { setting('chatVoz', s.chatVoz !== true); if (s.chatVoz === true) pararDeFalar(); }} label="Falar as respostas em voz alta, com o tom e o ritmo da ficha (a voz é do aparelho)" />
-          <Field label="Volume da voz sintetizada"><input type="range" min={0} max={100} step={5} value={s.chatVozVolume ?? 70} onChange={e => setting('chatVozVolume', Number(e.target.value))} /><span className="form-help">{s.chatVozVolume ?? 70}% · a voz guardada em áudio (Áudios da ficha) tem o volume do aparelho</span></Field>
-          <div className="backup-actions"><Button onClick={() => ouvirAmostraDeVoz()} disabled={!vozSuportada()}><Volume2 size={16} />Ouvir uma amostra</Button><Button onClick={() => pararDeFalar()} disabled={!vozSuportada()}>Parar a voz</Button></div>
-          <p className="form-help">A voz sai do próprio aparelho: são as vozes de sistema, inclusive as que você instalou. Nas fichas, em <b>Voz da pessoa</b>, dá para escolher a voz, o tom e o ritmo de cada uma — e guardar áudios de verdade.</p>
+          <p className="form-help">A conversa é por escrito. A voz de verdade fica na ficha, em <b>A voz de …</b>: gravação do microfone ou áudio enviado do aparelho.</p>
           <Field label="Ritmo das respostas"><select value={s.chatSpeed || 'realista'} onChange={e => setting('chatSpeed', e.target.value as 'pausado' | 'realista' | 'rapido')} aria-label="Ritmo das respostas"><option value="pausado">Pausado — ela digita devagar, dá tempo de ler</option><option value="realista">Realista — tempo de digitação de verdade</option><option value="rapido">Rápido — responde na hora, sem simular digitação</option></select></Field>
           <CheckBox checked={!!s.chatAuto} onChange={() => setting('chatAuto', !s.chatAuto)} label="Modo automático: ela puxa assunto sozinha quando a conversa para" />
           <CheckBox checked={s.chatDoNada !== false} onChange={() => setting('chatDoNada', s.chatDoNada === false)} label="Mensagens do nada: ela lembra de coisas que você nem fez (um papel na igreja, o ensaio que você faltou...)" />

@@ -2326,7 +2326,7 @@ html.visor-aberto, html.visor-aberto body { overflow: hidden; overscroll-behavio
 .voz-vazia p { max-width: 420px; color: var(--muted); font-size: 11px; line-height: 1.7; }
 .voz-vazia .btn { margin-top: 6px; min-height: 36px; padding: 8px 13px; font-size: 10px; }
 .voz-rodape { display: flex; justify-content: flex-end; margin-top: 4px; }
-.voz-rodape .btn, .voz-falar-acoes .btn, .voz-previa-acoes .btn, .voz-gravar > .btn { min-height: 36px; padding: 8px 13px; font-size: 10px; }
+.voz-rodape .btn, .voz-previa-acoes .btn, .voz-gravar > .btn { min-height: 36px; padding: 8px 13px; font-size: 10px; }
 
 .voz-gravar { display: grid; justify-items: center; gap: 14px; text-align: center; }
 .voz-micro { display: grid; justify-items: center; gap: 10px; }
@@ -2350,18 +2350,3 @@ html.visor-aberto, html.visor-aberto body { overflow: hidden; overscroll-behavio
 .voz-player { width: 100%; height: 40px; }
 .voz-previa-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
 
-.voz-falar { display: grid; gap: 14px; }
-.voz-falar-cabeca { display: flex; gap: 12px; }
-.voz-falar-cabeca svg { flex: 0 0 auto; margin-top: 2px; color: var(--accent); }
-.voz-falar-cabeca h3 { font-size: 13px; font-weight: 550; }
-.voz-falar-cabeca p { max-width: 620px; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.7; }
-.voz-controles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
-.voz-controles input[type="range"] { width: 100%; accent-color: var(--accent); }
-.voz-falar-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
-
-/* Bolha do chat: o botão de ouvir, do lado do responder. */
-.chat-ouvir-msg { display: grid; place-items: center; width: 26px; height: 26px; color: var(--faint); border: 1px solid var(--line); border-radius: 50%; background: var(--surface); opacity: 0; transition: opacity .16s, color .16s, border-color .16s; }
-.chat-bubble-wrap:hover .chat-ouvir-msg, .chat-ouvir-msg:focus-visible, .chat-ouvir-msg.falando { opacity: 1; }
-.chat-ouvir-msg:hover { color: var(--accent); border-color: #c786ec66; }
-.chat-ouvir-msg.falando { color: var(--accent); border-color: #c786ec88; animation: voz-bater .9s ease-in-out infinite; }
-.icon-btn.voz-ativa { color: var(--accent); background: var(--accent-soft); }

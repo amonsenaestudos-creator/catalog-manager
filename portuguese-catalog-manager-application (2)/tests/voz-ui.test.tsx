@@ -39,13 +39,19 @@ describe('voz da pessoa: tela', () => {
     await waitFor(() => expect(document.querySelector('.voz-erro')?.textContent || '').toMatch(/microfone|navegador/i), { timeout: 20000 });
   });
 
-  it('a conversa oferece ouvir a mensagem e o modo voz no cabeçalho', async () => {
+  it('a tela da voz tem só áudios e gravação — nada de voz sintetizada', async () => {
     const user = userEvent.setup();
     await bootApp(user);
-    const aside = document.querySelector('.sidebar') as HTMLElement;
-    const conversas = [...aside.querySelectorAll<HTMLButtonElement>('button.nav-item')].find(botao => /Conversas/i.test(botao.textContent || ''));
-    await act(async () => { conversas!.click(); });
-    await waitFor(() => expect(document.querySelector('.conversations-page')).toBeTruthy(), { timeout: 20000 });
+    await abrirPrimeiraFicha(user);
+    await act(async () => { (document.querySelector('.voz-bloco button') as HTMLButtonElement).click(); });
+    await waitFor(() => expect(document.querySelector('.voz-modal')).toBeTruthy(), { timeout: 20000 });
+
+    const abas = [...document.querySelectorAll('.voz-modal [role="tab"]')].map(aba => (aba.textContent || '').toLowerCase());
+    expect(abas.some(rotulo => rotulo.includes('áudios'))).toBe(true);
+    expect(abas.some(rotulo => rotulo.includes('gravar'))).toBe(true);
+    expect(abas.some(rotulo => rotulo.includes('sintetizada'))).toBe(false);
+    // E o aplicativo não fala por ninguém: nada de speechSynthesis na tela.
+    expect(document.querySelector('.voz-modal')?.textContent || '').not.toMatch(/voz sintetizada|falar por ela/i);
   });
 });
 

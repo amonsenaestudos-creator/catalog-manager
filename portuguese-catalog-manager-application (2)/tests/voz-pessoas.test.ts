@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  cabeNovaNota, escolherVoz, falar, formatarDuracao, formatarPeso, notasDeVoz, pararDeFalar,
-  perfilDeVoz, pesoDoAudio, resumoDaVoz, sementeDeVoz, textoDeApresentacao, tituloDaNota,
-  vozSuportada, VOZ_MAX_NOTA_BYTES,
+  cabeNovaNota, formatarDuracao, formatarPeso, formatoDoAudio, nomeDoArquivoDeVoz, notasDeVoz,
+  pesoDoAudio, resumoDaVoz, tituloDaNota, VOZ_MAX_NOTA_BYTES,
 } from '../src/features/voice';
 import { compartilharArquivo, compartilharTexto, dataUrlParaBlob, resumoDaPessoa } from '../src/lib/compartilhar';
 import { emptyData, getDefaultPerson, normalizeData } from '../src/store';
@@ -19,29 +18,6 @@ function nota(over: Partial<VozNota> = {}): VozNota {
 }
 
 describe('voz das pessoas: o que é do dado', () => {
-  it('cada ficha soa sempre igual: a semente vem do id', () => {
-    expect(sementeDeVoz('ana')).toBe(sementeDeVoz('ana'));
-    expect(sementeDeVoz('ana')).not.toBe(sementeDeVoz('bruna'));
-    const primeira = perfilDeVoz(pessoa());
-    const segunda = perfilDeVoz(pessoa());
-    expect(primeira).toEqual(segunda);
-    expect(primeira.tom).toBeGreaterThanOrEqual(0.6);
-    expect(primeira.tom).toBeLessThanOrEqual(1.5);
-    expect(primeira.ritmo).toBeGreaterThanOrEqual(0.7);
-    expect(primeira.ritmo).toBeLessThanOrEqual(1.3);
-  });
-
-  it('o ajuste manual da ficha vence o automático', () => {
-    const perfil = perfilDeVoz(pessoa({ perfilVoz: { voz: 'Voz do sistema', tom: 0.8, ritmo: 1.2 } }));
-    expect(perfil).toEqual({ voz: 'Voz do sistema', tom: 0.8, ritmo: 1.2 });
-  });
-
-  it('a idade entra como pista: quem é mais velho soa mais grave que quem é mais novo', () => {
-    const nova = perfilDeVoz(pessoa({ id: 'mesma', idade: 18 }));
-    const velha = perfilDeVoz(pessoa({ id: 'mesma', idade: 62 }));
-    expect(velha.tom).toBeLessThan(nova.tom);
-  });
-
   it('resumo conta notas, duração, peso e favoritas', () => {
     const resumo = resumoDaVoz({ vozes: [nota(), nota({ id: 'v2', duracao: 30, favorite: true })] });
     expect(resumo.notas).toBe(2);
@@ -69,15 +45,6 @@ describe('voz das pessoas: o que é do dado', () => {
     expect(formatarPeso(2 * 1024 * 1024)).toMatch(/2 MB/);
     expect(tituloDaNota({ titulo: '  ' })).toBe('Nota de voz');
   });
-
-  it('a apresentação sai da própria ficha, sem inventar', () => {
-    const data: AppData = { ...emptyData(), people: [pessoa({ idade: 24 })] };
-    const texto = textoDeApresentacao(data.people[0], data);
-    expect(texto).toContain('Ana');
-    expect(texto).toContain('24 anos');
-    expect(texto.toLowerCase()).toContain('igreja');
-    expect(texto).toContain('Fala rápido');
-  });
 });
 
 describe('voz das pessoas: guardar no catálogo', () => {
@@ -87,20 +54,18 @@ describe('voz das pessoas: guardar no catálogo', () => {
     expect(normal.people[0].vozes?.map(v => v.id)).toEqual(['v1']);
   });
 
-  it('dado antigo sem voz ganha a lista vazia e um perfil utilizável', () => {
-    const { vozes, perfilVoz, ...resto } = pessoa();
-    void vozes; void perfilVoz;
+  it('dado antigo sem voz ganha a lista vazia', () => {
+    const { vozes, ...resto } = pessoa();
+    void vozes;
     const normal = normalizeData({ ...emptyData(), people: [resto] });
     expect(normal.people[0].vozes).toEqual([]);
-    expect(perfilDeVoz(normal.people[0]).tom).toBeGreaterThan(0);
   });
 
-  it('a lista de vozes do sistema nunca deixa a ficha muda', () => {
-    // No jsdom não existe speechSynthesis: falar devolve false e o app explica.
-    expect(vozSuportada()).toBe(false);
-    expect(falar({ texto: 'oi' })).toBe(false);
-    expect(escolherVoz({ voz: 'qualquer' })).toBeNull();
-    expect(() => pararDeFalar()).not.toThrow();
+  it('não existe voz sintetizada: o app não fala por ninguém', () => {
+    // O que sai do aplicativo é sempre o arquivo gravado, com nome e tipo reais.
+    const nome = nomeDoArquivoDeVoz({ nome: 'Ana Souza' }, nota({ url: 'data:audio/mp4;base64,QUJD' }));
+    expect(nome).toBe('catalog-voz-ana-souza-bom-dia-v1.m4a');
+    expect(formatoDoAudio('data:audio/mp4;base64,QUJD').tipo).toBe('audio/mp4');
   });
 });
 

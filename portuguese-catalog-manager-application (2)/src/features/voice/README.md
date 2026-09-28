@@ -1,39 +1,31 @@
 # Voz das pessoas
 
-Um catálogo de fotos lembra o rosto. Este domínio guarda o **som** — e responde a
-duas perguntas diferentes:
+O som de verdade de quem está na ficha — **áudio gravado**, nunca sintetizado.
 
-1. **Como ela soa de verdade?** Áudios gravados ou enviados, guardados como
-   `data:audio/...` na própria ficha (campo `vozes`). Entram no backup, no peso do
-   catálogo e na faxina, como qualquer outro dado.
-2. **Como ela soaria falando?** Uma voz do sistema (`speechSynthesis`) com **tom e
-   ritmo estáveis por ficha**, definidos a partir do id — a mesma pessoa soa sempre
-   igual, sem configurar nada. O que a pessoa ajustar na mão vence o automático.
+## O que o domínio responde
 
-## Contrato
+1. **Como ela soa?** Gravação do microfone (`MediaRecorder`, mono, ~24 kbps) ou
+   arquivo que já existe no aparelho. Cada nota tem título, duração, peso,
+   favorito, player, download, compartilhamento e exclusão.
+2. **Quanto cabe?** 2 MB por áudio e 8 MB por pessoa. Acima disso a tela escreve
+   o motivo em vez de estourar (e a Saúde do catálogo avisa no conjunto).
+3. **O que sai daqui?** O arquivo com a extensão e o tipo reais (`formatoDoAudio`)
+   e um nome legível (`nomeDoArquivoDeVoz`).
 
-```ts
-import { VozDaPessoa, perfilDeVoz, textoDeApresentacao, resumoDaVoz, falar } from '@/features/voice';
-```
+## Por que não há voz sintetizada
 
-- `voz.ts`: regras puras — perfil automático (`sementeDeVoz` + idade), limites de
-  tamanho, contas do resumo, texto de apresentação montado da ficha.
-- `sintetizador.ts`: `falar`, `pararDeFalar`, `vozesDisponiveis`, `escolherVoz`.
-  Sem suporte no navegador, tudo devolve `false` em vez de estourar.
-- `gravador.ts`: `iniciarGravacao` (MediaRecorder, mono, ~24 kbps), `lerArquivoDeAudio`
-  e `medirDuracao`. Sem microfone, cada caminho explica o motivo em português.
-- `components/VozDaPessoa.tsx`: as três abas — áudios, gravar, voz sintetizada.
+Havia, e saiu (rodada 4 de `MELHORIAS.md`). Um `speechSynthesis` falando “Oi, eu
+sou Ana” **não é a voz da Ana** — é a voz da máquina. Isso é caro de manter,
+difícil de explicar e ocupa o lugar do que importa: o áudio que a pessoa
+gravou. Aqui o aplicativo não fala por ninguém.
 
-## Regras
+## Arquivos
 
-1. **Só `data:audio/...` entra** (checado em `safeVoz`, no `store`): backup estranho
-   não vira fonte de áudio externa.
-2. **Limites declarados:** 2 MB por áudio e 8 MB por pessoa (`VOZ_MAX_*`), com a
-   mensagem explicando o motivo — áudio em base64 é o dado que mais engorda o
-   catálogo.
-3. **Gravação é leve de propósito:** mono e ~24 kbps opus dão cerca de 3 KB por
-   segundo; dez minutos de voz cabem em menos de 2 MB.
-4. **A voz sintetizada não imita ninguém.** Ela dá presença à ficha (e permite ouvir
-   a conversa), mas quem quiser a voz real guarda um áudio.
-5. Painel, Avisos e testes usam as mesmas funções — nada de conta de duração
-   duplicada pelo aplicativo.
+- `voz.ts`: regras puras — limites, contas do resumo, formato e nome do arquivo.
+- `gravador.ts`: microfone (`iniciarGravacao`) e arquivos (`lerArquivoDeAudio`),
+  com medidor de nível e limite de 300 s.
+- `components/VozDaPessoa.tsx`: a tela (abas **Áudios** e **Gravar**).
+- `index.ts`: a API pública do domínio.
+
+Sem microfone ou sem suporte a gravação, cada caminho explica o motivo em
+português — a tela nunca fica muda sem dizer por quê.

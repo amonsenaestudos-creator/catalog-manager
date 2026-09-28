@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AudioLines, CircleStop, Heart, Mic, Pause, Play, Share2, Sparkles, Trash2, Upload, Volume2, X } from 'lucide-react';
+import { AudioLines, CircleStop, Heart, Mic, Pause, Play, Share2, Sparkles, Trash2, Upload } from 'lucide-react';
 import type { Person, VozNota } from '../../../types';
 import { useCatalog } from '../../../context';
 import { Button, Confirm, Field, IconButton, Modal } from '../../../components/ui';
 import { downloadBlob, generateId } from '../../../store';
-import { compartilharArquivo, mensagemDoCompartilhamento, resumoDaPessoa, compartilharTexto } from '../../../lib/compartilhar';
+import { compartilharArquivo, compartilharResumoDaPessoa, mensagemDoCompartilhamento } from '../../../lib/compartilhar';
 import { iniciarGravacao, lerArquivoDeAudio, motivoSemMicrofone, type Gravador } from '../gravador';
-import { duracaoEstimada, falar, pararDeFalar, rotuloDaVoz, vozSuportada, vozesDisponiveis } from '../sintetizador';
-import { cabeNovaNota, formatarDuracao, formatarPeso, formatoDoAudio, nomeDoArquivoDeVoz, notasDeVoz, perfilDeVoz, pesoDoAudio, resumoDaVoz, textoDeApresentacao, tituloDaNota, VOZ_RITMO, VOZ_TOM } from '../voz';
+import { cabeNovaNota, formatarDuracao, formatarPeso, formatoDoAudio, nomeDoArquivoDeVoz, notasDeVoz, pesoDoAudio, resumoDaVoz, tituloDaNota } from '../voz';
 
-type Aba = 'ouvir' | 'gravar' | 'falar';
+type Aba = 'ouvir' | 'gravar';
 
 /**
- * Voz da pessoa: os áudios de verdade dela, a gravação nova e a voz sintetizada
- * que fala pela ficha. A tela reúne as três coisas porque elas respondem à
- * mesma pergunta — “como essa pessoa soa?”.
+ * A voz da pessoa: os áudios de verdade dela.
+ *
+ * Grave pelo microfone ou envie um arquivo que já existe — um “bom dia”, uma
+ * risada, um recado. Nada é sintetizado: o aplicativo não fala por ninguém,
+ * porque uma voz inventada não é a voz de quem está na ficha.
  */
 export default function VozDaPessoa({ person, onClose }: { person: Person; onClose: () => void }) {
   const ctx = useCatalog();
@@ -29,29 +30,16 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
   const [titulo, setTitulo] = useState('');
   const [previa, setPrevia] = useState<{ url: string; duracao: number; bytes: number } | null>(null);
   const [apagar, setApagar] = useState<VozNota | null>(null);
-  const [falandoAgora, setFalandoAgora] = useState(false);
-  const [vozEscolhida, setVozEscolhida] = useState(person.perfilVoz?.voz || '');
-  const [tom, setTom] = useState(person.perfilVoz?.tom ?? perfilDeVoz(person).tom);
-  const [ritmo, setRitmo] = useState(person.perfilVoz?.ritmo ?? perfilDeVoz(person).ritmo);
   const gravador = useRef<Gravador | null>(null);
   const player = useRef<HTMLAudioElement | null>(null);
   const arquivo = useRef<HTMLInputElement>(null);
   const resumo = useMemo(() => resumoDaVoz({ vozes: notas }), [notas]);
-  const [vozes, setVozes] = useState(() => vozesDisponiveis());
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const atualizar = () => setVozes(vozesDisponiveis());
-    atualizar();
-    window.speechSynthesis.addEventListener?.('voiceschanged', atualizar);
-    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', atualizar);
-  }, []);
-  const automatico = perfilDeVoz(person);
+  const primeiroNome = person.nome.split(' ')[0];
 
   useEffect(() => () => {
     // Fechar a tela solta o áudio na hora: cada gravação é um data URL grande,
     // e deixar o player tocando (ou com o src preso) segura o arquivo na memória.
     gravador.current?.cancelar();
-    pararDeFalar();
     player.current?.pause();
     if (player.current) player.current.src = '';
   }, []);
@@ -95,7 +83,7 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
     if (!previa) return;
     const nota: VozNota = {
       id: generateId(),
-      titulo: titulo.trim() || `Voz de ${person.nome.split(' ')[0]} · ${new Date().toLocaleDateString('pt-BR')}`,
+      titulo: titulo.trim() || `Voz de ${primeiroNome} · ${new Date().toLocaleDateString('pt-BR')}`,
       url: previa.url,
       duracao: previa.duracao,
       createdAt: new Date().toISOString(),
@@ -122,7 +110,6 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
 
   const tocar = (nota: VozNota) => {
     if (tocando === nota.id) { player.current?.pause(); setTocando(null); return; }
-    pararDeFalar(); setFalandoAgora(false);
     const audio = player.current || new Audio();
     player.current = audio;
     audio.src = nota.url;
@@ -131,27 +118,10 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
     void audio.play().then(() => setTocando(nota.id)).catch(() => setErro('O navegador bloqueou o áudio. Toque de novo para ouvir.'));
   };
 
-  const falarTexto = (texto: string) => {
-    if (!vozSuportada()) { setErro('Este navegador não fala texto. A gravação em áudio continua funcionando.'); return; }
-    player.current?.pause(); setTocando(null);
-    const deuCerto = falar({
-      texto,
-      perfil: { voz: vozEscolhida || null, tom, ritmo },
-      // O volume é o mesmo da conversa (Ajustes → Conversas): um ajuste só.
-      volume: (data.settings.chatVozVolume ?? 70) / 100,
-      aoTerminar: () => setFalandoAgora(false),
-    });
-    if (!deuCerto) { setErro('Não foi possível falar agora.'); return; }
-    ctx.sound('voz');
-    setFalandoAgora(true);
-  };
-
-  const salvarPerfil = () => {
-    ctx.commit(d => ({
-      ...d,
-      people: d.people.map(p => p.id === person.id ? { ...p, perfilVoz: { voz: vozEscolhida || null, tom, ritmo }, updatedAt: new Date().toISOString() } : p),
-    }), 'A voz da ficha foi ajustada.');
-    ctx.sound('success');
+  const baixarNota = (nota: VozNota) => {
+    const { tipo } = formatoDoAudio(nota.url);
+    const bytes = Uint8Array.from(atob(nota.url.split(',')[1] || ''), caractere => caractere.charCodeAt(0));
+    downloadBlob(new Blob([bytes], { type: tipo }), nomeDoArquivoDeVoz(person, nota));
   };
 
   const compartilharNota = async (nota: VozNota) => {
@@ -162,15 +132,15 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
   };
 
   const compartilharFicha = async () => {
-    const resultado = await compartilharTexto({ titulo: `${person.nome} — Catalog`, texto: resumoDaPessoa(person, data) });
+    const resultado = await compartilharResumoDaPessoa(person, data);
     const aviso = mensagemDoCompartilhamento(resultado, 'ficha');
     if (resultado === 'compartilhado' || resultado === 'copiado') { ctx.sound('compartilhar'); ctx.buzz?.(10); }
     ctx.notify(aviso.texto, aviso.erro);
   };
 
-  return <Modal title={`A voz de ${person.nome.split(' ')[0]}`} description="Guarde a voz dela, ouça quando quiser e deixe o aplicativo falar por ela." onClose={onClose} wide className="voz-modal">
+  return <Modal title={`A voz de ${primeiroNome}`} description="Guarde a voz dela e ouça quando quiser. O áudio fica neste aparelho, junto das fotos da ficha." onClose={onClose} wide className="voz-modal">
     <div className="scope-tabs voz-tabs" role="tablist" aria-label="Voz da pessoa">
-      {([['ouvir', `Áudios (${notas.length})`], ['gravar', 'Gravar'], ['falar', 'Voz sintetizada']] as [Aba, string][]).map(([valor, rotulo]) =>
+      {([['ouvir', `Áudios (${notas.length})`], ['gravar', 'Gravar']] as [Aba, string][]).map(([valor, rotulo]) =>
         <button key={valor} role="tab" aria-selected={aba === valor} className={aba === valor ? 'active' : ''} onClick={() => { setAba(valor); setErro(''); }}>{rotulo}</button>)}
     </div>
 
@@ -195,7 +165,7 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
         <div className="voz-nota-acoes">
           <IconButton label={nota.favorite ? 'Tirar dos favoritos' : 'Marcar como favorita'} onClick={() => salvarNotas(notas.map(item => item.id === nota.id ? { ...item, favorite: !item.favorite } : item), nota.favorite ? 'Voz desafixada.' : 'Voz marcada como favorita.')}><Heart size={15} fill={nota.favorite ? 'currentColor' : 'none'} /></IconButton>
           <IconButton label="Compartilhar este áudio" onClick={() => void compartilharNota(nota)}><Share2 size={15} /></IconButton>
-          <IconButton label="Baixar este áudio" onClick={() => { const { tipo } = formatoDoAudio(nota.url); const base64 = nota.url.split(',')[1] || ''; const bytes = Uint8Array.from(atob(base64), caractere => caractere.charCodeAt(0)); downloadBlob(new Blob([bytes], { type: tipo }), nomeDoArquivoDeVoz(person, nota)); }}><Upload size={15} /></IconButton>
+          <IconButton label="Baixar este áudio" onClick={() => baixarNota(nota)}><Upload size={15} /></IconButton>
           <IconButton label="Apagar este áudio" onClick={() => setApagar(nota)}><Trash2 size={15} /></IconButton>
         </div>
       </article>)}
@@ -240,7 +210,7 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
         <h3>Ficou assim</h3>
         <audio controls src={previa.url} className="voz-player" />
         <Field label="Nome deste áudio" hint="Ex.: “Bom dia”, “Recado de aniversário”, “A risada dela”">
-          <input value={titulo} maxLength={80} placeholder={`Voz de ${person.nome.split(' ')[0]}`} onChange={evento => setTitulo(evento.target.value)} />
+          <input value={titulo} maxLength={80} placeholder={`Voz de ${primeiroNome}`} onChange={evento => setTitulo(evento.target.value)} />
         </Field>
         <p className="form-help">{formatarDuracao(previa.duracao)} · {formatarPeso(previa.bytes || pesoDoAudio(previa.url))}</p>
         <div className="voz-previa-acoes">
@@ -248,38 +218,6 @@ export default function VozDaPessoa({ person, onClose }: { person: Person; onClo
           <Button onClick={() => { setPrevia(null); setTitulo(''); }}>Gravar outro</Button>
         </div>
       </div>}
-    </div>}
-
-    {aba === 'falar' && <div className="voz-falar">
-      <div className="voz-falar-cabeca">
-        <Volume2 size={18} />
-        <div>
-          <h3>{vozSuportada() ? 'O aplicativo fala por ela' : 'Este navegador não fala texto'}</h3>
-          <p>A voz sai do próprio aparelho, com tom e ritmo próprios desta ficha. Sem escolha, o catálogo sorteia uma voz estável a partir da ficha — {person.nome.split(' ')[0]} soa sempre igual.</p>
-        </div>
-      </div>
-      <Field label="Voz do sistema" hint={vozes.length ? `${vozes.length} vozes disponíveis neste aparelho` : 'A lista de vozes chega depois de alguns instantes no primeiro uso'}>
-        <select value={vozEscolhida} onChange={evento => setVozEscolhida(evento.target.value)} disabled={!vozes.length}>
-          <option value="">Automática (a melhor em português)</option>
-          {vozes.map(voz => <option key={voz.name} value={voz.name}>{rotuloDaVoz(voz)}</option>)}
-        </select>
-      </Field>
-      <div className="voz-controles">
-        <Field label={`Tom · ${tom.toFixed(2)}`} hint="Mais grave à esquerda, mais agudo à direita">
-          <input type="range" min={VOZ_TOM.min} max={VOZ_TOM.max} step={0.01} value={tom} onChange={evento => setTom(Number(evento.target.value))} />
-        </Field>
-        <Field label={`Ritmo · ${ritmo.toFixed(2)}`} hint="Devagar à esquerda, apressado à direita">
-          <input type="range" min={VOZ_RITMO.min} max={VOZ_RITMO.max} step={0.01} value={ritmo} onChange={evento => setRitmo(Number(evento.target.value))} />
-        </Field>
-      </div>
-      <div className="voz-falar-acoes">
-        <Button variant="primary" onClick={() => falarTexto(textoDeApresentacao(person, data))} disabled={!vozSuportada()}><Play size={16} />Ouvir a apresentação</Button>
-        <Button onClick={() => falarTexto(`Oi, aqui é ${person.nome.split(' ')[0]}.`)} disabled={!vozSuportada()}><Mic size={16} />Ela diz o nome</Button>
-        <Button onClick={() => falarTexto(person.descricao.trim().replace(/\s+/g, ' ').slice(0, 400))} disabled={!vozSuportada() || !person.descricao.trim()} title={person.descricao.trim() ? 'Lê a descrição escrita na ficha' : 'Esta ficha ainda não tem descrição escrita'}><AudioLines size={16} />Ler a descrição</Button>
-        {falandoAgora && <Button onClick={() => { pararDeFalar(); setFalandoAgora(false); }}><X size={16} />Parar</Button>}
-        <Button onClick={salvarPerfil}><Sparkles size={16} />Salvar esta voz na ficha</Button>
-      </div>
-      <p className="form-help">A voz sintetizada é do sistema — serve para dar presença à ficha, não para imitar ninguém. A apresentação leva cerca de {duracaoEstimada(textoDeApresentacao(person, data), ritmo)} para ser falada, no volume de {(data.settings.chatVozVolume ?? 70)}% (Ajustes → Conversas). Um áudio gravado continua sendo a voz real. {automatico.tom !== tom || automatico.ritmo !== ritmo ? `Sugestão automática para esta ficha: tom ${automatico.tom} e ritmo ${automatico.ritmo}.` : ''}</p>
     </div>}
 
     {apagar && <Confirm title="Apagar este áudio?" description={`“${tituloDaNota(apagar)}” sai da ficha e libera ${formatarPeso(pesoDoAudio(apagar.url))} do catálogo. Não tem como desfazer depois de salvar.`} danger confirmLabel="Apagar áudio" onClose={() => setApagar(null)} onConfirm={() => { salvarNotas(notas.filter(item => item.id !== apagar.id), 'Áudio apagado da ficha.'); setApagar(null); ctx.sound('pass'); }} />}

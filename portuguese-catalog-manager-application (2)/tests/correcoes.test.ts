@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { compartilharArquivo, compartilharResumoDoCatalogo, dataUrlParaBlob, mensagemDoCompartilhamento, resumoDoCatalogoParaCompartilhar } from '../src/lib/compartilhar';
 import { avisoDoDiario, serializeForJournal, writeJournal } from '../src/lib/storage';
 import { formatoDoAudio, nomeDoArquivoDeVoz } from '../src/features/voice/voz';
-import { falar, vozSuportada } from '../src/features/voice/sintetizador';
 import { emptyData } from '../src/store';
 import type { AppData } from '../src/types';
 
@@ -15,18 +14,7 @@ const nota = (url: string, id = 'abc123', titulo = 'Bom dia') => ({ id, url, tit
 
 afterEach(() => {
   Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
-  Reflect.deleteProperty(window as unknown as Record<string, unknown>, 'speechSynthesis');
-  Reflect.deleteProperty(window as unknown as Record<string, unknown>, 'SpeechSynthesisUtterance');
 });
-
-/** Instala a síntese de voz do navegador para conferir o que o app pede a ela. */
-function comSintese() {
-  const faladas: Record<string, unknown>[] = [];
-  class FalaFalsa { texto: string; volume = 1; pitch = 1; rate = 1; lang = ''; voice = null; constructor(texto: string) { this.texto = texto; } }
-  Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: FalaFalsa });
-  Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: (fala: Record<string, unknown>) => faladas.push(fala), cancel: () => {}, getVoices: () => [], speaking: false } });
-  return faladas;
-}
 
 describe('arquivo de voz: nome e tipo certos', () => {
   it('reconhece o formato pelo próprio data URL', () => {
@@ -84,28 +72,6 @@ describe('compartilhar: uma frase só para cada caso', () => {
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
     const resultado = await compartilharArquivo({ dataUrl: 'data:audio/mpeg;base64,QUJD', nome: 'catalog-voz-ana.mp3' });
     expect(['baixado', 'indisponivel']).toContain(resultado);
-  });
-});
-
-describe('voz falada: o volume das Ajustes vale em todo lugar', () => {
-  it('sem aparelho que fale, continua devolvendo false (nada de silêncio fingido)', () => {
-    expect(vozSuportada()).toBe(false);
-    expect(falar({ texto: 'oi' })).toBe(false);
-  });
-
-  it('o volume configurado chega à fala, com os limites respeitados', () => {
-    const faladas = comSintese();
-    expect(vozSuportada()).toBe(true);
-    expect(falar({ texto: 'oi', volume: 0.3 })).toBe(true);
-    expect(faladas[0].volume).toBeCloseTo(0.3);
-    falar({ texto: 'alto demais', volume: 4 });
-    expect(faladas[1].volume).toBe(1);
-    falar({ texto: 'baixo demais', volume: -1 });
-    expect(faladas[2].volume).toBe(0);
-    // Tom e ritmo da ficha continuam entrando na conta.
-    falar({ texto: 'com perfil', perfil: { voz: null, tom: 1.4, ritmo: 0.8 } });
-    expect(faladas[3].pitch).toBeCloseTo(1.4);
-    expect(faladas[3].rate).toBeCloseTo(0.8);
   });
 });
 

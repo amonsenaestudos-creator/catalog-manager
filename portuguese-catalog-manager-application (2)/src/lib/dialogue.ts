@@ -30,7 +30,7 @@ import {
   MAIS_SUGESTOES_EXTRA, MANEIRISMOS, PESSOA_NOVA,
   PESSOA_CONHECIDA, RECEPCOES_HISTORIA, RECEPCOES_MADURA, RECEPCOES_TEMA, FRIAS, LIMITES_GROSSERIA, nomesDaPessoa, nomesEstranhos, nomesNaMensagem,
   recepcaoVale,
-} from './voz';
+} from './repertorio';
 
 /** Compara sempre no mesmo formato do texto analisado: minúsculo e sem acento. */
 function rx(fonte: string, flags = 'i') { return new RegExp(fonte.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), flags); }

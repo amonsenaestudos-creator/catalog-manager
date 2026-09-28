@@ -108,7 +108,6 @@ export interface Person {
   /** Áudios de verdade dessa pessoa: a voz, os recados, o jeito de rir. */
   vozes?: VozNota[];
   /** Como ela soa quando o app fala por ela. */
-  perfilVoz?: PerfilDeVoz;
 }
 
 /**
@@ -133,15 +132,6 @@ export interface VozNota {
  * Sem escolha, o catálogo sorteia uma voz estável a partir do id — a mesma
  * pessoa soa sempre igual, sem precisar configurar nada.
  */
-export interface PerfilDeVoz {
-  /** Nome da voz do sistema (`SpeechSynthesisVoice.name`); vazio = automática. */
-  voz?: string | null;
-  /** 0.5 a 1.6 — mais grave ou mais agudo. */
-  tom?: number;
-  /** 0.6 a 1.4 — mais devagar ou mais rápido. */
-  ritmo?: number;
-}
-
 export interface CustomField { id: string; label: string; value: string }
 export interface Attachment { id: string; label: string; url: string; kind: 'link' | 'video' | 'pdf' | 'audio' | 'outro'; createdAt: string }
 export interface RatingSnapshot {
@@ -583,10 +573,6 @@ export interface AppData {
     chatEmojis?: boolean;
     chatMeter?: boolean;
     chatAuto?: boolean;
-    /** Falar em voz alta as respostas dela na conversa. Desligado por padrão. */
-    chatVoz?: boolean;
-    /** Volume da voz sintetizada, de 0 a 100. */
-    chatVozVolume?: number;
     chatDoNada?: boolean;
     /**
      * Mundo vivo: o aplicativo continua acontecendo enquanto você não olha —
