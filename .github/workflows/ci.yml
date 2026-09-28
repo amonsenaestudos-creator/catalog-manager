@@ -52,7 +52,7 @@ jobs:
   publicar:
     name: Publicar no GitHub Pages
     needs: verificar
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -68,8 +68,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/configure-pages@v6
         with:
-          # Liga o Pages sozinho na primeira execução; se a conta não deixar,
-          # o passo avisa e basta ligar em Settings → Pages → Source: GitHub Actions.
+          # Tenta ligar o Pages sozinho. Em repositório privado o token do
+          # workflow não tem essa permissão (403 "Resource not accessible by
+          # integration"), então normalmente é preciso ligar uma vez em
+          # Settings → Pages → Source: GitHub Actions. Depois disso este passo
+          # só consulta a configuração e o deploy segue normalmente.
           enablement: true
       - name: Baixar o build verificado
         uses: actions/download-artifact@v6
