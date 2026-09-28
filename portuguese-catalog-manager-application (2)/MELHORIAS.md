@@ -22,7 +22,7 @@ priorizadas, (3) o que já foi implementado nesta rodada.
 | Testes | 35 arquivos, 497 testes, suíte completa em ~3,5 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) — a queda vem da limpeza da rodada 4, que apagou os testes do recurso retirado |
 | Verificação | `tsc --noEmit` limpo; build de produção em ~7 s; CI a cada PR *(novo)* |
 | Build | `dist/index.html` **2.419 kB** (990 kB gzip) — era 3.520 kB (1.847 kB) antes da rodada 2 |
-| Repositório | **165 arquivos versionados** — era 8.454, dos quais 8.282 eram `node_modules` (~226 MB) e 7 eram `dist` |
+| Repositório | **193 arquivos versionados** — era 8.454, dos quais 8.282 eram `node_modules` (~226 MB) e 7 eram `dist`. Os ~28 a mais que 165 são as telas e testes das rodadas 3 e 4 |
 | Maior dívida declarada | `dialogue.ts` 3.050 linhas, `voz.ts` 2.632, `toolkit.ts` 1.695, `ChatSimulator.tsx` 669 |
 | Auditoria npm | 3 alertas pendentes (1 baixo, 1 moderado, 1 alto), como o próprio README registra |
 | Automação | nenhum CI, nenhum lint, nenhuma cobertura medida |

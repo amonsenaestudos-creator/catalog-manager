@@ -29,8 +29,8 @@ O mesmo conjunto roda no CI a cada push em `main` e a cada pull request
 
 `node_modules/` e `dist/` **não** são versionados — são resultado, não código
 (o `.gitignore` cuida disso, e `npm install` + `npm run build` regeneram os dois).
-O repositório tem 165 arquivos; antes eram 8.454, dos quais 8.282 eram
-dependências.
+O repositório tem 193 arquivos versionados; antes eram 8.454, dos quais 8.282
+eram dependências.
 
 ## Documentação
 
