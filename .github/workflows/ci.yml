@@ -55,6 +55,10 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Publicar é acessório: se o Pages ainda não estiver ligado, ou se a conta
+    # não permitir, o site não sai — mas isso não pode pintar de vermelho um
+    # commit cujos testes passaram. A falha continua visível no job.
+    continue-on-error: true
     permissions:
       # `contents: read` é obrigatório: ao declarar `permissions` qualquer
       # escopo não listado vira `none` e o checkout do repositório falha.
