@@ -19,11 +19,11 @@ priorizadas, (3) o que já foi implementado nesta rodada.
 | Dimensão | Situação |
 | --- | --- |
 | Código | ~33.000 linhas em `src` e `tests`; 118 arquivos em `src` |
-| Testes | 35 arquivos, 497 testes, suíte completa em ~3,5 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) — a queda vem da limpeza da rodada 4, que apagou os testes do recurso retirado |
+| Testes | 35 arquivos, 498 testes, suíte completa em ~3,6 min (antes da rodada 1: 30 arquivos, 445 testes, 2 falhando) — a queda em relação a 503 vem da limpeza da rodada 4, que apagou os testes do recurso retirado |
 | Verificação | `tsc --noEmit` limpo; build de produção em ~7 s; CI a cada PR *(novo)* |
 | Build | `dist/index.html` **2.419 kB** (990 kB gzip) — era 3.520 kB (1.847 kB) antes da rodada 2 |
 | Repositório | **193 arquivos versionados** — era 8.454, dos quais 8.282 eram `node_modules` (~226 MB) e 7 eram `dist`. Os ~28 a mais que 165 são as telas e testes das rodadas 3 e 4 |
-| Maior dívida declarada | `dialogue.ts` 3.050 linhas, `voz.ts` 2.632, `toolkit.ts` 1.695, `ChatSimulator.tsx` 669 |
+| Maior dívida declarada | `repertorio.ts` 2.639 linhas, `dialogue.ts` 1.847 (era 3.050), `toolkit.ts` 1.695, `ChatSimulator.tsx` 669 |
 | Auditoria npm | 3 alertas pendentes (1 baixo, 1 moderado, 1 alto), como o próprio README registra |
 | Automação | nenhum CI, nenhum lint, nenhuma cobertura medida |
 
@@ -169,7 +169,7 @@ fazia outra, ou uma peça que ninguém usava.
 | R8 | `resumoDoCatalogoParaCompartilhar`, `enderecoDoApp`, `capaDaPessoa` e `duracaoDaNota` eram **código morto** | O retrato do catálogo virou comando na paleta (⌘K) e os outros três saíram | `CommandPalette.tsx`, `lib/compartilhar.ts`, `sintetizador.ts` |
 | R9 | `.voz-tabs` era classe usada **sem estilo** nenhum; abas apertavam em tela estreita | Regra própria, com quebra de linha | `base.css` |
 
-Suíte na época: 35 arquivos, 503 testes (`tests/correcoes.test.ts` cobre R1–R4 e R7–R8); depois da rodada 4, 497.
+Suíte na época: 35 arquivos, 503 testes (`tests/correcoes.test.ts` cobre R1–R4 e R7–R8); depois da rodada 4, 497; depois da rodada 5, 498.
 
 ## 3.3 Rodada 4 — limpeza: nada de TTS, nomes honestos
 
@@ -207,7 +207,7 @@ de arquitetura, arquitetura antes de produto novo.
 | --- | --- |
 | 1. Renomear o `voz.ts` enganoso | ✅ `lib/voz.ts` → `lib/repertorio.ts` |
 | 2. Garantir que não existe TTS | ✅ removido por completo (nenhum `speechSynthesis` no código) |
-| 3. Dividir `dialogue.ts` (3.050 linhas) | ⏳ próxima — por assunto, com importação sob demanda. Hoje o repertório entra **dentro** desse arquivo, e `dialogue/engine.ts` (orquestrador) importa de `../dialogue` — a inversão de camada a resolver |
+| 3. Dividir `dialogue.ts` (3.050 linhas) | ✅ feito (rodada 5) — as bancas de frases saíram para `src/lib/dialogue/bancos.ts`; o motor ficou com 1.847 linhas, sem nenhuma tabela de fala. Falta a segunda metade: inverter a camada (`dialogue/engine.ts` ainda importa de `../dialogue`) e quebrar `repertorio.ts` por assunto. `tests/architecture.test.ts` trava o tamanho e proíbe lógica nas bancas |
 | 4. Dividir `toolkit.ts` (1.695) | ⏳ |
 | 5. Dividir `types.ts` (897) | ⏳ |
 | 6. Dividir `store.ts` (901) | ⏳ |

@@ -164,6 +164,7 @@ Um catálogo de fotos lembra o rosto; o Catalog também guarda o som.
 - `src/lib/sound.ts`: sintetizador de sons de interface (Web Audio) com as regras de silêncio.
 - `src/lib/persona.ts`: leitura da ficha (comportamento, idade, interesses, signo, música, localização) e montagem da persona que fala.
 - `src/lib/dialogue.ts`: motor da conversa simulada — intenções, clima automático, química, estágios, memória, humor, estilo de escrita, sugestões, análise e exportação.
+- `src/lib/dialogue/bancos.ts`: as bancas de frases (1.262 linhas de fala pura). É o último estágio do motor: decide-se no `dialogue.ts`, escolhe-se as palavras aqui.
 - `src/lib/toolkit.ts`: as 50 ferramentas, com campos, prévia e execução sobre os dados.
 - `src/components/Toolbox.tsx`: tela Ferramentas, com busca, grupos, formulário dinâmico e resultado.
 - `src/lib/ics.ts`: exportação da agenda em iCalendar.

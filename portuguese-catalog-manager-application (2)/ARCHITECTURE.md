@@ -111,8 +111,8 @@ com o navegador é a tela, não o domínio.
 2. `src/components/Gallery.tsx`: separar abas, grade, upload e seleção em lote.
 3. `src/context.tsx`: separar persistência, comandos e progresso em hooks/facades.
 4. `src/store.ts` e `src/types.ts`: extrair contratos por domínio sem quebrar o formato salvo.
-5. `src/lib/dialogue.ts` e `src/lib/voz.ts`: manter como motores independentes; não misturar regras de conversa com UI.
+5. `src/lib/dialogue.ts` (motor) e `src/lib/dialogue/bancos.ts` + `src/lib/repertorio.ts` (falas): manter separados — o motor não guarda frase, a banca não decide nada.
 6. `src/components/Settings.tsx` e `src/components/MySpace.tsx`: telas densas que ainda concentram abas, formulários e regras; candidatas naturais à próxima fatia.
-7. `src/lib/dialogue.ts` (3.050 linhas) e `src/lib/repertorio.ts` (2.632, antes `voz.ts`): bancos de respostas que poderiam virar arquivos por assunto, carregados sob demanda — hoje pesam no bundle inicial mesmo em quem nunca abre a conversa. O pipeline já está separado (`dialogue/understanding.ts` entende, `engine.ts` decide, `response.ts` gera texto, `repertorio.ts` só fornece frases), mas o *arquivo* de repertório continua gigante.
+7. `src/lib/repertorio.ts` (2.639 linhas, antes `voz.ts`) e `src/lib/dialogue/bancos.ts` (1.262): bancos de respostas que poderiam virar arquivos por assunto, carregados sob demanda — hoje pesam no bundle inicial mesmo em quem nunca abre a conversa. O pipeline já está separado (`dialogue/understanding.ts` entende, `engine.ts` decide, `response.ts` gera texto, `bancos.ts`/`repertorio.ts` só fornecem frases) e, desde a rodada 5, as falas saíram de dentro do motor: `dialogue.ts` caiu de 3.050 para 1.847 linhas.
 
 A regra de ouro é: uma feature pode crescer, mas nenhum arquivo deve precisar conhecer tudo sobre ela.

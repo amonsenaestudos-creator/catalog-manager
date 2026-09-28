@@ -46,4 +46,24 @@ describe('contratos de arquitetura', () => {
     expect(existsSync(join(src, 'features', 'discovery', 'components', 'Desafios.tsx'))).toBe(true);
     expect(statSync(join(src, 'features', 'discovery', 'components', 'Momentos.tsx')).isFile()).toBe(true);
   });
+  it('mantém as bancas de frases fora do motor, como estágio de geração', () => {
+    // O motor decide o que acontece; a banca só guarda o que é dito. Se as duas
+    // coisas voltarem para o mesmo arquivo, o motor passa a ter mais de duas mil
+    // linhas de fala no meio da lógica — foi assim que ele chegou a 3.050.
+    const motor = readFileSync(join(src, 'lib', 'dialogue.ts'), 'utf8');
+    const bancas = readFileSync(join(src, 'lib', 'dialogue', 'bancos.ts'), 'utf8');
+
+    expect(motor).not.toMatch(/^const RESPOSTAS:/m);
+    expect(motor).not.toMatch(/^const PERGUNTAS:/m);
+    expect(motor.split('\n').length).toBeLessThan(2000);
+
+    // Banca não decide nada: sem função, sem estado, sem depender do app.
+    expect(bancas).not.toMatch(/\bfunction\b/);
+    expect(bancas).not.toMatch(/from '\.\.\/(store|persona|estado|relacao|memory|topics)'/);
+    expect(bancas).toMatch(/^export const RESPOSTAS/m);
+
+    // O que sai da banca é só material de fala: listas de texto.
+    const listas = [...bancas.matchAll(/^export const ([A-Z_0-9]+)(?:: [^=]+)?=/gm)].map(m => m[1]);
+    expect(listas.length).toBeGreaterThanOrEqual(30);
+  });
 });
