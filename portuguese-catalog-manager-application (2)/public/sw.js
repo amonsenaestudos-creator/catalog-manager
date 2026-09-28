@@ -8,17 +8,23 @@
  * Nada é guardado fora do domínio do Catalog, e nenhuma imagem pessoal passa
  * por aqui — elas vivem no IndexedDB, não em requisições.
  */
-const CACHE = 'catalog-v1';
+const CACHE = 'catalog-v2';
+// O escopo é a pasta onde o aplicativo está publicado — a raiz do domínio ou
+// uma subpasta (/catalog-manager/, por exemplo). Tudo é resolvido a partir
+// dele, então o mesmo arquivo serve nos dois casos.
+const escopo = self.registration.scope;
+const naCasca = caminho => new URL(caminho, escopo).href;
 const CASCA = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/favicon.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/icon-maskable-512.png',
-  '/icons/apple-touch-icon.png',
+  naCasca('./'),
+  naCasca('index.html'),
+  naCasca('manifest.webmanifest'),
+  naCasca('favicon.svg'),
+  naCasca('icons/icon-192.png'),
+  naCasca('icons/icon-512.png'),
+  naCasca('icons/icon-maskable-512.png'),
+  naCasca('icons/apple-touch-icon.png'),
 ];
+const PAGINA = naCasca('index.html');
 
 self.addEventListener('install', evento => {
   evento.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CASCA)).then(() => self.skipWaiting()));
@@ -43,10 +49,10 @@ self.addEventListener('fetch', evento => {
       fetch(pedido)
         .then(resposta => {
           const copia = resposta.clone();
-          caches.open(CACHE).then(cache => cache.put('/index.html', copia));
+          caches.open(CACHE).then(cache => cache.put(PAGINA, copia));
           return resposta;
         })
-        .catch(async () => (await caches.match('/index.html')) || (await caches.match('/')) || Response.error()),
+        .catch(async () => (await caches.match(PAGINA)) || (await caches.match(naCasca('./'))) || Response.error()),
     );
     return;
   }

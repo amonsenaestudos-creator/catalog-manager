@@ -13,8 +13,10 @@ describe('aplicativo instalável e offline', () => {
   it('o manifest traz o que um aplicativo instalado precisa', () => {
     expect(manifest.name).toMatch(/Catalog/);
     expect(manifest.lang).toBe('pt-BR');
-    expect(manifest.start_url).toBe('/');
-    expect(manifest.scope).toBe('/');
+    // Relativos de propósito: o app funciona na raiz e em subpasta.
+    expect(manifest.start_url).toBe('./');
+    expect(manifest.scope).toBe('./');
+    expect(manifest.id).toBe('./');
     expect(manifest.display).toBe('standalone');
     expect(String(manifest.background_color)).toMatch(/^#[0-9a-f]{6}$/i);
     const icones = manifest.icons as { src: string; sizes: string; purpose?: string }[];
@@ -25,25 +27,30 @@ describe('aplicativo instalável e offline', () => {
 
   it('todo ícone do manifest existe no disco', () => {
     for (const icone of manifest.icons as { src: string }[]) {
-      expect(() => readFileSync(resolve(raiz, 'public', icone.src.replace(/^\//, '')))).not.toThrow();
+      expect(icone.src.startsWith('/'), 'ícone com caminho absoluto quebra em subpasta').toBe(false);
+      expect(() => readFileSync(resolve(raiz, 'public', icone.src.replace(/^\.\//, '')))).not.toThrow();
     }
   });
 
   it('a página aponta para o manifest e para o ícone do iOS', () => {
     const html = ler('index.html');
     expect(html).toMatch(/rel="manifest" href="\/manifest\.webmanifest"/);
+    // O Vite converte esses caminhos para relativos no build (base './').
     expect(html).toMatch(/rel="apple-touch-icon"[^>]*apple-touch-icon\.png/);
     expect(html).toMatch(/name="theme-color"/);
   });
 
   it('o service worker guarda a casca e trata navegação sem rede', () => {
-    expect(sw).toMatch(/const CACHE = 'catalog-v1'/);
+    expect(sw).toMatch(/const CACHE = 'catalog-v2'/);
+    // A casca sai do escopo registrado, não da raiz do domínio.
+    expect(sw).toMatch(/self\.registration\.scope/);
+    expect(sw).not.toMatch(/'\/index\.html'/);
     expect(sw).toMatch(/skipWaiting\(\)/);
     expect(sw).toMatch(/clients\.claim\(\)/);
     expect(sw).toMatch(/caches\.delete\(chave\)/);
     // A casca precisa incluir a página e o manifest; o app é um arquivo só.
-    expect(sw).toMatch(/'\/index\.html'/);
-    expect(sw).toMatch(/'\/manifest\.webmanifest'/);
+    expect(sw).toMatch(/naCasca\('index\.html'\)/);
+    expect(sw).toMatch(/naCasca\('manifest\.webmanifest'\)/);
     expect(sw).toMatch(/pedido\.mode === 'navigate'/);
     // Só o que é do próprio domínio e GET passa pelo cache.
     expect(sw).toMatch(/pedido\.method !== 'GET'/);
@@ -54,7 +61,7 @@ describe('aplicativo instalável e offline', () => {
     const fonte = ler('src/lib/pwa.ts');
     expect(fonte).toMatch(/import\.meta\.env\.DEV/);
     expect(fonte).toMatch(/'serviceWorker' in navigator/);
-    expect(fonte).toMatch(/register\('\/sw\.js'\)/);
+    expect(fonte).toMatch(/register\(`\$\{import\.meta\.env\.BASE_URL\}sw\.js`\)/);
     // Chamar sem suporte não pode explodir.
     expect(() => registrarServiceWorker()).not.toThrow();
   });

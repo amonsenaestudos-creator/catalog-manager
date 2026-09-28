@@ -18,7 +18,8 @@ export function registrarServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
   // Em desenvolvimento o service worker serviria a casca antiga a cada mudança.
   if (import.meta.env.DEV) return;
-  const registrar = () => { navigator.serviceWorker.register('/sw.js').catch(() => undefined); };
+  // `BASE_URL` acompanha o base do Vite: funciona na raiz e em subpasta.
+  const registrar = () => { navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined); };
   if (document.readyState === 'complete') registrar();
   else window.addEventListener('load', registrar, { once: true });
 }
