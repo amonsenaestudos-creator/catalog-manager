@@ -5,8 +5,9 @@
 # (processos morrem, node_modules volta sem permissão, preview/ desaparece).
 # Este script é a forma mais rápida de reconstruir tudo em um comando:
 #
-#   tools/preview.sh          # serve o build que já existe em dist/
-#   tools/preview.sh --build  # refaz o build antes de servir
+#   tools/preview.sh           # serve o build que já existe em dist/
+#   tools/preview.sh --build   # refaz o build antes de servir
+#   tools/preview.sh --arquivo # gera catalog-previa.html (um arquivo, sem servidor)
 #
 # O servidor é o do Python (existe sempre) e fica em primeiro plano. Para uma
 # URL que não dependa desta sandbox, o CI publica o mesmo build no GitHub
@@ -18,6 +19,12 @@ APP="$RAIZ/portuguese-catalog-manager-application (2)"
 PORTA="${PORTA:-5173}"
 
 cd "$APP"
+
+if [ "${1:-}" = "--arquivo" ]; then
+  bash "$0" --build >/dev/null
+  python3 "$RAIZ/tools/arquivo-unico.py" "$APP/dist" "$RAIZ/catalog-previa.html"
+  exit 0
+fi
 
 if [ "${1:-}" = "--build" ]; then
   chmod +x node_modules/.bin/* 2>/dev/null || true
