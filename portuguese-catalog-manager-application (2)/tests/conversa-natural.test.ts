@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getDefaultPerson } from "../src/store";
 import { buildPersona, seededRandom } from "../src/lib/persona";
 import { detectarIntencao, novoChatState, planOpening, planReply, sugerirAberturas, sugerirRespostas } from "../src/lib/dialogue";
-import { nomesEstranhos } from "../src/lib/voz";
+import { nomesEstranhos } from "../src/lib/repertorio";
 import type { Person } from "../src/types";
 
 /** Ficha adulta, do jeito que a maioria das fichas do catálogo é. */

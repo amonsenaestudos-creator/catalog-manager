@@ -84,12 +84,12 @@ export function listarSurpresas(data: AppData, agora = new Date()): Surpresa[] {
 
   // Aniversário próximo: até 7 dias (ou hoje).
   const aniversariante = ativas
-    .map(p => ({ p, dias: upcomingBirthday(p.aniversario) }))
+    .map(p => ({ p, dias: upcomingBirthday(p.aniversario, agora) }))
     .filter(x => x.dias !== null && (x.dias as number) <= 7)
     .sort((a, b) => (a.dias as number) - (b.dias as number))[0];
   if (aniversariante) {
     const dias = aniversariante.dias as number;
-    const idade = ageFromBirthday(aniversariante.p.aniversario);
+    const idade = ageFromBirthday(aniversariante.p.aniversario, agora);
     surpresas.push({
       tipo: 'aniversario',
       chave: `aniversario:${aniversariante.p.id}`,

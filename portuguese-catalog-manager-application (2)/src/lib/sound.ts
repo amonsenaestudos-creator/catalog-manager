@@ -6,7 +6,8 @@
  */
 export type SoundName =
   | 'pop' | 'like' | 'pass' | 'thud' | 'achievement' | 'levelup' | 'shutter' | 'unlock' | 'error'
-  | 'swoosh' | 'success' | 'tick' | 'disco' | 'mood1' | 'mood2' | 'mood3' | 'mood4' | 'mood5';
+  | 'swoosh' | 'success' | 'tick' | 'disco' | 'mood1' | 'mood2' | 'mood3' | 'mood4' | 'mood5'
+  | 'gravando' | 'parar' | 'voz' | 'compartilhar';
 
 interface SoundState { enabled: boolean; muted: boolean; volume: number }
 const state: SoundState = { enabled: true, muted: false, volume: 0.55 };
@@ -118,10 +119,19 @@ const RECIPES: Record<SoundName, (ctx: AudioContext, out: AudioNode, t: number) 
   mood3: (ctx, out, t) => tone(ctx, out, { freq: 330, start: t, duration: 0.34, gain: 0.16 }),
   mood4: (ctx, out, t) => { tone(ctx, out, { freq: 392, start: t, duration: 0.34, gain: 0.13 }); tone(ctx, out, { freq: 494, start: t + 0.02, duration: 0.34, gain: 0.11 }); },
   mood5: (ctx, out, t) => [523, 659, 784].forEach((freq, index) => tone(ctx, out, { freq, start: t + index * 0.03, duration: 0.42, gain: 0.11 })),
+  // Começou a gravar voz: clique seco de botão, como um gravador de mão.
+  gravando: (ctx, out, t) => { tone(ctx, out, { freq: 1180, to: 1500, start: t, duration: 0.04, gain: 0.14, attack: 0.002 }); noise(ctx, out, { start: t + 0.02, duration: 0.04, from: 2600, to: 900, gain: 0.1, type: 'highpass' }); },
+  // Parou de gravar: clique mais grave, descendo.
+  parar: (ctx, out, t) => { tone(ctx, out, { freq: 880, to: 420, start: t, duration: 0.09, gain: 0.16 }); noise(ctx, out, { start: t, duration: 0.05, from: 1200, to: 300, gain: 0.09, type: 'lowpass' }); },
+  // A voz vai falar: um sopro curto de ar, antes de qualquer palavra.
+  voz: (ctx, out, t) => { noise(ctx, out, { start: t, duration: 0.22, from: 620, to: 2100, gain: 0.07, type: 'highpass' }); tone(ctx, out, { freq: 540, to: 720, start: t, duration: 0.13, gain: 0.07, attack: 0.02 }); },
+  // Algo saiu do catálogo para o mundo: duas notas subindo, curtas.
+  compartilhar: (ctx, out, t) => { tone(ctx, out, { freq: 740, start: t, duration: 0.08, type: 'triangle', gain: 0.14 }); tone(ctx, out, { freq: 1108, start: t + 0.07, duration: 0.16, type: 'triangle', gain: 0.14 }); noise(ctx, out, { start: t + 0.05, duration: 0.16, from: 900, to: 3200, gain: 0.06, type: 'highpass' }); },
 };
 
 export const SOUND_PREVIEWS: { name: SoundName; label: string }[] = [
   { name: 'pop', label: 'Pop do coração' }, { name: 'like', label: 'Swipe' }, { name: 'achievement', label: 'Conquista' }, { name: 'levelup', label: 'Subiu de nível' }, { name: 'shutter', label: 'Foto' },
+  { name: 'gravando', label: 'Gravando voz' }, { name: 'parar', label: 'Parou de gravar' }, { name: 'voz', label: 'A voz vai falar' }, { name: 'compartilhar', label: 'Compartilhou' },
 ];
 
 /** Toca um som se estiver permitido. Nunca lança erro: som é enfeite, não pode derrubar a tela. */

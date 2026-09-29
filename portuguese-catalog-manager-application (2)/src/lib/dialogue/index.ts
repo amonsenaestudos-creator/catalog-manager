@@ -1,8 +1,9 @@
 /**
  * Camada viva da conversa — API pública.
  *
- * O motor de texto continua em src/lib/dialogue.ts; este pacote
- * (src/lib/dialogue/) decide quem a pessoa é (personalidade), o que
+ * O motor de texto continua em src/lib/dialogue.ts e as falas em
+ * src/lib/dialogue/bancos.ts (último estágio: só material, nenhuma regra);
+ * este pacote (src/lib/dialogue/) decide quem a pessoa é (personalidade), o que
  * ela lembra (memória com importância e decaimento), como está
  * (humor contínuo), aonde a conversa vai (tópicos e objetivos),
  * quanto ela inicia (iniciativa) e o que acontece quando ninguém

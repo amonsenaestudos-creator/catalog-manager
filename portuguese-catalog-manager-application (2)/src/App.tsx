@@ -33,6 +33,7 @@ import MySpace from './components/MySpace';
 import Agenda from './components/Agenda';
 import Discover from './components/Discover';
 import { Momentos, Desafios } from './features/discovery';
+import { SaudeDoCatalogo } from './features/health';
 import NotificationCenter from './components/NotificationCenter';
 import QuickTools from './components/QuickTools';
 import Toolbox from './components/Toolbox';
@@ -45,6 +46,7 @@ import { useBordaVoltar } from './lib/toque';
 import { LETTER_PAGES, KONAMI, MIRROR, PAGE_NAMES, SHORTCUT_PAGES } from './app/navigation';
 import PrivacyScreen from './app/components/PrivacyScreen';
 import TopbarMais from './app/components/TopbarMais';
+import StatusDoApp from './app/components/StatusDoApp';
 
 function ActivePage() {
   const { page } = useCatalog();
@@ -72,6 +74,7 @@ function ActivePage() {
   if (page === 'settings') return <Settings />;
   if (page === 'reminders') return <Reminders />;
   if (page === 'guide') return <Guide />;
+  if (page === 'saude') return <SaudeDoCatalogo />;
   return <Organize />;
 }
 
@@ -326,6 +329,7 @@ function Application() {
             <button className="topbar-profile" aria-label="Editar meu perfil" onClick={() => ctx.navigate('settings')}><Avatar src={data.settings.avatar} name={data.settings.profileName} size={32} /></button>
           </div>
         </header>
+        <StatusDoApp />
         {ctx.demo && <div className="demo-banner"><span><ShieldCheck size={13} />Você está explorando fichas fictícias. Seus dados reais não são alterados.</span><button onClick={ctx.logout}>Sair da demonstração</button></div>}
         <main className="page-content"><motion.div key={page} className="page-fade" initial={direcao === 'tras' ? { opacity: 0, x: -14 } : { opacity: 0, y: 7 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ duration: 0.19 }}><ActivePage /></motion.div></main>
         <div className="workspace-footer">

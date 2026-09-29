@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'arena/**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: portuguese-catalog-manager-application (2)
+
+jobs:
+  verificar:
+    name: Tipos, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: portuguese-catalog-manager-application (2)/package-lock.json
+      # `npm ci` (e não `npm install`) porque o repositório ainda versiona
+      # node_modules: o install enxerga os pacotes presentes e não refaz os
+      # atalhos de node_modules/.bin, que chegam sem permissão de execução.
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+      - name: Tipos
+        run: npm run typecheck
+      - name: Testes
+        run: npm test
+      - name: Build de produção
+        run: npm run build
+      - name: Guardar o build
+        uses: actions/upload-artifact@v5
+        with:
+          name: catalog-dist
+          path: portuguese-catalog-manager-application (2)/dist
+          retention-days: 7
+
+  # Publica o mesmo build no GitHub Pages. O site fica em
+  # https://amonsenaestudos-creator.github.io/catalog-manager/ e não depende de
+  # nenhuma máquina ligada — é o endereço para abrir o app de qualquer lugar.
+  # O build usa caminhos relativos (vite.config.ts, base './'), então funciona
+  # tanto na raiz do domínio quanto nesta subpasta.
+  publicar:
+    name: Publicar no GitHub Pages
+    needs: verificar
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Publicar é acessório: se o Pages ainda não estiver ligado, ou se a conta
+    # não permitir, o site não sai — mas isso não pode pintar de vermelho um
+    # commit cujos testes passaram. A falha continua visível no job.
+    continue-on-error: true
+    permissions:
+      # `contents: read` é obrigatório: ao declarar `permissions` qualquer
+      # escopo não listado vira `none` e o checkout do repositório falha.
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/configure-pages@v6
+        with:
+          # Tenta ligar o Pages sozinho. Em repositório privado o token do
+          # workflow não tem essa permissão (403 "Resource not accessible by
+          # integration"), então normalmente é preciso ligar uma vez em
+          # Settings → Pages → Source: GitHub Actions. Depois disso este passo
+          # só consulta a configuração e o deploy segue normalmente.
+          enablement: true
+      - name: Baixar o build verificado
+        uses: actions/download-artifact@v6
+        with:
+          name: catalog-dist
+          path: dist
+      - name: Empacotar o site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+      - name: Publicar
+        id: deploy
+        uses: actions/deploy-pages@v5

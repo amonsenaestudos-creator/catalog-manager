@@ -14,7 +14,9 @@ src/
 │   ├── people/                  # fichas, cadastro e dados de pessoas
 │   ├── gallery/                 # fotos, vídeos, álbuns e órfãs
 │   ├── relationships/           # relações entre fichas e contexto
-│   └── gamification/            # XP, desafios e conquistas
+│   ├── gamification/            # XP, desafios e conquistas
+│   ├── health/                  # saúde do catálogo: diagnóstico e faxina de ponteiros
+│   └── voice/                   # voz das pessoas: áudio gravado (sem voz sintetizada)
 ├── components/                  # camada legada compartilhada; migração gradual
 ├── lib/                         # serviços e regras legadas, agrupados por domínio quando possível
 ├── shared/                      # contratos para vários domínios (em expansão)
@@ -29,7 +31,7 @@ src/
 - **Catálogo:** pessoas, favoritos, arquivo, lixeira e seleção em lote.
 - **Explorar:** Descobrir, Momentos e Desafios.
 - **Biblioteca:** Galeria, Pastas, Agenda, Meu espaço e Ferramentas.
-- **Sistema:** Ajustes, privacidade, notificações e Command Palette (`Ctrl/Cmd + K`).
+- **Sistema:** Ajustes, privacidade, notificações, Command Palette (`Ctrl/Cmd + K`) e a Saúde do catálogo (Biblioteca → Mais).
 
 A navegação global continua em `src/App.tsx` por compatibilidade com os testes e com o histórico de telas. Novas páginas devem declarar o nome e a rota junto ao módulo de domínio antes de entrar no menu.
 
@@ -85,12 +87,32 @@ As facades atuais ainda adaptam funções legadas. Isso é intencional: permite 
 6. Escreva pelo menos um teste de comportamento e um teste de contrato quando a feature tiver persistência.
 7. Rode `npm run typecheck`, `npm run build` e os testes do domínio.
 
+## Domínios de manutenção
+
+`health` não é tela de conteúdo: é leitura de manutenção. A regra que o mantém previsível é
+que a análise é **pura** — `analisarSaude(data, contexto)` recebe `agora`, o último backup e o
+uso de armazenamento por parâmetro, sem consultar relógio, IndexedDB ou navegador. Quem fala
+com o navegador é a tela, não o domínio.
+
+- `features/health/diagnostico.ts`: análise e `repararCatalogo`.
+- `features/voice/voz.ts`: regras puras do áudio (limites, contas, formato e nome do arquivo).
+  Microfone e arquivos ficam em `gravador.ts`. **Não existe voz sintetizada** — ver a rodada 4 de `MELHORIAS.md`.
+- Áudio de voz é dado da ficha (`vozes`), entra no backup e só aceita `data:audio/...`
+  (`safeVoz`, no `store`). Arquivo de fora nunca é referenciado por URL.
+- `features/health/components/SaudeDoCatalogo.tsx`: a tela (ligada ao contexto como as demais).
+- A faxina só remove **ponteiro** que aponta para algo que não existe mais; nunca apaga ficha,
+  foto, nota ou história, e passa pelo `commit` do contexto (portanto, desfazível).
+- Um achado novo entra em `AchadoId`, ganha ícone em `SaudeDoCatalogo` e um caso em
+  `tests/saude-catalogo.test.ts` — sem isso a contagem de pendências fica mentindo.
+
 ## Dívida de migração priorizada
 
 1. `src/components/ChatSimulator.tsx`: separar cabeçalho, mensagens, composer e memória.
 2. `src/components/Gallery.tsx`: separar abas, grade, upload e seleção em lote.
 3. `src/context.tsx`: separar persistência, comandos e progresso em hooks/facades.
 4. `src/store.ts` e `src/types.ts`: extrair contratos por domínio sem quebrar o formato salvo.
-5. `src/lib/dialogue.ts` e `src/lib/voz.ts`: manter como motores independentes; não misturar regras de conversa com UI.
+5. `src/lib/dialogue.ts` (motor) e `src/lib/dialogue/bancos.ts` + `src/lib/repertorio.ts` (falas): manter separados — o motor não guarda frase, a banca não decide nada.
+6. `src/components/Settings.tsx` e `src/components/MySpace.tsx`: telas densas que ainda concentram abas, formulários e regras; candidatas naturais à próxima fatia.
+7. `src/lib/repertorio.ts` (2.639 linhas, antes `voz.ts`) e `src/lib/dialogue/bancos.ts` (1.262): bancos de respostas que poderiam virar arquivos por assunto, carregados sob demanda — hoje pesam no bundle inicial mesmo em quem nunca abre a conversa. O pipeline já está separado (`dialogue/understanding.ts` entende, `engine.ts` decide, `response.ts` gera texto, `bancos.ts`/`repertorio.ts` só fornecem frases) e, desde a rodada 5, as falas saíram de dentro do motor: `dialogue.ts` caiu de 3.050 para 1.847 linhas.
 
 A regra de ouro é: uma feature pode crescer, mas nenhum arquivo deve precisar conhecer tudo sobre ela.

@@ -105,8 +105,33 @@ export interface Person {
   vinculoComigo?: string;
   /** Ajuste manual do jeito de falar: a idade sugere, você decide. */
   maturidadeAjuste?: 'auto' | 'seria' | 'solta';
+  /** Áudios de verdade dessa pessoa: a voz, os recados, o jeito de rir. */
+  vozes?: VozNota[];
+  /** Como ela soa quando o app fala por ela. */
 }
 
+/**
+ * Nota de voz de uma pessoa: um áudio de verdade guardado no catálogo, como
+ * as fotos. Serve para reconhecer a voz, guardar um recado e ouvir depois.
+ */
+export interface VozNota {
+  id: string;
+  /** Nome curto do que foi gravado (ex.: "Bom dia", "Recado do aniversário"). */
+  titulo: string;
+  /** data:audio/... — o áudio inteiro, guardado no aparelho. */
+  url: string;
+  /** Duração em segundos, medida na gravação. */
+  duracao: number;
+  createdAt: string;
+  descricao?: string;
+  favorite?: boolean;
+}
+
+/**
+ * Como essa pessoa soa quando o aplicativo fala por ela.
+ * Sem escolha, o catálogo sorteia uma voz estável a partir do id — a mesma
+ * pessoa soa sempre igual, sem precisar configurar nada.
+ */
 export interface CustomField { id: string; label: string; value: string }
 export interface Attachment { id: string; label: string; url: string; kind: 'link' | 'video' | 'pdf' | 'audio' | 'outro'; createdAt: string }
 export interface RatingSnapshot {

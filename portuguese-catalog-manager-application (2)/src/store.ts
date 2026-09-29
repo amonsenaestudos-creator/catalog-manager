@@ -140,7 +140,7 @@ export const RARITY_COLORS: Record<string, string> = { comum: '#9aa0ad', raro: '
 export const rarityFor = (score: number) => score >= 4.8 ? 'lendario' : score >= 4.3 ? 'epico' : score >= 3.6 ? 'raro' : 'comum';
 
 export function getDefaultPerson(): Person {
-  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '' };
+  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', vozes: [] };
 }
 export function emptyData(): AppData {
   return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
@@ -306,6 +306,29 @@ export function medirImagem(url: string): Promise<{ width: number; height: numbe
     img.src = url;
   });
 }
+/** Áudio guardado no catálogo: só data:audio, com teto de tamanho por nota. */
+export const VOZ_TIPOS = ['audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/aac', 'audio/3gpp'];
+export const VOZ_MAX_NOTA_BYTES = 2 * 1024 * 1024;
+export function safeVoz(url: string) {
+  if (typeof url !== 'string' || url.length > VOZ_MAX_NOTA_BYTES * 1.4) return false;
+  return new RegExp(`^data:(${VOZ_TIPOS.join('|')})[;,]`, 'i').test(url);
+}
+function normalizarVozNotas(value: unknown) {
+  return array(value).map(item => {
+    const nota = object(item);
+    const url = text(nota.url);
+    return {
+      id: text(nota.id) || generateId(),
+      titulo: text(nota.titulo).slice(0, 80) || 'Nota de voz',
+      url: safeVoz(url) ? url : '',
+      duracao: Math.max(0, Math.round(numeric(nota.duracao))),
+      createdAt: text(nota.createdAt, new Date().toISOString()),
+      descricao: text(nota.descricao).slice(0, 400),
+      favorite: nota.favorite === true,
+    };
+  }).filter(nota => nota.url).filter((nota, indice, lista) => lista.findIndex(outra => outra.id === nota.id) === indice).slice(0, 60);
+}
+
 export function normalizePerson(value: unknown): Person {
   const p = object(value), base = getDefaultPerson();
   const result = { ...base };
@@ -358,6 +381,9 @@ export function normalizePerson(value: unknown): Person {
     .filter(v => v.personId && v.personId !== result.id)
     .filter((v, i, list) => list.findIndex(x => x.personId === v.personId && x.papel === v.papel) === i)
     .slice(0, 40);
+  // Voz: áudios de verdade e o perfil de como ela soa. Nada além de data:audio
+  // entra, para um backup estranho não virar fonte de áudio externa.
+  result.vozes = normalizarVozNotas(p.vozes);
   return result;
 }
 
@@ -794,21 +820,26 @@ export function deadlineState(date: string | null | undefined, leadDays = 3): { 
   return { state: 'futuro', days };
 }
 export const DEADLINE_LABELS: Record<DeadlineState, string> = { atrasado: 'Atrasado', hoje: 'Vence hoje', amanha: 'Vence amanhã', perto: 'Prazo acabando', futuro: 'Agendado', 'sem-data': 'Sem data' };
-export function ageFromBirthday(aniversario?: string | null) {
+export function ageFromBirthday(aniversario?: string | null, referencia: Date = new Date()) {
   if (!aniversario) return null;
   const birth = new Date(`${aniversario}T12:00:00`);
   if (!Number.isFinite(birth.getTime())) return null;
-  const now = new Date();
+  const now = referencia;
   let age = now.getFullYear() - birth.getFullYear();
   const before = now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
   if (before) age -= 1;
   return age >= 0 && age <= 120 ? age : null;
 }
-export function upcomingBirthday(aniversario?: string | null) {
+/**
+ * Quantos dias faltam para o próximo aniversário (0 = hoje).
+ * `referencia` existe para telas e testes que trabalham com uma data fixa:
+ * sem ela, a conta sairia sempre do relógio real.
+ */
+export function upcomingBirthday(aniversario?: string | null, referencia: Date = new Date()) {
   if (!aniversario) return null;
   const birth = new Date(`${aniversario}T12:00:00`);
   if (!Number.isFinite(birth.getTime())) return null;
-  const now = new Date(`${today()}T12:00:00`);
+  const now = new Date(referencia.getFullYear(), referencia.getMonth(), referencia.getDate(), 12);
   const next = new Date(now.getFullYear(), birth.getMonth(), birth.getDate(), 12);
   if (next < now) next.setFullYear(next.getFullYear() + 1);
   return Math.round((next.getTime() - now.getTime()) / 86400000);

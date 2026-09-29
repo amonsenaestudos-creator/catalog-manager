@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
-import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Footprints, Gamepad2, Gauge, Heart, Home, Image, Layers, LogOut, MessageCircle, Minus, Package, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
+import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Footprints, Gamepad2, Gauge, Heart, HeartPulse, Home, Image, Layers, LogOut, MessageCircle, Minus, Package, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
 import { useCatalog } from '../context';
 import { isActive } from '../store';
 import { Avatar, IconButton } from './ui';
@@ -59,8 +59,9 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
     };
   }, [open]);
 
-  // A navegação prioriza poucos mundos; ferramentas e telas de apoio entram
-  // progressivamente, sem tirar do caminho o conteúdo principal.
+  // A navegação prioriza poucos mundos. O que é experimento, ferramenta de
+  // apoio ou tela de nicho fica atrás de “Laboratório e extras”: continua
+  // existindo (e a um clique), mas não disputa espaço com o caminho principal.
   const space: ItemMenu[] = [
     { id: 'home', label: 'Início', icon: Home },
     { id: 'catalog', label: 'Catálogo', icon: Users, count: activeCount, tour: 'catalog' },
@@ -90,6 +91,7 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
     { id: 'board', label: 'Quadro', icon: ClipboardList, extra: true },
     { id: 'stories', label: 'Stories / Fanfics', icon: BookOpen, extra: true },
     { id: 'reminders', label: 'Lembretes', icon: Bell, count: pending || undefined, extra: true },
+    { id: 'saude', label: 'Saúde do catálogo', icon: HeartPulse, extra: true },
     { id: 'tools', label: 'Organizar', icon: Shapes, extra: true },
   ];
   const visiveis = (lista: ItemMenu[], expandida: boolean) => expandida ? lista : lista.filter(entrada => !entrada.extra);
@@ -101,7 +103,7 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
   const navAtivo = (id: string) => page === id;
   const libAtivo = (id: string) => page === id || (id === 'tools' && ['taxonomy', 'collections', 'drafts', 'duplicates', 'activity'].includes(page));
   const expandir = (lista: ItemMenu[], expandida: boolean, setExpandida: (value: boolean) => void) => !expandida && escondidos(lista) > 0
-    ? <button className="nav-expand" onClick={() => setExpandida(true)} aria-label={`Mostrar mais ${escondidos(lista)} itens`}><Plus size={15} /><span>Mais {escondidos(lista)}</span></button>
+    ? <button className="nav-expand" onClick={() => setExpandida(true)} aria-label={`Abrir o laboratório e extras: mais ${escondidos(lista)} itens`}><Plus size={15} /><span>Laboratório e extras ({escondidos(lista)})</span></button>
     : expandida ? <button className="nav-expand" onClick={() => setExpandida(false)} aria-label="Mostrar menos itens"><Minus size={15} /><span>Mostrar menos</span></button> : null;
 
   return <><button className={`sidebar-scrim ${open ? 'open' : ''}`} aria-label="Fechar menu" onClick={onClose} tabIndex={open ? 0 : -1} />

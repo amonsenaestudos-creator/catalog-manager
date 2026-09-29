@@ -1,0 +1,19 @@
+# O repositório guarda o projeto, não o resultado da instalação nem o build.
+# `node_modules/` e `dist/` já estiveram versionados (8.454 arquivos no total);
+# saíram do índice na rodada 2 de MELHORIAS.md (§0.4) e os arquivos antigos
+# continuam no histórico — aqui só se impede que cópias novas entrem por engano.
+node_modules/
+dist/
+coverage/
+.vite/
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.arena/
+
+# Cache da prévia desta sandbox (binários nativos de Linux + build pronto).
+# Só existe para subir a prévia rápido aqui; nada disso é código do projeto.
+preview/

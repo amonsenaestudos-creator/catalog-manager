@@ -10,6 +10,10 @@ const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Caminhos relativos: o build funciona na raiz do domínio **e** numa
+  // subpasta (GitHub Pages publica em /catalog-manager/). Como o aplicativo é
+  // um arquivo só, não há motivo para amarrar nada a "/".
+  base: './',
   plugins: [react(), tailwindcss(), viteSingleFile()],
   resolve: {
     alias: {

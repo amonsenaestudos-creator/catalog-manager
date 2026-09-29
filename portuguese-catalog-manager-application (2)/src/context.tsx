@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import type { AppData, CatalogFilter, Person, PersonDraft, Profile } from './types';
 import { calculateOverallRating, DEFAULT_FILTER, demoData, duplicatePerson, emptyData, generateId, getAllTagNames, makeActivity, normalizePhotos, PALETTE, today, valoresDaAvaliacao } from './store';
-import { DEFAULT_PROFILE, deleteProfileData, loadProfiles, persistData, pushBackup, readStoredData, saveProfiles, writeJournal } from './lib/storage';
+import { avisoDoDiario, DEFAULT_PROFILE, deleteProfileData, loadProfiles, motivoDoDiario, persistData, pushBackup, readStoredData, saveProfiles, writeJournal } from './lib/storage';
 import { computeXp, evaluateAchievements, levelInfo, weeklyChallenges } from './lib/progress';
 import { newNotifications, pushBrowserNotification } from './lib/notifications';
 import { configureSound, playSound, primeSound, vibrate } from './lib/sound';
@@ -133,12 +133,20 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef(false), saving = useRef(false);
+  const diarioAvisado = useRef(false);
   const chain = useRef(Promise.resolve());
   const past = useRef<AppData[]>([]), future = useRef<AppData[]>([]);
   const [historyVersion, setHistoryVersion] = useState(0);
   void historyVersion;
 
   const notify = useCallback((message: string, error = false) => { setNotice({ message, error }); if (noticeTimer.current) clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(null), error ? 9000 : 4500); }, []);
+  // Nenhum temporizador sobrevive à tela: um aviso (ou um salvamento adiado)
+  // despachado depois de o componente sair do ar não serve a ninguém — e, em
+  // ambiente de teste, derruba a suíte com "window is not defined".
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+  }, []);
   const flush = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     if (demoRef.current || !pending.current) return;
@@ -155,10 +163,13 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     current.current = next; setData(next);
     if (demoRef.current) { setStatus('saved'); return; }
     pending.current = true; setStatus('pending');
-    writeJournal(next); // a cópia de emergência é limitada e escrita com intervalo
+    // A cópia de emergência é limitada e escrita com intervalo. Quando ela não
+    // cabe mais (catálogo com áudio, por exemplo), avisamos uma vez: o silêncio
+    // faria a pessoa achar que tinha plano B quando não tinha.
+    if (!writeJournal(next) && !diarioAvisado.current) { diarioAvisado.current = true; notify(avisoDoDiario(motivoDoDiario), true); }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(flush, 350);
-  }, [flush]);
+  }, [flush, notify]);
   const commit = useCallback((updater: Mutator, message?: string, undoable = true) => {
     const previous = current.current; let next = updater(previous);
     if (next === previous) return;
