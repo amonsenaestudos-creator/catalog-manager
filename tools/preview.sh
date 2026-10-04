@@ -9,6 +9,9 @@
 #   tools/preview.sh --build         # refaz o build antes de servir
 #   tools/preview.sh --persistente   # serve preview/ (o build copiado, que sobrevive
 #                                    # à sessão); com --build, refaz antes de copiar
+#
+# Depois de qualquer reinício da sandbox, o caminho curto é este:
+#   tools/preview.sh --persistente-com-build
 #   tools/preview.sh --arquivo       # gera catalog-previa.html (um arquivo, sem servidor)
 #
 # O servidor é o do Python (existe sempre) e fica em primeiro plano. Para uma
@@ -42,6 +45,13 @@ if [ "${1:-}" = "--persistente" ] || [ "${1:-}" = "--persistente-com-build" ]; t
 fi
 
 if [ "${1:-}" = "--build" ]; then
+  # O workspace é restaurado entre as mensagens: às vezes o node_modules
+  # inteiro não volta. Sem isto, o build dá "vite: not found" e a prévia fica
+  # fora do ar — que era exatamente a falha repetida.
+  if [ ! -d node_modules/vite ]; then
+    echo "node_modules ausente: reinstalando (npm ci)…"
+    npm ci --no-audit --no-fund
+  fi
   chmod +x node_modules/.bin/* 2>/dev/null || true
   # O node_modules restaurado só traz binários nativos de Windows.
   if [ ! -d node_modules/@rollup/rollup-linux-x64-gnu ]; then
