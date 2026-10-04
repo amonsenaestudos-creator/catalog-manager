@@ -189,14 +189,20 @@ describe('modelo e projeção', () => {
   it('o braço próximo fica na frente do tronco e o distante atrás', () => {
     const deFrente = ordenarBracos(pecas, 0);
     const deLado = ordenarBracos(pecas, -88);
-    // De frente, os dois braços estão ao lado do tronco: mesma camada.
-    expect(new Set(deFrente.filter(peca => peca.ordem === 2)).size).toBe(0);
+    // Em T-pose, o braço pinta na camada 1,8: na frente do tronco (1) e atrás do
+    // cabelo quando ele cai por cima do ombro (só o próximo; o distante vai para 0,5).
+    const bracoPerto = 1.8, bracoLonge = 0.5;
+    const bracos = (vista: typeof deFrente) => vista.filter(peca => peca.id.startsWith('braco'));
+    // De frente, os dois braços estão ao lado do tronco: mesma camada, nenhum atrás.
+    expect(new Set(bracos(deFrente).map(peca => peca.ordem))).toEqual(new Set([bracoPerto]));
     // De lado, um braço sobe para a frente e o outro desce para trás.
-    const camadas = new Set(deLado.map(peca => peca.ordem));
-    expect(camadas.has(2)).toBe(true);
-    expect(camadas.has(0.5)).toBe(true);
+    const camadas = new Set(bracos(deLado).map(peca => peca.ordem));
+    expect(camadas.has(bracoPerto)).toBe(true);
+    expect(camadas.has(bracoLonge)).toBe(true);
     // E o tronco fica entre os dois.
-    expect(Math.max(...deLado.filter(peca => peca.id.startsWith('tronco')).map(peca => peca.ordem ?? 1))).toBeLessThan(2);
+    const tronco = Math.max(...deLado.filter(peca => peca.id.startsWith('tronco')).map(peca => peca.ordem ?? 1));
+    expect(tronco).toBeLessThan(bracoPerto);
+    expect(tronco).toBeGreaterThan(bracoLonge);
   });
 
   it('as fatias se sobrepõem: é o que faz superfície contínua, não um colar de contas', () => {
