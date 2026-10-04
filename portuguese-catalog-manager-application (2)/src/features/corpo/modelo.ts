@@ -265,7 +265,7 @@ function cabelo(familia: FamiliaDeCabelo, cabeca: MedidasDaCabeca, volume: numbe
           pecas.push({
             id: `tranca-${i}-${fatia}`, papel: 'cabelo',
             centro: [x * (1 + u * 0.05), topoTranca + (fundoTranca - topoTranca) * u, -rcz * (0.55 + afastamento * 0.16)],
-            raios: [rcx * 0.17 * v, Math.abs(fundoTranca - topoTranca) / fatias * 1.7, rcz * 0.2 * v], brilho: 0.88, ordem: ordemQueDesce,
+            raios: [rcx * 0.14 * v, Math.abs(fundoTranca - topoTranca) / fatias * 1.7, rcz * 0.18 * v], brilho: 0.88, ordem: ordemQueDesce,
           });
         }
       }
@@ -289,8 +289,8 @@ function cabelo(familia: FamiliaDeCabelo, cabeca: MedidasDaCabeca, volume: numbe
         const meio = i === 1 || i === 2;
         pecas.push({
           id: `crista-${i}`, papel: 'cabelo',
-          centro: [0, y + rcy * (1.06 + (meio ? 0.1 : 0)), -rcz * 0.62 + i * rcz * 0.36],
-          raios: [rcx * 0.18 * v, rcy * (meio ? 0.76 : 0.6) * v, rcz * 0.3 * v], brilho: 0.95, ordem,
+          centro: [0, y + rcy * (1.1 + (meio ? 0.14 : 0)), -rcz * 0.62 + i * rcz * 0.36],
+          raios: [rcx * 0.19 * v, rcy * (meio ? 0.92 : 0.72) * v, rcz * 0.32 * v], brilho: 0.95, ordem,
         });
       }
       break;

@@ -126,7 +126,7 @@ export const ROUPAS: Record<string, Roupa> = {
   'esportivo': { topo: '#2fb3a0', baixo: '#2b3550', sapato: '#f2f2f2', barra: 0.07, folga: 1.02 },
   'clássico': { topo: '#8c6f4f', baixo: '#4d4133', sapato: '#3a2f26', barra: 0.06, folga: 1.0 },
   'alternativo': { topo: '#6b4d8f', baixo: '#2c2436', sapato: '#1f1a24', barra: 0.07, folga: 1.05 },
-  'streetwear': { topo: '#e2603f', baixo: '#2f3138', sapato: '#f4f0e6', barra: 0.09, folga: 1.35 },
+  'streetwear': { topo: '#e2603f', baixo: '#2f3138', sapato: '#f4f0e6', barra: 0.075, folga: 1.15 },
   'romântico': { topo: '#e8a9bd', baixo: '#b98fa8', sapato: '#fbf4f6', barra: 0.33, folga: 1.5 },
   'minimalista': { topo: '#d8d5da', baixo: '#3b3a40', sapato: '#8f8d94', barra: 0.07, folga: 1.08 },
   'vintage': { topo: '#b98b5e', baixo: '#5b4a3a', sapato: '#e8dfc9', barra: 0.24, folga: 1.3 },
