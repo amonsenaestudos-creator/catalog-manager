@@ -129,8 +129,10 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
 
     const caixa = caixaDoModelo(elipses);
     if (!caixa.altura || !caixa.largura) return;
-    const margem = 18;
-    const escala = ((altura - margem * 2) / caixa.altura) * (zoom / 100);
+    const margem = 14;
+    // Enquadra pelas duas dimensões: com os braços abertos, quem manda é a
+    // largura; sem eles, a altura. Sem isso, a figura em T-pose sairia cortada.
+    const escala = Math.min((altura - margem * 2) / caixa.altura, (largura - margem * 2) / caixa.largura) * (zoom / 100);
     const centroX = 0;
     const centroY = (caixa.base + caixa.topo) / 2;
     const paraTela = (elipse: ElipseProjetada) => ({

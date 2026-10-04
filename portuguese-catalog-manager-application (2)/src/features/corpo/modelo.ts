@@ -49,10 +49,10 @@ const graus = (valor: number) => (valor * Math.PI) / 180;
  * largura e profundidade tem em cada ponta. Entre um ponto e outro o modelo
  * **interpola fatias** — é isso que dá contorno contínuo em vez de bolas soltas.
  */
-interface Controle { y: number; largura: number; profundidade: number; x?: number }
+interface Controle { y: number; largura: number; profundidade: number; x?: number; z?: number; espessura?: number }
 
 function fatiar(id: string, papel: PapelDaPeca, controles: Controle[], porTrecho = 10, brilho = 1, ordem = 1): PecaDoModelo[] {
-  const centros: { x: number; y: number; largura: number; profundidade: number }[] = [];
+  const centros: { x: number; y: number; z: number; largura: number; profundidade: number; espessura?: number }[] = [];
   for (let trecho = 0; trecho < controles.length - 1; trecho++) {
     const de = controles[trecho], ate = controles[trecho + 1];
     for (let fatia = 0; fatia < porTrecho; fatia++) {
@@ -60,8 +60,16 @@ function fatiar(id: string, papel: PapelDaPeca, controles: Controle[], porTrecho
       centros.push({
         x: (de.x ?? 0) + ((ate.x ?? 0) - (de.x ?? 0)) * t,
         y: de.y + (ate.y - de.y) * t,
+        // `z` desloca a fatia para a frente ou para trás: é assim que o peito
+        // empurra o tronco à frente e a bunda empurra o quadril atrás, sem
+        // precisar de peças soltas — que viravam bolas coladas no corpo.
+        z: (de.z ?? 0) + ((ate.z ?? 0) - (de.z ?? 0)) * t,
         largura: de.largura + (ate.largura - de.largura) * t,
         profundidade: de.profundidade + (ate.profundidade - de.profundidade) * t,
+        // Só os braços declaram espessura: numa peça deitada o passo entre
+        // fatias é o comprimento, e usá-lo como altura daria braço de graveto.
+        espessura: de.espessura === undefined && ate.espessura === undefined ? undefined
+          : (de.espessura ?? ate.espessura ?? 0) + ((ate.espessura ?? de.espessura ?? 0) - (de.espessura ?? ate.espessura ?? 0)) * t,
       });
     }
   }
@@ -73,12 +81,12 @@ function fatiar(id: string, papel: PapelDaPeca, controles: Controle[], porTrecho
     const vizinhanca = Math.max(Math.abs(centro.y - anterior.y), Math.abs(seguinte.y - centro.y), 0.004);
     return {
       id: `${id}-${Math.floor(indice / porTrecho)}-${indice % porTrecho}`, papel,
-      centro: [centro.x, centro.y, 0] as [number, number, number],
+      centro: [centro.x, centro.y, centro.z] as [number, number, number],
       // A sobreposição é o que transforma uma pilha de elipses em superfície
       // contínua, sem "colar de contas". O fator é alto de propósito: com pouca
       // sobreposição, a largura do corpo afina a cada meio passo e a silhueta
       // ganha um serrilhado de 40% — o contorno fica dentado, não curvo.
-      raios: [centro.largura, vizinhanca * 1.6, centro.profundidade] as [number, number, number],
+      raios: [centro.largura, centro.espessura ?? vizinhanca * 1.6, centro.profundidade] as [number, number, number],
       brilho, ordem,
     };
   });
@@ -178,17 +186,21 @@ function cabelo(familia: FamiliaDeCabelo, cabeca: MedidasDaCabeca, volume: numbe
    */
   const solto = (ateY: number, largura: number, profundidade: number, abertura = 0.45) => {
     // A cascata de dentro nasce na altura da orelha, desce pela lateral do rosto
-    // e encosta no ombro; a de fora cai por cima do ombro. As duas ficam **fora**
-    // do meio do peito: cabelo emoldura a pessoa, não cobre.
+    // e encosta no ombro; a de fora desce mais. As duas ficam **estreitas** e
+    // deslocadas para trás: de frente emolduram o rosto sem cobrir os braços, e
+    // de lado caem atrás do ombro, deixando o peito e a bunda aparecerem.
     const noOmbro = ateY + rcy * 1.6;
-    cascata(1, ombreira * 0.72, largura * 0.7, noOmbro, profundidade, abertura, 12, 0.62);
-    cascata(-1, ombreira * 0.72, largura * 0.7, noOmbro, profundidade, abertura, 12, 0.62);
-    cascata(1, ombreira * 1.0, largura * 0.58, ateY, profundidade + 0.08, abertura * 0.4, 12, 0.5);
-    cascata(-1, ombreira * 1.0, largura * 0.58, ateY, profundidade + 0.08, abertura * 0.4, 12, 0.5);
-    // E uma massa larga **atrás do corpo** (ordem 0,5): de costas é cabelo até
-    // onde o penteado pedir; de frente, o corpo cobre — como na vida.
-    cascata(1, ombreira * 0.52, largura * 0.8, ateY, profundidade + 0.24, 0.2, 12, 0.42, 0.5);
-    cascata(-1, ombreira * 0.52, largura * 0.8, ateY, profundidade + 0.24, 0.2, 12, 0.42, 0.5);
+    // Tudo isso pinta **antes** do corpo (ordem 0,5): de frente, o cabelo só
+    // aparece fora da silhueta, emoldurando; de lado e de costas, ele é a massa
+    // que cai atrás. É cabelo apoiado no ombro, não tira colada no peito.
+    cascata(1, ombreira * 0.82, largura * 0.62, noOmbro, profundidade + 0.06, abertura, 12, 0.7, 0.5);
+    cascata(-1, ombreira * 0.82, largura * 0.62, noOmbro, profundidade + 0.06, abertura, 12, 0.7, 0.5);
+    cascata(1, ombreira * 0.95, largura * 0.52, ateY, profundidade + 0.3, abertura * 0.4, 12, 0.6, 0.5);
+    cascata(-1, ombreira * 0.95, largura * 0.52, ateY, profundidade + 0.3, abertura * 0.4, 12, 0.6, 0.5);
+    // E uma massa larga **atrás do corpo**: de costas é cabelo até onde o
+    // penteado pedir; de frente, o corpo cobre — como na vida.
+    cascata(1, ombreira * 0.44, largura * 0.72, ateY, profundidade + 0.42, 0.2, 12, 0.42, 0.5);
+    cascata(-1, ombreira * 0.44, largura * 0.72, ateY, profundidade + 0.42, 0.2, 12, 0.42, 0.5);
   };
   /**
    * Bolinhas de cacho em volta da cabeça. Ficam sempre **atrás** do centro da
@@ -232,8 +244,8 @@ function cabelo(familia: FamiliaDeCabelo, cabeca: MedidasDaCabeca, volume: numbe
       testa(0.5, 0.6);
       solto(0.645 * (y / 0.93), rcx * 0.42, 0.68, 0.34);
       // E o cabelo continua descendo pelas costas, abaixo da cintura.
-      cascata(1, ombreira * 0.5, rcx * 0.42, 0.58 * (y / 0.93), 0.86, 0.24, 10, 0.4, 0.5);
-      cascata(-1, ombreira * 0.5, rcx * 0.42, 0.58 * (y / 0.93), 0.86, 0.24, 10, 0.4, 0.5);
+      cascata(1, ombreira * 0.46, rcx * 0.4, 0.58 * (y / 0.93), 1.05, 0.24, 10, 0.4, 0.5);
+      cascata(-1, ombreira * 0.46, rcx * 0.4, 0.58 * (y / 0.93), 1.05, 0.24, 10, 0.4, 0.5);
       break;
     case 'medio':
       touca(1.08, 1.0, 1.05);
@@ -245,8 +257,8 @@ function cabelo(familia: FamiliaDeCabelo, cabeca: MedidasDaCabeca, volume: numbe
       // Cabelo puxado: a linha do cabelo sobe e o nó fica na nuca.
       testa(0.62, 0.56);
       pecas.push({ id: 'cabelo-coque', papel: 'cabelo', centro: [0, y + rcy * 0.42, -rcz * 1.15], raios: [rcx * 0.52 * v, rcy * 0.62 * v, rcz * 0.6 * v], brilho: 0.9, ordem });
-      cascata(1, ombreira * 0.46, rcx * 0.3, 0.8 * (y / 0.93), 0.7, 0.12, 6);
-      cascata(-1, ombreira * 0.46, rcx * 0.3, 0.8 * (y / 0.93), 0.7, 0.12, 6);
+      cascata(1, ombreira * 0.42, rcx * 0.28, 0.8 * (y / 0.93), 0.86, 0.12, 6);
+      cascata(-1, ombreira * 0.42, rcx * 0.28, 0.8 * (y / 0.93), 0.86, 0.12, 6);
       break;
     case 'trancado':
       touca(1.05, 1.0, 1.03);
@@ -264,7 +276,7 @@ function cabelo(familia: FamiliaDeCabelo, cabeca: MedidasDaCabeca, volume: numbe
           const u = (fatia + 0.5) / fatias;
           pecas.push({
             id: `tranca-${i}-${fatia}`, papel: 'cabelo',
-            centro: [x * (1 + u * 0.05), topoTranca + (fundoTranca - topoTranca) * u, -rcz * (0.55 + afastamento * 0.16)],
+            centro: [x * (1 + u * 0.05), topoTranca + (fundoTranca - topoTranca) * u, -rcz * (0.85 + afastamento * 0.2)],
             raios: [rcx * 0.14 * v, Math.abs(fundoTranca - topoTranca) / fatias * 1.7, rcz * 0.18 * v], brilho: 0.88, ordem: ordemQueDesce,
           });
         }
@@ -322,11 +334,12 @@ export function modeloDaPessoa(proporcoes: Proporcoes): PecaDoModelo[] {
   // mais estreita que isso — cabeça grande é o jeito mais rápido de o manequim
   // parecer um boneco de brinquedo.
   const rcx = 0.0415 * H;
-  const rcy = 0.0605 * H;
-  const rcz = 0.053 * H;
-  const raioBraco = Math.max(0.028, ombros * 0.175);
+  const rcy = 0.0645 * H;
+  const rcz = 0.05 * H;
+  const raioBraco = Math.max(0.032, ombros * 0.24);
   const raioCoxa = quadril * 0.5;
-  const raioPerna = Math.max(0.036, quadril * 0.3);
+  const raioPerna = Math.max(0.034, quadril * 0.28);
+  const raioTornozelo = Math.max(0.028, quadril * 0.22);
   const xPerna = quadril * 0.46;
   const xBraco = ombros * 0.9;
 
@@ -334,7 +347,7 @@ export function modeloDaPessoa(proporcoes: Proporcoes): PecaDoModelo[] {
     { id: 'cabeca', papel: 'pele', centro: [0, yCabeca, 0], raios: [rcx, rcy, rcz], brilho: 1.05, ordem: 3 },
     // Nariz: uma peça mínima que diz para onde a pessoa está olhando.
     { id: 'nariz', papel: 'pele', centro: [0, yCabeca - rcy * 0.12, rcz * 0.86], raios: [rcx * 0.15, rcy * 0.16, rcz * 0.3], brilho: 1.1, ordem: 3 },
-    { id: 'pescoco', papel: 'pele', centro: [0, yPescoco, 0], raios: [rcx * 0.5, (yCabeca - rcy * 0.7 - yPescoco) * 0.7 + 0.014, rcz * 0.5], brilho: 0.95, ordem: 3 },
+    { id: 'pescoco', papel: 'pele', centro: [0, yPescoco, 0], raios: [rcx * 0.46, (yCabeca - rcy * 0.7 - yPescoco) * 0.7 + 0.014, rcz * 0.44], brilho: 0.95, ordem: 3 },
     ...fatiar('nuca', 'pele', [
       { y: yPescoco + 0.005, largura: rcx * 0.6, profundidade: rcz * 0.58 },
       { y: yOmbros - 0.004, largura: ombros * 0.4, profundidade: profundidadePeito * 0.5 },
@@ -346,9 +359,11 @@ export function modeloDaPessoa(proporcoes: Proporcoes): PecaDoModelo[] {
   // controle são as medidas da ficha; o resto é interpolação.
   const tronco = fatiar('tronco', 'roupa', [
     { y: yOmbros + 0.026 * H, largura: ombros * 0.52, profundidade: profundidadePeito * 0.6 },
-    { y: yOmbros, largura: ombros, profundidade: profundidadePeito * 0.94 },
-    { y: yPeito, largura: peito, profundidade: profundidadePeito },
-    { y: (yPeito + yCintura) / 2, largura: (peito + cintura) / 2 * 0.98, profundidade: (profundidadePeito + profundidadeCintura) / 2 },
+    { y: yOmbros, largura: ombros, profundidade: profundidadePeito * 0.94, z: profundidadePeito * 0.04 },
+    // No peito a peça de cima avança um pouco: é a caixa do tórax. O volume do
+    // busto vem das cúpulas, logo abaixo — assim ele é volume, não bola colada.
+    { y: yPeito, largura: peito, profundidade: profundidadePeito * 0.96, z: profundidadePeito * 0.06 },
+    { y: (yPeito + yCintura) / 2, largura: (peito + cintura) / 2 * 0.98, profundidade: (profundidadePeito + profundidadeCintura) / 2, z: profundidadePeito * 0.02 },
     { y: yCintura, largura: cintura, profundidade: profundidadeCintura },
   ], 10, 1.02, 1);
 
@@ -357,40 +372,50 @@ export function modeloDaPessoa(proporcoes: Proporcoes): PecaDoModelo[] {
   // virava túnica — o quadril, que é uma das medidas da ficha, não aparecia.
   const quadrilPeca = fatiar('quadril', 'calca', [
     { y: yCintura + 0.004 * H, largura: cintura, profundidade: profundidadeCintura },
-    { y: yCintura - 0.045 * H, largura: (cintura + quadril) / 2, profundidade: (profundidadeCintura + profundidadeQuadril) / 2 },
-    { y: yVirilha + 0.055 * H, largura: quadril, profundidade: profundidadeQuadril },
-    { y: yVirilha + 0.006 * H, largura: quadril * 0.9, profundidade: profundidadeQuadril * 0.92 },
+    { y: yCintura - 0.045 * H, largura: (cintura + quadril) / 2, profundidade: (profundidadeCintura + profundidadeQuadril) / 2, z: -profundidadeQuadril * 0.04 },
+    // A bunda vive aqui: o quadril desloca para trás e ganha fundo. É a curva
+    // do perfil — o aperto da cintura em cima e a coxa descendo embaixo.
+    { y: yVirilha + 0.055 * H, largura: quadril, profundidade: profundidadeQuadril * 1.02, z: -profundidadeQuadril * 0.1 },
+    { y: yVirilha + 0.006 * H, largura: quadril * 0.86, profundidade: profundidadeQuadril * 0.86, z: -profundidadeQuadril * 0.02 },
   ], 10, 1.0, 0.55);
 
   // Seios: duas peças no peito. O raio vem da nota; a posição, da altura e do
   // tronco — então uma pessoa alta e uma baixa não têm o peito na mesma altura.
   const seiosPecas: PecaDoModelo[] = [1, -1].map(lado => ({
     id: `seio-${lado > 0 ? 'd' : 'e'}`, papel: 'roupa',
-    centro: [lado * rcx * 0.92, yPeito - 0.012 * H, profundidadePeito * 0.72] as [number, number, number],
-    raios: [seios * 0.92, seios * 0.82, seios * 1.1] as [number, number, number], brilho: 1.06, ordem: 1.4,
+    // A cúpula fica com o centro **dentro** do tórax e só a frente de fora: o que
+    // aparece no perfil é um peito cheio, sem bolinha pendurada.
+    centro: [lado * rcx * 0.82, yPeito - 0.004 * H, profundidadePeito * 0.6 + seios * 0.72] as [number, number, number],
+    raios: [seios * 1.2, seios * 1.35, seios * 0.92] as [number, number, number], brilho: 1.04, ordem: 1.4,
   }));
 
   // Glúteos: duas peças atrás do quadril. Aparecem no perfil e em três quartos;
   // de frente, somem atrás do corpo — como na vida.
   const gluteosPecas: PecaDoModelo[] = [1, -1].map(lado => ({
     id: `gluteo-${lado > 0 ? 'd' : 'e'}`, papel: 'calca',
-    centro: [lado * quadril * 0.52, yVirilha + 0.03 * H, -profundidadeQuadril * 0.74] as [number, number, number],
-    raios: [gluteos * 1.05, gluteos * 0.95, gluteos * 1.18] as [number, number, number], brilho: 1.05, ordem: 0.9,
+    centro: [lado * quadril * 0.42, yVirilha + 0.02 * H, -profundidadeQuadril * 0.45 - gluteos * 0.62] as [number, number, number],
+    raios: [gluteos * 1.1, gluteos * 1.55, gluteos * 0.85] as [number, number, number], brilho: 1.0, ordem: 0.9,
   }));
 
   // Braços: do ombro ao punho, rentes ao corpo — pele, porque manga é detalhe.
+  // Braços **em T**: saem do ombro na horizontal, com uma queda leve, até a
+  // ponta dos dedos. É a pose de manequim: o corpo fica todo à vista, e no
+  // perfil o braço não atravessa o peito nem esconde a bunda.
+  const comprimentoBraco = 0.35 * H;
+  const quedaBraco = comprimentoBraco * 0.12;
+  const passoBraco = raioBraco * 0.55;
   const bracos = [1, -1].flatMap(lado => fatiar(`braco${lado > 0 ? 'd' : 'e'}`, 'pele', [
-    { y: yOmbros - 0.005 * H, largura: raioBraco * 1.06, profundidade: raioBraco * 1.06, x: lado * (xBraco - raioBraco * 0.34) },
-    { y: yOmbros - 0.09 * H, largura: raioBraco * 1.0, profundidade: raioBraco * 1.0, x: lado * (xBraco + raioBraco * 0.04) },
-    { y: yOmbros - 0.19 * H, largura: raioBraco * 0.86, profundidade: raioBraco * 0.86, x: lado * (xBraco + raioBraco * 0.12) },
-    { y: yOmbros - 0.27 * H, largura: raioBraco * 0.76, profundidade: raioBraco * 0.76, x: lado * (xBraco + raioBraco * 0.1) },
-    { y: yOmbros - 0.33 * H, largura: raioBraco * 0.62, profundidade: raioBraco * 0.62, x: lado * (xBraco + raioBraco * 0.04) },
-  ], 10, 0.97, 2));
+    { y: yOmbros - 0.002 * H, largura: passoBraco, profundidade: raioBraco * 1.02, espessura: raioBraco * 1.02, x: lado * (xBraco - raioBraco * 0.55) },
+    { y: yOmbros - quedaBraco * 0.3, largura: passoBraco, profundidade: raioBraco * 0.92, espessura: raioBraco * 0.92, x: lado * (xBraco + comprimentoBraco * 0.3) },
+    { y: yOmbros - quedaBraco * 0.55, largura: passoBraco, profundidade: raioBraco * 0.8, espessura: raioBraco * 0.8, x: lado * (xBraco + comprimentoBraco * 0.56) },
+    { y: yOmbros - quedaBraco * 0.8, largura: passoBraco, profundidade: raioBraco * 0.68, espessura: raioBraco * 0.68, x: lado * (xBraco + comprimentoBraco * 0.8) },
+    { y: yOmbros - quedaBraco, largura: passoBraco, profundidade: raioBraco * 0.6, espessura: raioBraco * 0.6, x: lado * (xBraco + comprimentoBraco) },
+  ], 14, 0.97, 2));
 
   const maos: PecaDoModelo[] = [1, -1].map(lado => ({
     id: `mao-${lado > 0 ? 'd' : 'e'}`, papel: 'pele',
-    centro: [lado * xBraco, yOmbros - 0.35 * H, 0] as [number, number, number],
-    raios: [raioBraco * 0.62, 0.026 * H, raioBraco * 0.42] as [number, number, number], brilho: 0.92, ordem: 2,
+    centro: [lado * (xBraco + comprimentoBraco * 1.05), yOmbros - quedaBraco * 1.02, 0] as [number, number, number],
+    raios: [raioBraco * 0.8, raioBraco * 0.62, raioBraco * 0.34] as [number, number, number], brilho: 0.92, ordem: 2,
   }));
 
   // Pernas de pele: da coxa ao tornozelo. Ficam sempre desenhadas, e a peça de
@@ -400,8 +425,8 @@ export function modeloDaPessoa(proporcoes: Proporcoes): PecaDoModelo[] {
     { y: yVirilha + 0.02 * H, largura: raioCoxa * 0.8, profundidade: raioCoxa * 0.84, x: lado * (xPerna * 0.98) },
     { y: 0.30 * H, largura: raioCoxa * 0.7, profundidade: raioCoxa * 0.76, x: lado * (xPerna * 0.9) },
     { y: 0.21 * H, largura: raioCoxa * 0.7, profundidade: raioCoxa * 0.76, x: lado * (xPerna * 0.86) },
-    { y: 0.1 * H, largura: raioPerna, profundidade: raioPerna * 1.1, x: lado * (xPerna * 0.82) },
-    { y: 0.035 * H, largura: raioPerna * 0.86, profundidade: raioPerna * 0.95, x: lado * (xPerna * 0.8) },
+    { y: 0.1 * H, largura: raioPerna, profundidade: raioPerna * 1.05, x: lado * (xPerna * 0.82) },
+    { y: 0.035 * H, largura: raioTornozelo, profundidade: raioTornozelo * 0.95, x: lado * (xPerna * 0.8) },
   ], 10, 0.97, 0));
 
   // Peça de baixo: calça comprida, calça larga, bermuda ou saia — quem decide é
@@ -411,10 +436,10 @@ export function modeloDaPessoa(proporcoes: Proporcoes): PecaDoModelo[] {
   const folga = Math.max(0.9, Math.min(1.8, proporcoes.folgaDaBarra));
   const yMeio = Math.max(yBarra + 0.02 * H, yVirilha - 0.11 * H);
   const calca = [1, -1].flatMap(lado => fatiar(`calca${lado > 0 ? 'd' : 'e'}`, 'calca', [
-    { y: yVirilha + 0.035 * H, largura: raioCoxa * 1.16, profundidade: raioCoxa * 1.16, x: lado * xPerna },
-    { y: yVirilha - 0.02 * H, largura: raioCoxa * 1.06, profundidade: raioCoxa * 1.06, x: lado * (xPerna * 0.98) },
-    { y: yMeio, largura: (raioCoxa * 0.9 + raioPerna * folga) / 2, profundidade: (raioCoxa * 0.92 + raioPerna * folga) / 2, x: lado * (xPerna * 0.94) },
-    { y: yBarra, largura: raioPerna * folga, profundidade: raioPerna * folga * 1.04, x: lado * (xPerna * 0.9) },
+    { y: yVirilha + 0.035 * H, largura: raioCoxa * 1.05, profundidade: raioCoxa * 0.96, x: lado * xPerna },
+    { y: yVirilha - 0.02 * H, largura: raioCoxa * 1.02, profundidade: raioCoxa * 0.9, x: lado * (xPerna * 0.98) },
+    { y: yMeio, largura: (raioCoxa * 0.82 + raioPerna * folga) / 2, profundidade: (raioCoxa * 0.72 + raioPerna * folga * 0.9) / 2, x: lado * (xPerna * 0.94) },
+    { y: yBarra, largura: raioTornozelo * folga * 1.5, profundidade: raioTornozelo * folga * 1.35, x: lado * (xPerna * 0.9) },
   // 0,6: a calça pinta depois da perna (mesma cor de pele por baixo) e antes do
   // tronco, e os glúteos fecham por cima, no lugar certo.
   ], 10, 1.0, 0.6));

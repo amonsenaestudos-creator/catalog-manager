@@ -155,8 +155,11 @@ describe('modelo e projeção', () => {
     expect(ids.filter(id => id.startsWith('pernae-'))).toHaveLength(10 * 4);
     expect(ids.filter(id => id.startsWith('calcad-'))).toHaveLength(10 * 3);
     expect(ids.filter(id => id.startsWith('calcae-'))).toHaveLength(10 * 3);
-    expect(ids.filter(id => id.startsWith('bracod-'))).toHaveLength(10 * 4);
-    expect(ids.filter(id => id.startsWith('bracoe-'))).toHaveLength(10 * 4);
+    // O braço em T é fatiado mais fino que o resto (14 por trecho): numa peça
+    // deitada, o passo entre fatias é o comprimento, e fatias grossas deixariam
+    // o braço com degraus.
+    expect(ids.filter(id => id.startsWith('bracod-'))).toHaveLength(14 * 4);
+    expect(ids.filter(id => id.startsWith('bracoe-'))).toHaveLength(14 * 4);
     expect(ids.filter(id => id.startsWith('pe-'))).toHaveLength(2);
     // Peito, bunda e mãos são pares de verdade — um de cada lado.
     expect(ids.filter(id => id.startsWith('seio-'))).toHaveLength(2);

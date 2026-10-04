@@ -137,13 +137,35 @@ export const ROUPAS: Record<string, Roupa> = {
 const ROUPA_PADRAO: Roupa = { topo: '#8b7fa8', baixo: '#3a3644', sapato: '#2c2933', barra: 0.075, folga: 0.98 };
 
 /**
+ * A chave do estilo, sem acento e em minúsculas.
+ *
+ * O campo vem de um `select`, mas ficha importada, digitada à mão ou salva por
+ * uma versão antiga pode chegar como "romantico" — e aí a saia virava calça sem
+ * ninguém entender por quê. Comparar sem acento resolve de vez.
+ */
+function chaveDoEstilo(estilo: string | undefined): string {
+  return semAcento(estilo);
+}
+
+/** Texto de ficha comparável: sem acento, sem espaço nas pontas, minúsculo. */
+export function semAcento(valor: string | undefined): string {
+  return (valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
+
+/**
  * Só o corte (barra e folga) do estilo declarado. A figura precisa disso para
  * posicionar a peça de baixo, e a cor fica com quem desenha.
  */
 export function corteDaRoupa(person: Person): { barra: number; folga: number } {
-  const estilo = (person.estiloRoupa || '').trim().toLowerCase();
-  const roupa = ROUPAS[estilo] || ROUPA_PADRAO;
+  const roupa = roupaDoEstilo(person);
   return { barra: roupa.barra, folga: roupa.folga };
+}
+
+/** A paleta inteira do estilo (ou a padrão, quando não há estilo). */
+function roupaDoEstilo(person: Person): Roupa {
+  const estilo = chaveDoEstilo(person.estiloRoupa);
+  const achado = Object.entries(ROUPAS).find(([chave]) => chaveDoEstilo(chave) === estilo);
+  return achado ? achado[1] : ROUPA_PADRAO;
 }
 
 /**
@@ -152,9 +174,10 @@ export function corteDaRoupa(person: Person): { barra: number; folga: number } {
  * jeito simples de reconhecer quem é quem.
  */
 export function roupaDe(person: Person, corDaPessoa: string): Roupa {
-  const estilo = (person.estiloRoupa || '').trim().toLowerCase();
-  if (estilo === 'personalizado') return { ...ROUPA_PADRAO, topo: corDaPessoa };
-  return ROUPAS[estilo] || { ...ROUPA_PADRAO, topo: corDaPessoa };
+  const estilo = chaveDoEstilo(person.estiloRoupa);
+  if (estilo === 'personalizado' || !estilo) return { ...ROUPA_PADRAO, topo: corDaPessoa };
+  const achado = Object.entries(ROUPAS).find(([chave]) => chaveDoEstilo(chave) === estilo);
+  return achado ? achado[1] : { ...ROUPA_PADRAO, topo: corDaPessoa };
 }
 
 /* --------------------------------------------------------------- silhueta -- */
@@ -173,16 +196,16 @@ export type Silhueta = 'feminina' | 'masculina' | 'neutra';
 const FAMILIAS_FEMININAS: FamiliaDeCabelo[] = ['longo', 'ondulado', 'cacheado', 'franja', 'medio'];
 
 export function silhuetaDe(person: Person): Silhueta {
-  const tipo = (person.tipoCorpo || '').trim().toLowerCase();
+  const tipo = semAcento(person.tipoCorpo);
   const familia = familiaDoCabelo(person.cabeloTipo);
-  const estilo = (person.estiloRoupa || '').trim().toLowerCase();
+  const estilo = semAcento(person.estiloRoupa);
   let feminina = 0, masculina = 0;
-  if (tipo === 'curvilíneo' || tipo === 'plus size') feminina += 2;
+  if (tipo === 'curvilineo' || tipo === 'plus size') feminina += 2;
   if (FAMILIAS_FEMININAS.includes(familia)) feminina += 1;
-  if (estilo === 'romântico') feminina += 1;
+  if (estilo === 'romantico') feminina += 1;
   if (familia === 'moicano' || familia === 'mullet') masculina += 2;
-  if (tipo === 'atlético' || tipo === 'robusto') masculina += 1;
-  if (person.cabeloTipo && ['raspado', 'undercut'].includes((person.cabeloTipo || '').trim().toLowerCase())) masculina += 1;
+  if (tipo === 'atletico' || tipo === 'robusto') masculina += 1;
+  if (semAcento(person.cabeloTipo) === 'raspado' || semAcento(person.cabeloTipo) === 'undercut') masculina += 1;
   if (feminina === masculina) return 'neutra';
   return feminina > masculina ? 'feminina' : 'masculina';
 }

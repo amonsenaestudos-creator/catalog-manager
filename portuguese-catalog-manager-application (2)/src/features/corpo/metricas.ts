@@ -16,7 +16,7 @@
 import { getDefaultPerson, RATING_FIELDS } from '../../store';
 import type { Person } from '../../types';
 import { metrosDaAltura } from './altura';
-import { corteDaRoupa, familiaDoCabelo, silhuetaDe, type FamiliaDeCabelo, type Silhueta } from './aparencia';
+import { corteDaRoupa, familiaDoCabelo, semAcento, silhuetaDe, type FamiliaDeCabelo, type Silhueta } from './aparencia';
 
 /** Os critérios que mexem no desenho, e como cada um pesa. */
 export const CRITERIOS_DE_FORMA: Record<string, { papel: string; rotulo: string }> = {
@@ -127,7 +127,7 @@ export function lerForma(person: Person): LeituraDaForma {
   // Pessoas mais altas são um pouco mais esguias por centímetro de altura; o
   // expoente 0,6 evita que 1,50 m vire uma miniatura de 1,90 m.
   const escala = (altura / BASE_ALTURA) ** 0.45;
-  const tipo = AJUSTE_DO_TIPO[(person.tipoCorpo || '').trim().toLowerCase()] || { ombros: 1, cintura: 1, quadril: 1, volume: 1 };
+  const tipo = AJUSTE_DO_TIPO[semAcento(person.tipoCorpo)] || { ombros: 1, cintura: 1, quadril: 1, volume: 1 };
   const explicacoes: ExplicacaoDaForma[] = [];
 
   const aspectoDoCorpo = passoDaNota(nota(person, 'corpo'), 'corpo');
