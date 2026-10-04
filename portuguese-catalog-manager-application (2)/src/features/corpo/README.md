@@ -24,21 +24,24 @@ pelo modelo é uma **estimativa** — dita na tela, nunca disfarçada de medida.
 ## 2. A figura 3D
 
 Não é a aparência de ninguém: é um **manequim de ateliê** montado do que a ficha
-já sabia. Cada peça é um elipsoide com centro, três semi-eixos e inclinação —
-nada de malha importada, nada de arquivo, nada de internet. O corpo inteiro é
-aritmética, e por isso ele acompanha as notas.
+já sabia. O corpo é uma **malha de triângulos de verdade** — superfície contínua,
+com relevo de peito, bunda e barriga na própria pele do tronco —, pintada por um
+rasterizador pequeno com luz de estúdio. Nada de malha importada, nada de
+arquivo, nada de internet: o corpo inteiro é aritmética, e por isso acompanha as
+notas da ficha.
 
 ### O que mexe na forma
 
 | Critério | O que ele muda |
 | --- | --- |
-| Peito | profundidade do tronco |
+| Peito | relevo dos seios, para a frente (o tronco quase não alarga) |
 | Quadril (largura) | largura do quadril |
-| Quadril (trás) | profundidade do quadril |
-| Corpo | volume geral — larguras e profundidades |
-| Cabelo | volume da massa de cabelo |
+| Quadril (trás) | relevo dos glúteos, para trás |
+| Corpo | volume geral — larguras, profundidades e barriga |
+| Cabelo | massa de cabelo (o tipo escolhe o desenho: 13 penteados) |
 | Altura | tamanho geral (e a razão cintura/altura) |
 | Tipo de corpo | base de ombros, cintura e quadril (esguio, atlético, curvilíneo, robusto, plus size) |
+| Estilo de roupa | **roupa desenhada**: manga, barra, saia, bota e caimento |
 
 Nota **3 é neutra**: o meio da escala não engorda nem afina nada. Quem não tem
 nota também não é inventado — a peça fica na base e a tela diz "sem nota".
@@ -48,48 +51,42 @@ nota também não é inventado — a peça fica na base e a tela diz "sem nota".
 **Rosto**, **beleza geral** e **comportamento** não viram geometria. A forma do
 rosto está na foto; beleza geral é um resumo das outras notas; jeito não tem
 silhueta. Em vez de desenhar um palpite, a lista embaixo da figura nomeia o que
-ficou de fora — a regra do aplicativo é explicar, não fingir precisão.
+ficou de fora — a regra do aplicativo é explicar, não fingir precisão. (Olhos,
+boca, nariz e sobrancelhas são **traços de manequim**, iguais para todo mundo:
+não são leitura de ficha.)
 
 ## Arquivos
 
 | Arquivo | O que decide |
 | --- | --- |
 | `altura.ts` | Lê, escreve e normaliza altura em metros; estimativas das palavras antigas. |
-| `metricas.ts` | Notas + altura + tipo de corpo → proporções e as explicações de cada uma. |
-| `modelo.ts` | Proporções → peças no espaço (elipsoides) e a sombra de contato. |
-| `projecao.ts` | Gira, projeta e devolve a **elipse exata** de cada peça (via `M·Mᵀ`), com brilho e profundidade. |
+| `metricas.ts` | Notas + altura + tipo de corpo → proporções, corte da roupa e as explicações de cada uma. |
+| `malha.ts` | Proporções → **malha 3D**: superfícies paramétricas (tronco, cabeça, braços, pernas, cabelo, roupa), com o relevo do corpo e o material de cada face. |
+| `pintura.ts` | Malha + vista → **pixels**: rasterizador com z-buffer, luz de três pontos, ambiente hemisférico, oclusão e sombra de contato. |
+| `aparencia.ts` | Cores de pele e cabelo, paleta de cada estilo de roupa e a leitura de silhueta. |
 | `components/Figura3D.tsx` | O canvas: desenho, arrasto para girar, vistas, zoom, salvar imagem e o texto de reserva. |
 
 ## Como a figura é desenhada
 
-1. **Fatias interpoladas, não bolas soltas.** O tronco, os braços e as pernas são
-   definidos por **pontos de controle** (a largura do ombro, a da cintura, a do
-   quadril, a profundidade do peito…) e preenchidos por fatias sobrepostas de
-   elipsoides, dez por trecho. A sobreposição é o que transforma uma pilha de
-   elipses em superfície contínua — e é conferida em teste (nenhuma vizinha deixa
-   vão entre ela e a próxima). A cobertura de cada fatia olha os **dois**
-   vizinhos, para a emenda entre trechos não aparecer.
-2. **Projeção ortográfica com a elipse exata.** Para um elipsoide, a silhueta
-   projetada é a elipse da matriz `M·Mᵀ`, em que `M` são as duas primeiras linhas
-   de `R · diag(raios)`. Os autovalores dão os semi-eixos; o autovetor, o ângulo.
-   Aproximar por círculo daria uma figura "de papelão" em qualquer giro.
-3. **Ordem de pintura por parte do corpo.** Primeiro as pernas, depois o tronco,
-   os braços e a cabeça — e, dentro de cada uma, a profundidade decide. Sem esse
-   agrupamento, no perfil as fatias do braço e do tronco se intercalam e a
-   silhueta vira listra. O braço que está mais perto da câmera sobe para a frente
-   (`ordenarBracos`); o de trás passa a ser pintado antes do tronco.
-4. **Cor chapada por peça e uma luz só.** Cada peça recebe a cor do material
-   ajustada pela orientação (a mesma em todas as fatias de um trecho, então não
-   há degrau entre elas); depois **uma única passada** de luz atravessa a figura
-   inteira (claro em cima e à esquerda, sombra embaixo e à direita). Gradiente
-   por peça, em fatias empilhadas, vira listra — a luz global é o que faz o corpo
-   ler como volume.
-
-## Constrangimentos
-
-- **Sem biblioteca 3D.** O aplicativo é um arquivo só; três mil linhas de motor
-  gráfico não caberiam na promessa de abrir offline.
-- **Sem canvas, sem drama.** Em navegador que não desenha, a seção entrega a
-  mesma leitura em texto (`1,70 m · ombros 38 cm · cintura 27 cm…`).
-- **Animar só quando ajuda.** O giro automático desliga com "reduzir animações"
-  ligado — a figura continua girável à mão.
+1. **Superfícies contínuas, não bolas.** Cada parte do corpo é uma função
+   `ponto(u, v)`: um **perfil** (a altura e as medidas em cada altura) interpolado
+   por Catmull-Rom, com a seção transversal em volta. Nada de pilha de elipses: a
+   malha é uma casca de triângulos, com normais tiradas da média das faces — e é
+   isso que dá sombreado liso em vez de degraus.
+2. **O relevo do corpo vive na superfície.** Os seios e os glúteos não são peças
+   coladas por fora: são um deslocamento da própria casca — o peito empurra a
+   frente, a bunda empurra o trás, a barriga acompanha o volume. De perfil, o
+   corpo ganha a curva; de frente, quase não alarga.
+3. **A roupa é geometria, não cor.** Onde há tecido, a casca infla (o caimento de
+   cada estilo); o material de cada face decide a cor — manga até certo ponto do
+   braço, barra da calça na altura do estilo, saia como casca própria, bota
+   subindo o tornozelo. Duas fichas de mesmo corpo e estilos diferentes deixam de
+   ser a mesma figura pintada de outra cor.
+4. **Luz de estúdio, com oclusão.** Uma chave alta à esquerda, um preenchimento
+   azulado à direita e uma contraluz atrás; o ambiente é hemisférico (céu em cima,
+   chão embaixo) e a oclusão — assada nos vértices, uma vez por malha — escurece
+   axila, virilha e embaixo do queixo. O brilho especular muda por material: o
+   cabelo tem brilho, o tecido quase não.
+5. **Girar é barato.** A malha é montada uma vez por ficha; girar só troca a
+   vista. Enquanto a figura se mexe, ela é pintada em malha leve e em tamanho
+   menor, esticada depois; ao parar, o desenho se refaz caprichado.

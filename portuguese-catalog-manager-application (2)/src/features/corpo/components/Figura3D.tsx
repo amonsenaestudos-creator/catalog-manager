@@ -1,15 +1,16 @@
 /**
  * Figura 3D da pessoa.
  *
- * Desenha o modelo de `modelo.ts` num canvas: cada peça é uma elipse com o
- * ângulo exato da projeção, pintada do mais distante para o mais próximo. Arrasta
- * para girar, setas do teclado para ajustar, e os botões levam direto a uma vista.
+ * Desenha a **malha** de `malha.ts` com o rasterizador de `pintura.ts`: o corpo
+ * é uma superfície 3D contínua, com luz de estúdio, e a roupa entra na própria
+ * malha (manga, barra, saia, bota). Arrasta para girar, setas do teclado para
+ * ajustar, e os botões levam direto a uma vista.
  *
- * Duas honestidades que a tela mantém:
- * 1. É um **manequim** montado das notas e da altura — não é a aparência de
- *    ninguém. Isso está escrito embaixo da figura, não escondido no código.
- * 2. Sem canvas (navegador antigo, teste automatizado), a seção não desaparece:
- *    ela entrega o mesmo conteúdo em texto.
+ * Enquanto a pessoa gira, o desenho é rápido (malha leve, poucas amostras); ao
+ * parar, ele se refaz caprichado. É o mesmo desenho — só muda o esforço.
+ *
+ * Sem canvas (navegador antigo, teste automatizado), a seção não desaparece:
+ * ela entrega o mesmo conteúdo em texto.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Accessibility, Download, Eye, Pause, Play, RotateCcw } from 'lucide-react';
@@ -21,71 +22,46 @@ import { movimentoReduzido } from '../../../lib/toque';
 import { lerForma, resumoDaForma } from '../metricas';
 import { CABELO_SILHUETA, PELE_SILHUETA, ROUPA_SILHUETA, corDaPele, corDoCabelo, roupaDe } from '../aparencia';
 import { corDaPessoa } from '../../../store';
-import { alturaDoModelo, modeloDaPessoa, ordenarBracos, sombraDoModelo } from '../modelo';
-import { caixaDoModelo, projetarModelo, type ElipseProjetada } from '../projecao';
-
-/** Clareia ou escurece uma cor do tema, aceitando `#hex` e `rgb(...)`. */
-function comLuz(cor: string, fator: number): string {
-  const hexadecimal = cor.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  const rgb = cor.trim().match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-  let canais: number[];
-  if (hexadecimal) {
-    const bruto = hexadecimal[1];
-    const completo = bruto.length === 3 ? bruto.split('').map(c => c + c).join('') : bruto;
-    const numero = Number.parseInt(completo, 16);
-    canais = [(numero >> 16) & 255, (numero >> 8) & 255, numero & 255];
-  } else if (rgb) {
-    canais = [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])];
-  } else {
-    return cor;
-  }
-  return `rgb(${canais.map(canal => Math.max(0, Math.min(255, Math.round(canal * fator)))).join(',')})`;
-}
-
-function corDoTema(variavel: string, alternativa: string) {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return alternativa;
-  try {
-    const valor = getComputedStyle(document.documentElement).getPropertyValue(variavel).trim();
-    return valor || alternativa;
-  } catch { return alternativa; }
-}
+import { malhaDaPessoa, type Malha } from '../malha';
+import { paletaDe, pintarFigura, type Paleta } from '../pintura';
 
 export interface Vista { id: string; rotulo: string; yaw: number; pitch: number }
 export const VISTAS: Vista[] = [
-  { id: 'frente', rotulo: 'Frente', yaw: 0, pitch: 6 },
-  { id: 'tres-quartos', rotulo: 'Três quartos', yaw: -28, pitch: 8 },
-  { id: 'lado', rotulo: 'De lado', yaw: -88, pitch: 6 },
+  { id: 'frente', rotulo: 'Frente', yaw: 0, pitch: 5 },
+  { id: 'tres-quartos', rotulo: 'Três quartos', yaw: -32, pitch: 7 },
+  { id: 'lado', rotulo: 'De lado', yaw: -88, pitch: 5 },
 ];
 
-export function Figura3D({ person, altura = 330, className = '' }: { person: Person; altura?: number; className?: string }) {
+export function Figura3D({ person, altura = 340, className = '' }: { person: Person; altura?: number; className?: string }) {
   const ctx = useCatalog();
   const reduzido = (ctx.data.settings.reducedMotion ?? false) || movimentoReduzido();
   const palco = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [largura, setLargura] = useState(280);
   const [suportado, setSuportado] = useState(true);
-  const [yaw, setYaw] = useState(-28);
-  const [pitch, setPitch] = useState(8);
+  const [yaw, setYaw] = useState(-32);
+  const [pitch, setPitch] = useState(7);
   const [zoom, setZoom] = useState(100);
   const [girando, setGirando] = useState(false);
   /** Modo silhueta: tudo na mesma cor, para comparar formas sem a roupa atrapalhar. */
   const [silhueta, setSilhueta] = useState(false);
+  /** A figura parada há tempo bastante para o desenho caprichado. */
+  const [repouso, setRepouso] = useState(true);
   const arrasto = useRef<{ x: number; y: number } | null>(null);
+  /** Canvas de apoio: recebe a imagem pequena do giro para ser esticada. */
+  const canvasDeApoio = useRef<HTMLCanvasElement | null>(null);
 
   const { proporcoes, explicacoes } = useMemo(() => lerForma(person), [person]);
-  const pecas = useMemo(() => modeloDaPessoa(proporcoes), [proporcoes]);
-  // Ordem de pintura: primeiro a parte do corpo, depois a profundidade dentro
-  // dela. Sem esse agrupamento, no perfil as fatias do braço e do tronco se
-  // intercalam e a silhueta ganha listras.
-  const elipses = useMemo(() => projetarModelo([sombraDoModelo(proporcoes), ...ordenarBracos(pecas, yaw)], yaw, pitch)
-    .sort((a, b) => (a.ordem - b.ordem) || (a.profundidade - b.profundidade)), [pecas, proporcoes, yaw, pitch]);
+  // A malha é a mesma a cada quadro: só a vista muda. Recalculá-la ao girar
+  // seria jogar fora o trabalho mais caro do desenho.
+  const malhaLeve = useMemo(() => malhaDaPessoa(proporcoes, { detalhe: 0.62 }), [proporcoes]);
+  const malhaFina = useMemo(() => malhaDaPessoa(proporcoes, { detalhe: 1 }), [proporcoes]);
   const resumo = useMemo(() => resumoDaForma(proporcoes), [proporcoes]);
-  // Cores da pessoa: pele, cabelo e a roupa do estilo declarado. É o que faz
-  // duas fichas de mesma altura e mesmas notas ainda parecerem duas pessoas.
-  const paleta = useMemo(() => {
-    const base = { pele: corDaPele(person), cabelo: corDoCabelo(person), roupa: roupaDe(person, corDaPessoa(person)) };
-    if (!silhueta) return base;
-    return { pele: PELE_SILHUETA, cabelo: CABELO_SILHUETA, roupa: ROUPA_SILHUETA };
+  const paleta = useMemo<Paleta>(() => {
+    if (silhueta) {
+      return paletaDe({ pele: PELE_SILHUETA, cabelo: CABELO_SILHUETA, roupa: ROUPA_SILHUETA });
+    }
+    return paletaDe({ pele: corDaPele(person), cabelo: corDoCabelo(person), roupa: roupaDe(person, corDaPessoa(person)) });
   }, [person, silhueta]);
 
   // A largura do palco manda no desenho: a figura acompanha o tamanho da ficha.
@@ -100,6 +76,7 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
     return () => observador.disconnect();
   }, [largura]);
 
+  // Girar sozinho, devagar, enquanto o botão estiver ligado.
   useEffect(() => {
     if (!girando || reduzido) return;
     let quadro = 0;
@@ -107,87 +84,59 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
     const passo = (agora: number) => {
       const delta = Math.min(64, agora - ultimo);
       ultimo = agora;
-      setYaw(valor => valor + (delta / 1000) * 22);
+      setYaw(valor => valor + (delta / 1000) * 18);
       quadro = requestAnimationFrame(passo);
     };
     quadro = requestAnimationFrame(passo);
     return () => cancelAnimationFrame(quadro);
   }, [girando, reduzido]);
 
-  // Desenho: fundo transparente, sombra de contato e as peças em ordem de profundidade.
+  // Do arrasto ao repouso: o desenho caprichado só entra quando ninguém está
+  // mexendo na figura.
+  useEffect(() => {
+    setRepouso(false);
+    const relogio = setTimeout(() => setRepouso(true), 220);
+    return () => clearTimeout(relogio);
+  }, [yaw, pitch, largura, zoom, paleta]);
+
+  // Desenho: a malha pintada, direto no canvas.
   useEffect(() => {
     const elemento = canvas.current;
     if (!elemento) return;
     const contexto = elemento.getContext('2d');
     if (!contexto) { setSuportado(false); return; }
     setSuportado(true);
-    const densidade = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
-    elemento.width = Math.max(1, Math.round(largura * densidade));
-    elemento.height = Math.max(1, Math.round(altura * densidade));
-    contexto.setTransform(densidade, 0, 0, densidade, 0, 0);
-    contexto.clearRect(0, 0, largura, altura);
-
-    const caixa = caixaDoModelo(elipses);
-    if (!caixa.altura || !caixa.largura) return;
-    const margem = 14;
-    // Enquadra pelas duas dimensões: com os braços abertos, quem manda é a
-    // largura; sem eles, a altura. Sem isso, a figura em T-pose sairia cortada.
-    const escala = Math.min((altura - margem * 2) / caixa.altura, (largura - margem * 2) / caixa.largura) * (zoom / 100);
-    const centroX = 0;
-    const centroY = (caixa.base + caixa.topo) / 2;
-    const paraTela = (elipse: ElipseProjetada) => ({
-      x: largura / 2 + (elipse.centro[0] - centroX) * escala,
-      y: altura / 2 - (elipse.centro[1] - centroY) * escala,
+    const parado = repouso && !girando;
+    const malha: Malha = parado ? malhaFina : malhaLeve;
+    const alturaDoDesenho = Math.max(120, altura);
+    const larguraDoDesenho = Math.max(120, Math.round(largura));
+    elemento.width = larguraDoDesenho;
+    elemento.height = alturaDoDesenho;
+    // Enquanto a figura gira, ela é pintada em tamanho menor e esticada: a
+    // diferença some no movimento, e o giro fica fluido em vez de aos pulos.
+    const escalaDoDesenho = parado ? 1 : 0.62;
+    const pintada = pintarFigura(malha, {
+      yaw, pitch,
+      largura: Math.max(80, Math.round(larguraDoDesenho * escalaDoDesenho)),
+      altura: Math.max(100, Math.round(alturaDoDesenho * escalaDoDesenho)),
+      paleta, amostras: 1, sombra: true,
     });
-
-    const corDe = (papel: string) => {
-      if (papel === 'cabelo') return paleta.cabelo;
-      if (papel === 'pele') return paleta.pele;
-      if (papel === 'roupa') return paleta.roupa.topo;
-      if (papel === 'calca') return paleta.roupa.baixo;
-      if (papel === 'sapato') return paleta.roupa.sapato;
-      return corDoTema('--accent', '#c786ec');
-    };
-
-    for (const elipse of elipses) {
-      const ponto = paraTela(elipse);
-      const raioX = Math.max(0.5, elipse.rx * escala);
-      const raioY = Math.max(0.5, elipse.ry * escala);
-      const angulo = (elipse.angulo * Math.PI) / 180;
-      contexto.save();
-      contexto.translate(ponto.x, ponto.y);
-      contexto.rotate(-angulo);
-      if (elipse.papel === 'sombra') {
-        const sombra = contexto.createRadialGradient(0, 0, raioY * 0.2, 0, 0, raioX);
-        sombra.addColorStop(0, 'rgba(0,0,0,0.34)');
-        sombra.addColorStop(1, 'rgba(0,0,0,0)');
-        contexto.fillStyle = sombra;
-      } else {
-        // Cor **chapada** por peça. O brilho vem da orientação da peça (a mesma
-        // em todas as fatias de um trecho), então fatias vizinhas têm o mesmo
-        // tom — sem degrau, sem listra. A luz geral entra depois, numa passada só.
-        contexto.fillStyle = comLuz(corDe(elipse.papel), elipse.brilho);
-      }
-      contexto.beginPath();
-      contexto.ellipse(0, 0, raioX, raioY, 0, 0, Math.PI * 2);
-      contexto.fill();
-      contexto.restore();
+    if (escalaDoDesenho === 1) {
+      contexto.putImageData(new ImageData(pintada.dados, pintada.largura, pintada.altura), 0, 0);
+    } else {
+      // Passa pelo canvas de apoio para o navegador fazer o esticão suave.
+      const apoio = canvasDeApoio.current ?? document.createElement('canvas');
+      canvasDeApoio.current = apoio;
+      apoio.width = pintada.largura;
+      apoio.height = pintada.altura;
+      const contextoApoio = apoio.getContext('2d');
+      if (!contextoApoio) { contexto.putImageData(new ImageData(pintada.dados, pintada.largura, pintada.altura), 0, 0); return; }
+      contextoApoio.putImageData(new ImageData(pintada.dados, pintada.largura, pintada.altura), 0, 0);
+      contexto.clearRect(0, 0, larguraDoDesenho, alturaDoDesenho);
+      contexto.imageSmoothingEnabled = true;
+      contexto.drawImage(apoio, 0, 0, larguraDoDesenho, alturaDoDesenho);
     }
-
-    // Uma única passada de luz sobre a figura inteira: claro em cima e à
-    // esquerda, sombra embaixo e à direita. Como o gradiente é global, a luz
-    // atravessa as peças em vez de reiniciar em cada uma — é o que faz o corpo
-    // ler como volume contínuo.
-    contexto.save();
-    contexto.globalCompositeOperation = 'source-atop';
-    const luzGlobal = contexto.createLinearGradient(largura * 0.15, altura * 0.05, largura * 0.85, altura * 0.95);
-    luzGlobal.addColorStop(0, 'rgba(255,255,255,0.26)');
-    luzGlobal.addColorStop(0.45, 'rgba(255,255,255,0)');
-    luzGlobal.addColorStop(1, 'rgba(0,0,0,0.3)');
-    contexto.fillStyle = luzGlobal;
-    contexto.fillRect(0, 0, largura, altura);
-    contexto.restore();
-  }, [elipses, largura, altura, zoom, paleta]);
+  }, [malhaFina, malhaLeve, yaw, pitch, largura, altura, paleta, repouso, girando]);
 
   const girarPonteiro = (evento: React.PointerEvent<HTMLCanvasElement>) => {
     if (!arrasto.current) return;
@@ -210,7 +159,7 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
 
   return <section className={`figura-3d ${className}`} aria-label={`Figura 3D de ${person.nome}`}>
     <div className="figura-palco" ref={palco} style={{ height: altura }}>
-      <canvas ref={canvas} tabIndex={0} role="img"
+      <canvas ref={canvas} tabIndex={0} role="img" style={{ transform: `scale(${zoom / 100})` }}
         aria-label={`Manequim em 3D de ${person.nome}. ${resumo}. Use as setas para girar.`}
         onPointerDown={evento => { arrasto.current = { x: evento.clientX, y: evento.clientY }; try { evento.currentTarget.setPointerCapture(evento.pointerId); } catch { /* captura é mimo */ } }}
         onPointerMove={girarPonteiro}
@@ -221,7 +170,7 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
           else if (evento.key === 'ArrowRight') { setYaw(valor => valor + 6); evento.preventDefault(); }
           else if (evento.key === 'ArrowUp') { setPitch(valor => Math.max(-18, valor - 3)); evento.preventDefault(); }
           else if (evento.key === 'ArrowDown') { setPitch(valor => Math.min(24, valor + 3)); evento.preventDefault(); }
-          else if (evento.key === 'Home') { setYaw(0); setPitch(6); evento.preventDefault(); }
+          else if (evento.key === 'Home') { setYaw(0); setPitch(5); evento.preventDefault(); }
         }} />
       {!suportado && <p className="figura-sem-canvas"><Accessibility size={18} />Este navegador não desenha a figura aqui. A leitura é esta: {resumo}.</p>}
     </div>
@@ -232,7 +181,7 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
       <button type="button" aria-pressed={girando} disabled={reduzido} title={reduzido ? 'As animações estão reduzidas nas preferências.' : 'Girar devagar'} onClick={() => setGirando(valor => !valor)}>
         {girando ? <Pause size={13} /> : <Play size={13} />}Girar
       </button>
-      <button type="button" onClick={() => { setYaw(-28); setPitch(8); setZoom(100); setGirando(false); }}><RotateCcw size={13} />Reiniciar</button>
+      <button type="button" onClick={() => { setYaw(-32); setPitch(7); setZoom(100); setGirando(false); }}><RotateCcw size={13} />Reiniciar</button>
     </div>
 
     <div className="figura-ajustes">
@@ -248,7 +197,7 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
     <p className="figura-aviso">
       Manequim montado do que a ficha guarda: altura {proporcoes.alturaEstimada ? '(estimada a partir da palavra salva)' : ''}, tipo de corpo,
       notas de peito, quadril, corpo e cabelo, tom de pele, cor e tipo de cabelo e estilo de roupa. Não é a aparência da pessoa — é a leitura
-      do que está escrito. A figura representa {alturaDoModelo(pecas).toFixed(2).replace('.', ',')} m.
+      do que está escrito. A figura representa {malhaFina.altura.toFixed(2).replace('.', ',')} m.
     </p>
 
     <ul className="figura-notas">

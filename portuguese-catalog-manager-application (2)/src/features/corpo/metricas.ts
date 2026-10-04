@@ -64,6 +64,16 @@ export interface Proporcoes {
   barraDaCalca: number;
   /** Quanto a barra abre em relação à perna (1 calça justa · 1,5 saia rodada). */
   folgaDaBarra: number;
+  /** Comprimento da manga, em fração do braço (0,1 alcinha · 1 manga longa). */
+  mangaDaBlusa: number;
+  /** Onde a blusa termina, em fração da altura (0,60 na cintura). */
+  topoAte: number;
+  /** Quanto a roupa folga do corpo (1 justo · 1,15 largo): vira volume na malha. */
+  ajusteDaRoupa: number;
+  /** A peça de baixo é saia? Muda a geometria: saia roda e cobre as pernas. */
+  saia: boolean;
+  /** Sobe um cano pelos tornozelos: bota em vez de sapato. */
+  bota: boolean;
   /** Leitura da silhueta: arredonda ombros e quadril para o lado certo. */
   silhueta: Silhueta;
 }
@@ -166,8 +176,12 @@ export function lerForma(person: Person): LeituraDaForma {
     // Pernas longas o bastante para a figura parecer gente, e a cabeça na
     // proporção clássica de ateliê (1/7,5 da altura).
     pernas: 0.47, tronco: 0.38, cabeca: 1 / 7.5,
-    // O corte da peça de baixo vem do estilo de roupa; sem estilo, calça comprida.
-    barraDaCalca: roupa.barra, folgaDaBarra: roupa.folga, silhueta,
+    // O corte da roupa vem do estilo declarado; sem estilo, calça comprida e
+    // camiseta. É o que decide o desenho: manga, barra, saia e bota.
+    barraDaCalca: roupa.barra, folgaDaBarra: roupa.folga,
+    mangaDaBlusa: roupa.manga, topoAte: roupa.topoAte, ajusteDaRoupa: roupa.ajuste,
+    saia: roupa.saia, bota: roupa.bota,
+    silhueta,
   };
 
   // Explicações: o que entrou na conta e o que ficou de fora, com o valor lido.

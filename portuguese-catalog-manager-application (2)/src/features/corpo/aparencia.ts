@@ -114,6 +114,19 @@ export interface Roupa {
   barra: number;
   /** Quanto a barra abre em relação à perna (calça justa 1, calça larga 1,35). */
   folga: number;
+  /**
+   * Comprimento da manga, em fração do braço: 0,1 é alcinha, 0,45 é manga
+   * curta, 1 é manga comprida. Vai até onde o tecido cobre a pele.
+   */
+  manga: number;
+  /** Onde a blusa termina, em fração da altura (0,60 é na cintura; 0,50, no quadril). */
+  topoAte: number;
+  /** Quanto a roupa folga do corpo (1 justo, 1,15 largo). Vira volume na malha. */
+  ajuste: number;
+  /** A peça de baixo é saia? Muda a geometria, não só o comprimento: saia roda. */
+  saia: boolean;
+  /** Sobe um cano pelos tornozelos: bota em vez de sapato. */
+  bota: boolean;
 }
 
 /**
@@ -121,20 +134,20 @@ export interface Roupa {
  * objetivo não é moda: é reconhecer a pessoa de longe, na silhueta colorida.
  */
 export const ROUPAS: Record<string, Roupa> = {
-  'casual': { topo: '#6f8fbf', baixo: '#3f4a63', sapato: '#efe9e4', barra: 0.08, folga: 1.12 },
-  'social': { topo: '#33333d', baixo: '#26262e', sapato: '#191920', barra: 0.06, folga: 1.0 },
-  'esportivo': { topo: '#2fb3a0', baixo: '#2b3550', sapato: '#f2f2f2', barra: 0.07, folga: 1.02 },
-  'clássico': { topo: '#8c6f4f', baixo: '#4d4133', sapato: '#3a2f26', barra: 0.06, folga: 1.0 },
-  'alternativo': { topo: '#6b4d8f', baixo: '#2c2436', sapato: '#1f1a24', barra: 0.07, folga: 1.05 },
-  'streetwear': { topo: '#e2603f', baixo: '#2f3138', sapato: '#f4f0e6', barra: 0.075, folga: 1.15 },
-  'romântico': { topo: '#e8a9bd', baixo: '#b98fa8', sapato: '#fbf4f6', barra: 0.33, folga: 1.5 },
-  'minimalista': { topo: '#d8d5da', baixo: '#3b3a40', sapato: '#8f8d94', barra: 0.07, folga: 1.08 },
-  'vintage': { topo: '#b08a3e', baixo: '#5b4a3a', sapato: '#e8dfc9', barra: 0.24, folga: 1.3 },
-  'criativo': { topo: '#4fa5c9', baixo: '#a1573f', sapato: '#f0e2b6', barra: 0.08, folga: 1.18 },
+  'casual': { topo: '#6f8fbf', baixo: '#3f4a63', sapato: '#efe9e4', barra: 0.08, folga: 1.12, manga: 0.42, topoAte: 0.6, ajuste: 1.04, saia: false, bota: false },
+  'social': { topo: '#33333d', baixo: '#26262e', sapato: '#191920', barra: 0.06, folga: 1.0, manga: 1.0, topoAte: 0.58, ajuste: 1.0, saia: false, bota: false },
+  'esportivo': { topo: '#2fb3a0', baixo: '#2b3550', sapato: '#f2f2f2', barra: 0.07, folga: 1.02, manga: 0.1, topoAte: 0.585, ajuste: 0.99, saia: false, bota: false },
+  'clássico': { topo: '#8c6f4f', baixo: '#4d4133', sapato: '#3a2f26', barra: 0.06, folga: 1.0, manga: 1.0, topoAte: 0.6, ajuste: 1.0, saia: false, bota: false },
+  'alternativo': { topo: '#6b4d8f', baixo: '#2c2436', sapato: '#1f1a24', barra: 0.07, folga: 1.05, manga: 0.55, topoAte: 0.6, ajuste: 1.05, saia: false, bota: true },
+  'streetwear': { topo: '#e2603f', baixo: '#2f3138', sapato: '#f4f0e6', barra: 0.075, folga: 1.15, manga: 0.5, topoAte: 0.56, ajuste: 1.12, saia: false, bota: false },
+  'romântico': { topo: '#e8a9bd', baixo: '#b98fa8', sapato: '#fbf4f6', barra: 0.33, folga: 1.5, manga: 0.12, topoAte: 0.6, ajuste: 1.04, saia: true, bota: false },
+  'minimalista': { topo: '#d8d5da', baixo: '#3b3a40', sapato: '#8f8d94', barra: 0.07, folga: 1.08, manga: 0.3, topoAte: 0.6, ajuste: 1.02, saia: false, bota: false },
+  'vintage': { topo: '#b08a3e', baixo: '#5b4a3a', sapato: '#e8dfc9', barra: 0.24, folga: 1.3, manga: 0.35, topoAte: 0.6, ajuste: 1.05, saia: true, bota: false },
+  'criativo': { topo: '#4fa5c9', baixo: '#a1573f', sapato: '#f0e2b6', barra: 0.08, folga: 1.18, manga: 0.45, topoAte: 0.62, ajuste: 1.08, saia: false, bota: false },
 };
 
 /** Sem estilo declarado: calça comprida e um top da cor da pessoa. */
-const ROUPA_PADRAO: Roupa = { topo: '#8b7fa8', baixo: '#3a3644', sapato: '#2c2933', barra: 0.075, folga: 0.98 };
+const ROUPA_PADRAO: Roupa = { topo: '#8b7fa8', baixo: '#3a3644', sapato: '#2c2933', barra: 0.075, folga: 0.98, manga: 0.3, topoAte: 0.6, ajuste: 1.0, saia: false, bota: false };
 
 /**
  * A chave do estilo, sem acento e em minúsculas.
@@ -156,9 +169,14 @@ export function semAcento(valor: string | undefined): string {
  * Só o corte (barra e folga) do estilo declarado. A figura precisa disso para
  * posicionar a peça de baixo, e a cor fica com quem desenha.
  */
-export function corteDaRoupa(person: Person): { barra: number; folga: number } {
+/** O corte da roupa: o que a malha precisa saber para vestir a figura. */
+export interface CorteDaRoupa {
+  barra: number; folga: number; manga: number; topoAte: number; ajuste: number; saia: boolean; bota: boolean;
+}
+
+export function corteDaRoupa(person: Person): CorteDaRoupa {
   const roupa = roupaDoEstilo(person);
-  return { barra: roupa.barra, folga: roupa.folga };
+  return { barra: roupa.barra, folga: roupa.folga, manga: roupa.manga, topoAte: roupa.topoAte, ajuste: roupa.ajuste, saia: roupa.saia, bota: roupa.bota };
 }
 
 /** A paleta inteira do estilo (ou a padrão, quando não há estilo). */
@@ -211,6 +229,6 @@ export function silhuetaDe(person: Person): Silhueta {
 }
 
 /** Versão monocromática, para o modo silhueta: só a forma importa. */
-export const ROUPA_SILHUETA: Roupa = { topo: '#7a7684', baixo: '#615d6c', sapato: '#4a4753', barra: 0.075, folga: 1.1 };
+export const ROUPA_SILHUETA: Roupa = { topo: '#7a7684', baixo: '#615d6c', sapato: '#4a4753', barra: 0.075, folga: 1.1, manga: 0.35, topoAte: 0.6, ajuste: 1.04, saia: false, bota: false };
 export const PELE_SILHUETA = '#8d8996';
 export const CABELO_SILHUETA = '#6f6b7a';
