@@ -12,23 +12,17 @@
  *    ela entrega o mesmo conteúdo em texto.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Accessibility, Download, Pause, Play, RotateCcw } from 'lucide-react';
+import { Accessibility, Download, Eye, Pause, Play, RotateCcw } from 'lucide-react';
 import type { Person } from '../../../types';
 import { useCatalog } from '../../../context';
 import { downloadBlob } from '../../../store';
 import { Button } from '../../../components/ui';
 import { movimentoReduzido } from '../../../lib/toque';
 import { lerForma, resumoDaForma } from '../metricas';
+import { CABELO_SILHUETA, PELE_SILHUETA, ROUPA_SILHUETA, corDaPele, corDoCabelo, roupaDe } from '../aparencia';
+import { corDaPessoa } from '../../../store';
 import { alturaDoModelo, modeloDaPessoa, ordenarBracos, sombraDoModelo } from '../modelo';
 import { caixaDoModelo, projetarModelo, type ElipseProjetada } from '../projecao';
-
-/** Pele e cabelo entram na figura como cor, não como forma. */
-const CORES_DE_PELE: Record<string, string> = {
-  'branca': '#f2d7c4', 'clara': '#f0d0b4', 'parda': '#c98f63', 'morena': '#a86f4a', 'negra': '#6f4630', 'retinta': '#4a2d20', 'amarela': '#e8c9a0', 'indígena': '#c68b5f', 'personalizado': '#c98f63',
-};
-const CORES_DE_CABELO: Record<string, string> = {
-  'preto': '#1c1a1f', 'castanho': '#4a3423', 'castanho claro': '#6b4a2c', 'loiro': '#c9a15a', 'ruivo': '#a4482a', 'grisalho': '#9a9a9a', 'branco': '#dcdcdc', 'colorido': '#c786ec', 'loiro platinado': '#ded3b6', 'ruivo acobreado': '#b5551f',
-};
 
 /** Clareia ou escurece uma cor do tema, aceitando `#hex` e `rgb(...)`. */
 function comLuz(cor: string, fator: number): string {
@@ -74,6 +68,8 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
   const [pitch, setPitch] = useState(8);
   const [zoom, setZoom] = useState(100);
   const [girando, setGirando] = useState(false);
+  /** Modo silhueta: tudo na mesma cor, para comparar formas sem a roupa atrapalhar. */
+  const [silhueta, setSilhueta] = useState(false);
   const arrasto = useRef<{ x: number; y: number } | null>(null);
 
   const { proporcoes, explicacoes } = useMemo(() => lerForma(person), [person]);
@@ -84,6 +80,13 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
   const elipses = useMemo(() => projetarModelo([sombraDoModelo(proporcoes), ...ordenarBracos(pecas, yaw)], yaw, pitch)
     .sort((a, b) => (a.ordem - b.ordem) || (a.profundidade - b.profundidade)), [pecas, proporcoes, yaw, pitch]);
   const resumo = useMemo(() => resumoDaForma(proporcoes), [proporcoes]);
+  // Cores da pessoa: pele, cabelo e a roupa do estilo declarado. É o que faz
+  // duas fichas de mesma altura e mesmas notas ainda parecerem duas pessoas.
+  const paleta = useMemo(() => {
+    const base = { pele: corDaPele(person), cabelo: corDoCabelo(person), roupa: roupaDe(person, corDaPessoa(person)) };
+    if (!silhueta) return base;
+    return { pele: PELE_SILHUETA, cabelo: CABELO_SILHUETA, roupa: ROUPA_SILHUETA };
+  }, [person, silhueta]);
 
   // A largura do palco manda no desenho: a figura acompanha o tamanho da ficha.
   useEffect(() => {
@@ -135,10 +138,14 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
       y: altura / 2 - (elipse.centro[1] - centroY) * escala,
     });
 
-    const corManequim = corDoTema('--accent', '#c786ec');
-    const corPele = CORES_DE_PELE[(person.pele || '').toLowerCase()] || corDoTema('--muted', '#a59dab');
-    const corCabelo = CORES_DE_CABELO[(person.cabeloCor || '').toLowerCase()] || corDoTema('--txt', '#ece7f2');
-    const corDe = (papel: string) => papel === 'cabelo' ? corCabelo : papel === 'pele' ? corPele : corManequim;
+    const corDe = (papel: string) => {
+      if (papel === 'cabelo') return paleta.cabelo;
+      if (papel === 'pele') return paleta.pele;
+      if (papel === 'roupa') return paleta.roupa.topo;
+      if (papel === 'calca') return paleta.roupa.baixo;
+      if (papel === 'sapato') return paleta.roupa.sapato;
+      return corDoTema('--accent', '#c786ec');
+    };
 
     for (const elipse of elipses) {
       const ponto = paraTela(elipse);
@@ -178,7 +185,7 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
     contexto.fillStyle = luzGlobal;
     contexto.fillRect(0, 0, largura, altura);
     contexto.restore();
-  }, [elipses, largura, altura, zoom, person.pele, person.cabeloCor]);
+  }, [elipses, largura, altura, zoom, paleta]);
 
   const girarPonteiro = (evento: React.PointerEvent<HTMLCanvasElement>) => {
     if (!arrasto.current) return;
@@ -230,12 +237,16 @@ export function Figura3D({ person, altura = 330, className = '' }: { person: Per
       <label>Tamanho
         <input type="range" min={70} max={150} value={zoom} aria-label="Tamanho da figura" onChange={evento => setZoom(Number(evento.target.value))} />
       </label>
+      <button type="button" className="figura-silhueta" aria-pressed={silhueta} onClick={() => setSilhueta(valor => !valor)}>
+        <Eye size={13} />{silhueta ? 'Cores da ficha' : 'Ver silhueta'}
+      </button>
       <Button variant="ghost" onClick={salvarImagem}><Download size={14} />Salvar imagem</Button>
     </div>
 
     <p className="figura-aviso">
-      Manequim montado das notas e da altura {proporcoes.alturaEstimada ? '(altura estimada a partir da palavra guardada na ficha)' : ''} —
-      não é a aparência da pessoa. A altura da figura representa {alturaDoModelo(pecas).toFixed(2).replace('.', ',')} m.
+      Manequim montado do que a ficha guarda: altura {proporcoes.alturaEstimada ? '(estimada a partir da palavra salva)' : ''}, tipo de corpo,
+      notas de peito, quadril, corpo e cabelo, tom de pele, cor e tipo de cabelo e estilo de roupa. Não é a aparência da pessoa — é a leitura
+      do que está escrito. A figura representa {alturaDoModelo(pecas).toFixed(2).replace('.', ',')} m.
     </p>
 
     <ul className="figura-notas">

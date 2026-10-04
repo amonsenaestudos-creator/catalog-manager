@@ -16,14 +16,15 @@
 import { getDefaultPerson, RATING_FIELDS } from '../../store';
 import type { Person } from '../../types';
 import { metrosDaAltura } from './altura';
+import { familiaDoCabelo, type FamiliaDeCabelo } from './aparencia';
 
 /** Os critérios que mexem no desenho, e como cada um pesa. */
 export const CRITERIOS_DE_FORMA: Record<string, { papel: string; rotulo: string }> = {
-  peitos: { papel: 'peito', rotulo: 'Peito' },
-  bunda: { papel: 'profundidadeQuadril', rotulo: 'Quadril (trás)' },
+  peitos: { papel: 'seios', rotulo: 'Seios' },
+  bunda: { papel: 'gluteos', rotulo: 'Glúteos' },
   quadril: { papel: 'quadril', rotulo: 'Quadril (largura)' },
   corpo: { papel: 'volume', rotulo: 'Corpo' },
-  cabelo: { papel: 'cabelo', rotulo: 'Cabelo' },
+  cabelo: { papel: 'cabeloVolume', rotulo: 'Cabelo' },
 };
 
 /** Critérios que a figura não tenta representar — e por quê. */
@@ -47,8 +48,14 @@ export interface Proporcoes {
   profundidadeQuadril: number;
   /** Quanto a pessoa "ocupa" de volume em relação ao padrão (1 = neutro). */
   volume: number;
+  /** Raio de cada seio, em metros (o par é simétrico). */
+  seios: number;
+  /** Raio de cada glúteo, em metros. */
+  gluteos: number;
   /** Volume do cabelo (1 = neutro). */
-  cabelo: number;
+  cabeloVolume: number;
+  /** O desenho do cabelo: liso, ondulado, afro, trançado, pixie… */
+  cabeloFamilia: FamiliaDeCabelo;
   /** Frações da altura, para a figura inteira caber. */
   pernas: number;
   tronco: number;
@@ -127,16 +134,22 @@ export function lerForma(person: Person): LeituraDaForma {
   const passoBunda = passoDaNota(nota(person, 'bunda'), 'bunda');
   const peito = largura(BASE.peito);
   const cintura = largura(BASE.cintura * tipo.cintura);
-  const profundidadePeito = arredondar(BASE.profundidadePeito * escala * volume * passoPeito, 4);
+  const profundidadePeito = arredondar(BASE.profundidadePeito * escala * volume, 4);
   const profundidadeCintura = arredondar(BASE.profundidadeCintura * escala * volume, 4);
-  const profundidadeQuadril = arredondar(BASE.profundidadeQuadril * escala * volume * passoBunda, 4);
-  const cabelo = passoDaNota(nota(person, 'cabelo'), 'cabelo');
+  const profundidadeQuadril = arredondar(BASE.profundidadeQuadril * escala * volume * 0.88, 4);
+  // Seios e glúteos são peças de verdade no modelo: é o que faz o peito aparecer
+  // no perfil e a bunda aparecer de lado, em vez de só mexer na silhueta de frente.
+  const seios = arredondar(altura * 0.0255 * passoPeito, 4);
+  const gluteos = arredondar(altura * 0.027 * passoBunda, 4);
+  const cabeloVolume = passoDaNota(nota(person, 'cabelo'), 'cabelo');
 
   const proporcoes: Proporcoes = {
     altura, alturaEstimada: alturaLida.estimativa,
     ombros: arredondar(ombros), cintura: arredondar(cintura), quadril: arredondar(quadril), peito: arredondar(peito),
     profundidadePeito, profundidadeCintura, profundidadeQuadril,
-    volume: arredondar(volume, 3), cabelo: arredondar(cabelo, 3),
+    volume: arredondar(volume, 3), seios, gluteos,
+    cabeloVolume: arredondar(cabeloVolume, 3),
+    cabeloFamilia: familiaDoCabelo(person.cabeloTipo),
     // Pernas longas o bastante para a figura parecer gente, e a cabeça na
     // proporção clássica de ateliê (1/7,5 da altura).
     pernas: 0.47, tronco: 0.38, cabeca: 1 / 7.5,
