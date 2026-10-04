@@ -6,6 +6,7 @@
  * proporção para caber na largura do celular sem depender de biblioteca.
  */
 import type { AppData, Folder, Photo } from '../types';
+import { generateId, medirImagem, readImage } from '../store';
 
 /* ------------------------------------------------------------------ modos -- */
 
@@ -291,3 +292,27 @@ export function medirFaixasDoTopo(pagina: HTMLElement | null): { escopo: number;
 
 /** Rótulo curto para o cabeçalho do visor ("3 de 40"). */
 export const posicaoNoConjunto = (total: number, indice: number) => `${Math.max(1, indice + 1)} de ${total || 1}`;
+
+/* ---------------------------------------------------------------- entrada -- */
+
+/**
+ * Prepara arquivos escolhidos (ou fotografados) para entrar no catálogo.
+ *
+ * A mesma conta que a galeria faz: lê a imagem, mede o original e guarda as
+ * medidas — é delas que o mosaico vive, para não recalcular proporção a cada
+ * quadro. Mora aqui, e não dentro da tela, porque agora dois caminhos
+ * alimentam a galeria: o envio da própria Galeria e o "+" inteligente do
+ * aplicativo (ver `QuickAddModal`).
+ */
+export async function prepararFotosSoltas(arquivos: File[]): Promise<Photo[]> {
+  const fotos: Photo[] = [];
+  for (const arquivo of arquivos) {
+    const url = await readImage(arquivo);
+    const { width, height } = await medirImagem(url);
+    fotos.push({
+      id: generateId(), url, width, height, name: arquivo.name,
+      personId: null, isMain: false, type: 'normal', createdAt: new Date().toISOString(),
+    });
+  }
+  return fotos;
+}

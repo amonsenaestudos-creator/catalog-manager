@@ -184,15 +184,21 @@ describe("sistema visual do celular", () => {
     expect(app).toMatch(/borda\.progresso > 0 && <span className="borda-trilha"/);
   });
 
-  it("o topo do celular cabe na mão: o que não cabe vai para a folha do “mais”", () => {
+  it("o topo cabe na mão: o que não é do dia a dia vai para a folha do “mais”", () => {
     const topo = daqui("15.4 topo enxuto", "15.5 doca");
-    expect(topo).toMatch(/\.topbar-more \{ display: none; \}/);
+    // desde a rodada da interface o "⋯" vale nas duas telas — foi para dentro
+    // dele que saíram disfarce, privacidade, tema, desfazer, refazer e o raio.
     expect(topo).toMatch(/\.topbar-more \{ display: inline-flex; \}/);
-    expect(topo).toMatch(/\.topbar-actions \.desktop-so \{ display: none; \}/);
-    expect(app).toMatch(/<TopbarMais onAbrirRapidas=\{\(\) => setQuickTools\(true\)\} \/>/);
+    expect(topo).toMatch(/\.topbar-more \{ width: var\(--toque-p\)/);
+    expect(app).toMatch(/<TopbarMais onAbrirRapidas=\{\(\) => setQuickTools\(true\)\} foco=\{foco\.foco\} onAlternarFoco=\{foco\.alternar\} \/>/);
     expect(app).toMatch(/FolhaDeAcoes titulo="O que você precisa agora\?"/);
-    // disfarce, privacidade, tema e ações rápidas: escondidos no aparelho, no topo no computador
-    expect((app.match(/desktop-so/g) || []).length).toBe(4);
+    // o modo foco esconde a moldura pelo CSS (a classe `foco` no <html>)
+    expect(css).toMatch(/html\.foco \.sidebar/);
+    expect(app).toMatch(/useModoFoco\(\)/);
+    // nenhum botão do topo é exclusivo do computador: o mesmo topo serve os dois
+    expect((app.match(/desktop-so/g) || []).length).toBe(0);
+    // a lupa existe no celular porque a doca ficou com cinco destinos fixos
+    expect(app).toMatch(/className="mobile-search-trigger"/);
   });
 
   it("folha e visor mandam a doca sair da frente", () => {

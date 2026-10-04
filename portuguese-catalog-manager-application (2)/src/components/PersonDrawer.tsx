@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Archive, AudioLines, CalendarDays, Camera, Check, Copy, Download, Edit3, ExternalLink, Eye, FileText, Heart, History, Lightbulb, Link2, MapPin, MessageCircle, Mic, MoreHorizontal, Pin, PinOff, Plus, Printer, Share2, Sparkles, Star, Trash2, Trophy } from 'lucide-react';
+import { AudioLines, CalendarDays, Camera, Check, ExternalLink, Eye, FileText, FolderOpen, Heart, History, Link2, MapPin, Mic, PersonStanding, Play, Plus, Sparkles, Star, Trash2, Trophy, UserRound, Users } from 'lucide-react';
 import { ADULT_APPEARANCE_TAGS } from '../types';
 import type { Person } from '../types';
 import VisorDeFotos from './VisorDeFotos';
@@ -16,20 +16,31 @@ import { averageRadar, personTimeline } from '../lib/stats';
 import { descreverVinculo } from '../lib/relacao';
 import { vinculoComigoLabel } from '../types';
 import { VozDaPessoa, notasDeVoz, resumoDaVoz } from '../features/voice';
+import { RelacoesDaFicha } from '../features/relationships';
+import { abrirEmNovaAba, buscaNoYouTube } from '../features/musica';
+import { Figura3D, lerForma, resumoDaForma, rotuloDaAltura } from '../features/corpo';
+import { BarraDeAcoes, CATEGORIAS_DA_FICHA, LIMITE_DE_HISTORICO, LIMITE_DE_PREVIA, LIMITE_ESSENCIAL, Revelar, acoesDaFicha, categoriaDaAba, contagemDaSecao, iconeDaAcao, organizarAcoes, revelar } from '../features/interface';
+import type { CategoriaDaFicha } from '../features/interface';
 import { compartilharResumoDaPessoa, mensagemDoCompartilhamento } from '../lib/compartilhar';
 import type { TimelineEvent } from '../lib/stats';
+
+const ICONES_DA_CATEGORIA: Record<CategoriaDaFicha, typeof Star> = {
+  perfil: UserRound, avaliacoes: Star, midia: Camera, relacoes: Users, registros: History,
+};
 
 export default function PersonDrawer({ person }: { person: Person }) {
   const ctx = useCatalog();
   const { data } = ctx;
   const [editing, setEditing] = useState<boolean>(!!ctx.openRequest?.editar || !!data.drafts[`edit-${person.id}`]);
-  const [tab, setTab] = useState(ctx.openRequest?.aba || 'info');
+  // O pedido antigo de aba ('photos', 'notes', 'timeline') é traduzido para a
+  // categoria nova; `secaoPedida` guarda o nome cru para a ficha abrir já na
+  // seção certa dentro da categoria (a linha do tempo, por exemplo).
+  const [secaoPedida] = useState(() => (ctx.openRequest?.aba || '').toLowerCase());
+  const [tab, setTab] = useState<CategoriaDaFicha>(categoriaDaAba(ctx.openRequest?.aba));
   // A ficha abre na aba/pedido que o menu pediu (editar, fotos, notas...) —
   // o pedido é consumido uma vez: a próxima abertura volta ao normal.
   useEffect(() => { if (ctx.openRequest) ctx.setOpenRequest(null); }, [ctx.openRequest]);
-  const [menu, setMenu] = useState(false);
   const [confirmTrash, setConfirmTrash] = useState(false);
-  const [busy, setBusy] = useState(false);
   // A foto aberta é um índice: assim o visor pode deslizar entre as fotos da ficha.
   const [fotoAberta, setFotoAberta] = useState(-1);
   const abrirFoto = (url: string | null) => {
@@ -43,7 +54,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
   const adult = isAdult(person);
   const tags = person.tags.filter(tag => adult || !ADULT_APPEARANCE_TAGS.includes(tag));
   const details = [
-    ['Apelido', person.apelido], ['Nível de amizade', friendshipLabel(person.friendshipLevel)], ['Idade', person.idade ? `${person.idade} anos` : ''], ['Altura', person.altura],
+    ['Apelido', person.apelido], ['Nível de amizade', friendshipLabel(person.friendshipLevel)], ['Idade', person.idade ? `${person.idade} anos` : ''], ['Altura', rotuloDaAltura(person.altura)],
     ['Pronomes', person.pronome], ['Signo', person.signo],
     ['Cabelo', [person.cabeloTipo, person.cabeloCor === 'colorido' ? person.cabeloCorCustom : person.cabeloCor].filter(Boolean).join(', ')],
     ['Tom de pele', person.pele === 'personalizado' ? person.peleCustom : person.pele], ['Tipo de corpo', person.tipoCorpo], ['Estilo de roupa', person.estiloRoupa],
@@ -61,7 +72,6 @@ export default function PersonDrawer({ person }: { person: Person }) {
   };
   /** Resumo em texto da ficha, para mandar para alguém sem abrir o aplicativo. */
   const compartilhar = async () => {
-    setMenu(false);
     const resultado = await compartilharResumoDaPessoa(person, data);
     const aviso = mensagemDoCompartilhamento(resultado, 'ficha');
     if (resultado === 'compartilhado' || resultado === 'copiado') ctx.sound('compartilhar');
@@ -69,12 +79,40 @@ export default function PersonDrawer({ person }: { person: Person }) {
   };
   const exportImage = async () => {
     if (ctx.privacy) return;
-    setBusy(true);
     try { await exportPersonPng(person, data); ctx.notify('Imagem da ficha exportada.'); }
     catch (error) { ctx.notify((error as Error).message, true); }
-    finally { setBusy(false); setMenu(false); }
   };
-  const moveArchive = () => { ctx.changePeople([person.id], { archivedAt: person.archivedAt ? null : new Date().toISOString() }, person.archivedAt ? 'Ficha desarquivada.' : 'Ficha arquivada.'); setMenu(false); };
+  const moveArchive = () => { ctx.changePeople([person.id], { archivedAt: person.archivedAt ? null : new Date().toISOString() }, person.archivedAt ? 'Ficha desarquivada.' : 'Ficha arquivada.'); };
+  /**
+   * O plano de ações da ficha: quais ficam na barra e o que vai para o "⋯".
+   * O corte é do domínio (`organizarAcoes`); aqui só ligamos cada id ao que
+   * ele faz — o `switch` de sempre, agora em um lugar só.
+   */
+  const planoDaFicha = organizarAcoes(acoesDaFicha({ categoria: tab, favorita: person.favorite, arquivada: !!person.archivedAt }));
+  const executarAcao = (id: string) => {
+    switch (id) {
+      case 'editar': setEditing(true); return;
+      case 'conversar': ctx.openChat(person); ctx.closePerson(); return;
+      case 'vi-hoje': ctx.seenToday([person.id]); return;
+      case 'favoritar': ctx.changePeople([person.id], { favorite: !person.favorite }, person.favorite ? 'Removida dos favoritos.' : 'Adicionada aos favoritos.'); if (!person.favorite) ctx.sound('pop'); return;
+      case 'puxar-assunto': setIceOpen(true); return;
+      case 'compartilhar': void compartilhar(); return;
+      case 'voz': setVozOpen(true); return;
+      case 'adicionar-foto': case 'reavaliar': case 'nova-nota': setEditing(true); return;
+      case 'nova-meta': case 'pasta': setTab('perfil'); return;
+      case 'ver-relacoes': setTab('relacoes'); return;
+      case 'tags': setTab('perfil'); setEditing(true); return;
+      case 'fixar': ctx.togglePinned(person.id); return;
+      case 'arquivar': moveArchive(); return;
+      case 'duplicar': ctx.duplicate(person); return;
+      case 'exportar-png': void exportImage(); return;
+      case 'exportar-json': downloadJson(person, `catalog-ficha-${person.id}.json`); return;
+      case 'imprimir': window.print(); return;
+      case 'lembrete': ctx.navigate('reminders'); ctx.closePerson(); return;
+      case 'lixeira': setConfirmTrash(true); return;
+      default: return;
+    }
+  };
   return <Modal title={editing ? `Editar ${person.nome}` : 'Fichário pessoal'} description={person.archivedAt ? 'Esta ficha está arquivada. Seus dados e vínculos continuam preservados.' : undefined} onClose={ctx.closePerson} wide className="person-drawer">
     {editing ? <PersonEditor {...draft} onDiscard={draft.discard} onSave={() => { if (ctx.savePerson(draft.person, `edit-${person.id}`)) setEditing(false); }} onCancel={ctx.closePerson} /> : <div className="person-read no-print" style={{ '--pessoa': corDaPessoa(person) } as React.CSSProperties}>
       <div className="person-cover">
@@ -88,37 +126,104 @@ export default function PersonDrawer({ person }: { person: Person }) {
           <StarRating value={calculateOverallRating(person.rating)} readonly size={21} />
           <p className="friendship-read">{friendshipLabel(person.friendshipLevel)}<span>Nível de amizade · não afeta a nota</span></p>
           <p className="person-description">{person.descricao}</p><div className="tags">{tags.map(tag => <Tag key={tag} name={tag} />)}</div>
-          <div className="person-primary-actions">
-            <Button variant="primary" onClick={() => setEditing(true)}><Edit3 size={16} />Editar ficha</Button>
-            <Button onClick={() => { ctx.openChat(person); ctx.closePerson(); }}><MessageCircle size={16} />Conversar</Button>
-            <Button onClick={() => setIceOpen(true)}><Lightbulb size={16} />Puxar assunto</Button>
-            <Button onClick={() => ctx.seenToday([person.id])}><Eye size={16} />Vi hoje <small>{person.viHojeCount}</small></Button>
-            <div className="menu-anchor"><IconButton label="Mais ações" onClick={() => setMenu(!menu)}><MoreHorizontal size={20} /></IconButton>{menu && <div className="dropdown-menu"><button onClick={() => { setVozOpen(true); setMenu(false); }}><Mic size={16} />{notas ? `Ouvir a voz (${notas})` : 'Gravar a voz dela'}</button><button onClick={() => void compartilhar()}><Share2 size={16} />Compartilhar resumo</button><button onClick={exportImage} disabled={busy}><Download size={16} />{busy ? 'Gerando imagem...' : 'Exportar ficha PNG'}</button><button onClick={() => { downloadJson(person, `catalog-ficha-${person.id}.json`); setMenu(false); }}><FileText size={16} />Exportar ficha JSON</button><button onClick={() => { setMenu(false); window.print(); }}><Printer size={16} />Imprimir ficha</button><button onClick={() => ctx.duplicate(person)}><Copy size={16} />Duplicar ficha</button><button onClick={() => { ctx.togglePinned(person.id); setMenu(false); }}>{person.pinned ? <PinOff size={16} /> : <Pin size={16} />}{person.pinned ? 'Soltar do topo' : 'Fixar no topo do catálogo'}</button><button onClick={() => { ctx.navigate('reminders'); ctx.closePerson(); }}><Plus size={16} />Criar lembrete</button><button onClick={moveArchive}><Archive size={16} />{person.archivedAt ? 'Desarquivar' : 'Arquivar ficha'}</button><button className="danger-text" onClick={() => { setConfirmTrash(true); setMenu(false); }}><Trash2 size={16} />Mover para lixeira</button></div>}</div>
-          </div>
+          {/* Barra de ação contextual: 2 a 3 ações prováveis + "⋯" agrupado.
+              As ações mudam com a categoria aberta — ver `features/interface`. */}
+          <BarraDeAcoes className="person-primary-actions" plano={planoDaFicha} iconeDe={iconeDaAcao}
+            sufixoDe={id => id === 'vi-hoje' ? <small>{person.viHojeCount}</small> : null}
+            titulo={`Mais ações · ${person.nome}`} subtitulo="Organização, ferramentas e o resto"
+            aoEscolher={executarAcao} />
           <div className="completion-line"><div><span>Ficha {complete.percent}% completa</span><span>{complete.percent === 100 ? <Check size={14} /> : `${complete.missing.length} detalhes a preencher`}</span></div><span className="progress-track"><i style={{ width: `${complete.percent}%` }} /></span></div>
         </div>
       </div>
-      <div className="editor-tabs"><button className={tab === 'info' ? 'active' : ''} onClick={() => setTab('info')}><FileText size={17} />Informações</button><button className={tab === 'ratings' ? 'active' : ''} onClick={() => setTab('ratings')}><Star size={17} />Avaliações</button><button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}><FileText size={17} />Notas <small>{person.notas.length}</small></button><button className={tab === 'photos' ? 'active' : ''} onClick={() => setTab('photos')}><Camera size={17} />Fotos <small>{person.fotos.length}</small></button><button className={tab === 'goals' ? 'active' : ''} onClick={() => setTab('goals')}><Trophy size={17} />Metas <small>{data.goals.filter(goal => goal.personId === person.id && !goal.done).length}</small></button><button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}><History size={17} />Linha do tempo</button></div>
-      {tab === 'info' && <><dl className="person-facts">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl>{person.observacoesGerais && <section className="read-text"><h3>Observações gerais</h3><p>{person.observacoesGerais}</p></section>}{person.comportamento && <section className="read-text"><h3>Comportamento</h3><p>{person.comportamento}</p></section>}{person.descricaoCorporal && <section className="read-text"><h3>Descrição corporal</h3><p>{person.descricaoCorporal}</p></section>}<div className="read-text"><h3>Pastas</h3><div className="collection-picker">{data.folders.map(folder => <button className={folder.personIds.includes(person.id) ? 'selected' : ''} key={folder.id} onClick={() => ctx.commit(d => ({ ...d, folders: d.folders.map(x => x.id === folder.id ? { ...x, personIds: x.personIds.includes(person.id) ? x.personIds.filter(id => id !== person.id) : [...x.personIds, person.id], updatedAt: new Date().toISOString() } : x) }), 'Pasta atualizada.')}><span style={{ background: folder.color }} />{folder.name}{folder.personIds.includes(person.id) && <Check size={13} />}</button>)}{!data.folders.length && <p className="muted">Crie uma pasta em Organizar para reunir fichas, notas e fotos.</p>}</div></div></>}
-      {tab === 'info' && (person.attachments || []).length > 0 && <div className="read-text"><h3><Link2 size={15} />Anexos</h3><div className="attachment-links">{(person.attachments || []).map(item => <a key={item.id} href={item.url} target="_blank" rel="noreferrer noopener"><ExternalLink size={13} /><span>{item.label || 'Anexo'}<small>{item.kind.toUpperCase()}</small></span></a>)}</div></div>}
-      {tab === 'ratings' && <><div className="rating-summary"><div><h3>Nota geral</h3><p>{person.rating.mode === 'manual' ? 'Definida manualmente' : 'Média ponderada dos atributos preenchidos'}</p></div><strong>{formatNumber(calculateOverallRating(person.rating))}<small>/ 5</small></strong></div>{(person.ratingComment || '').trim() && <p className="rating-comentario-aviso">“{person.ratingComment?.trim()}”</p>}
+      {/* Cinco categorias no lugar de oito abas: o que era uma aba por tipo de
+          dado virou uma aba por intenção. A tradução do pedido antigo
+          ("photos", "notes", "timeline") acontece no domínio de interface. */}
+      <div className="editor-tabs">
+        {CATEGORIAS_DA_FICHA.map(categoria => {
+          const Icone = ICONES_DA_CATEGORIA[categoria.id];
+          const contagem = categoria.id === 'midia' ? person.fotos.length : categoria.id === 'registros' ? person.notas.length : (person.ratingHistory || []).length;
+          return <button key={categoria.id} className={tab === categoria.id ? 'active' : ''} onClick={() => setTab(categoria.id)} title={categoria.resumo}>
+            <Icone size={17} />{categoria.rotulo}{contagem > 0 && <small key={contagem} className="contagem-animada">{contagem}</small>}
+          </button>;
+        })}
+      </div>
+      {tab === 'perfil' && (() => {
+        const sobre = revelar(details, LIMITE_ESSENCIAL);
+        const pastas = data.folders.filter(folder => folder.personIds.includes(person.id));
+        // Música favorita não termina no texto: o "Ouvir" abre a busca pelo nome guardado.
+        const fatos = (lista: (string | undefined)[][]) => <dl className="person-facts">{lista.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Não informado'}{label === 'Música favorita' && person.musicaFavorita && <button type="button" className="musica-ouvir" onClick={() => abrirEmNovaAba(buscaNoYouTube(person.musicaFavorita || ''))}><Play size={11} />Ouvir</button>}</dd></div>)}</dl>;
+        return <>
+          {/* Regra do "uma decisão por vez": a ficha responde primeiro "quem é
+              ela" com as três informações principais; o resto abre a um toque. */}
+          <Revelar titulo="Sobre" icone={FileText} contagem={`${sobre.total} ${sobre.total === 1 ? 'informação' : 'informações'}`}
+            resumo={sobre.restantes > 0 ? `As ${LIMITE_ESSENCIAL} principais agora; mais ${sobre.restantes} a um toque.` : 'Tudo o que você já anotou sobre ela.'}
+            previa={fatos(sobre.visiveis)}>
+            {fatos(details)}
+            {person.observacoesGerais && <section className="read-text"><h3>Observações gerais</h3><p>{person.observacoesGerais}</p></section>}
+            {person.comportamento && <section className="read-text"><h3>Comportamento</h3><p>{person.comportamento}</p></section>}
+            {person.descricaoCorporal && <section className="read-text"><h3>Descrição corporal</h3><p>{person.descricaoCorporal}</p></section>}
+          </Revelar>
+          <Revelar titulo="Pastas" icone={FolderOpen} contagem={pastas.length || ''} abertoInicial={secaoPedida === 'pastas'}
+            resumo={pastas.length ? `Em ${pastas.map(pasta => pasta.name).join(' · ')}` : 'Reúna esta ficha numa pasta — ou em várias — sem duplicar nada.'}>
+            <div className="collection-picker">{data.folders.map(folder => <button className={folder.personIds.includes(person.id) ? 'selected' : ''} key={folder.id} onClick={() => ctx.commit(d => ({ ...d, folders: d.folders.map(x => x.id === folder.id ? { ...x, personIds: x.personIds.includes(person.id) ? x.personIds.filter(id => id !== person.id) : [...x.personIds, person.id], updatedAt: new Date().toISOString() } : x) }), 'Pasta atualizada.')}><span style={{ background: folder.color }} />{folder.name}{folder.personIds.includes(person.id) && <Check size={13} />}</button>)}{!data.folders.length && <p className="muted">Crie uma pasta em Organizar para reunir fichas, notas e fotos.</p>}</div>
+          </Revelar>
+          <div className="read-text"><h3><Link2 size={15} />Anexos</h3><div className="attachment-links">{(person.attachments || []).map(item => <a key={item.id} href={item.url} target="_blank" rel="noreferrer noopener"><ExternalLink size={13} /><span>{item.label || 'Anexo'}<small>{item.kind.toUpperCase()}</small></span></a>)}</div></div>
+        </>;
+      })()}
+      {tab === 'avaliacoes' && (() => {
+        // A figura vem das notas: fica onde elas estão, e abre a um toque.
+        const forma = lerForma(person);
+        return <><div className="rating-summary"><div><h3>Nota geral</h3><p>{person.rating.mode === 'manual' ? 'Definida manualmente' : 'Média ponderada dos atributos preenchidos'}</p></div><strong>{formatNumber(calculateOverallRating(person.rating))}<small>/ 5</small></strong></div>{(person.ratingComment || '').trim() && <p className="rating-comentario-aviso">“{person.ratingComment?.trim()}”</p>}
         {RATING_BLOCKS.map(block => { const campos = block.keys.map(key => RATING_FIELDS.find(f => f.key === key)).filter((f): f is (typeof RATING_FIELDS)[number] => !!f).filter(f => !f.adult || adult); if (!campos.length) return null; const resumo = resumoBlocos(person.rating, visibleRatingFields(data.settings), adult).find(b => b.id === block.id); return <section className="rating-block" key={block.id}><div className="rating-block-head"><h3>{block.label}</h3>{resumo && resumo.media != null && <span className="rating-block-media">{formatNumber(resumo.media)} / 5 · {resumo.preenchidos}/{resumo.total}</span>}</div><div className="rating-fields">{campos.map(field => <div key={field.key} className="rating-field"><span>{field.label}<small>Peso {formatNumber(field.weight)}</small></span><StarRating value={person.rating[field.key]} readonly size={21} /></div>)}</div></section>; })}
         {(() => { const evolucao = (person.ratingHistory || []).slice(-12); if (evolucao.length < 2) return null; const anterior = evolucao[evolucao.length - 2].overall; const atual = evolucao[evolucao.length - 1].overall; const delta = Math.round((atual - anterior) * 10) / 10; return <div className="rating-evolucao"><h3>Evolução da nota</h3><div className="rating-evolucao-bars" aria-label={`Evolução da nota nos últimos ${evolucao.length} registros`}>{evolucao.map((entry, index) => <div key={`${entry.date}-${index}`} className="rating-evolucao-col" title={`${formatDate(entry.date)} — ${formatNumber(entry.overall)}` + (entry.comment ? ` — “${entry.comment}”` : '')}><div className="rating-evolucao-track"><div className="rating-evolucao-bar" style={{ height: `${Math.max(8, (entry.overall / 5) * 100)}%` }} /></div><time>{formatDate(entry.date).slice(0, 5)}</time></div>)}</div><p className="form-help">{delta > 0 ? `Subiu ${formatNumber(delta)} em relação à avaliação anterior.` : delta < 0 ? `Quedou ${formatNumber(Math.abs(delta))} em relação à avaliação anterior.` : 'Estável em relação à avaliação anterior.'}</p></div>; })()}
         {(person.ratingHistory || []).length > 0 && <div className="rating-history-block"><h3>Histórico da nota</h3><ul className="rating-history rating-history-rich">{(person.ratingHistory || []).slice(-8).reverse().map((entry, index) => <li key={`${entry.date}-${index}`} className="rating-history-item"><div className="rating-history-head"><time>{formatDate(entry.date)}</time><strong>{formatNumber(entry.overall)}</strong></div>{entry.comment && <p className="rating-history-comment">“{entry.comment}”</p>}</li>)}</ul></div>}
         {(() => { const resumo = resumoDaAvaliacao(person, data.settings); return <div className="rating-resumo ficha-resumo"><h3>Resumo visual</h3><div className="rating-resumo-grid"><div className="rating-resumo-geral"><strong>{formatNumber(resumo.overall)}</strong><small>nota geral / 5</small></div>{resumo.blocos.map(b => <div className="rating-resumo-bloco" key={b.id}><span>{b.label}</span><div className="rating-bar" aria-hidden="true"><i style={{ width: `${((b.media ?? 0) / 5) * 100}%` }} /></div><strong>{b.media != null ? formatNumber(b.media) : '—'}</strong></div>)}</div></div>; })()}
-        <div className="rating-radar"><h3>Radar comparado à média</h3><Radar axes={RATING_FIELDS.filter(field => !field.adult || adult).map(field => field.label)} series={[{ name: person.nome, values: RATING_FIELDS.filter(field => !field.adult || adult).map(field => person.rating[field.key] || 0) }, { name: 'Média do catálogo', values: averageRadar(data).filter(item => RATING_FIELDS.filter(field => !field.adult || adult).some(field => field.label === item.label)).map(item => item.value) }]} /></div></>}
-      {tab === 'goals' && <PersonGoals personId={person.id} personName={person.nome} />}
-      {tab === 'timeline' && <PersonTimeline person={person} />}
-      {tab === 'notes' && <ReadNotes person={person} />}
-      {tab === 'info' && <div className="read-text voz-bloco">
+        <div className="rating-radar"><h3>Radar comparado à média</h3><Radar axes={RATING_FIELDS.filter(field => !field.adult || adult).map(field => field.label)} series={[{ name: person.nome, values: RATING_FIELDS.filter(field => !field.adult || adult).map(field => person.rating[field.key] || 0) }, { name: 'Média do catálogo', values: averageRadar(data).filter(item => RATING_FIELDS.filter(field => !field.adult || adult).some(field => field.label === item.label)).map(item => item.value) }]} /></div>
+        {/* "Corpo em 3D": o manequim montado das notas e da altura, na categoria
+            em que as notas vivem. Fechado, ele resume o que a figura mostra. */}
+        <Revelar titulo="Corpo em 3D" icone={PersonStanding} contagem={forma.explicacoes.filter(item => item.muda).length}
+          resumo={`Manequim montado do que a ficha já sabe. ${resumoDaForma(forma.proporcoes)}`}>
+          <Figura3D person={person} />
+        </Revelar>
+      </>; })()}
+      {tab === 'relacoes' && <RelacoesDaFicha person={person} />}
+      {tab === 'registros' && (() => {
+        const metas = data.goals.filter(goal => goal.personId === person.id);
+        const eventos = personTimeline(person, data).length;
+        return <>
+          <Revelar titulo="Notas" icone={FileText} contagem={person.notas.length} abertoInicial={secaoPedida === 'notes' || secaoPedida === 'notas'}
+            resumo={person.notas.length ? 'As anotações antigas desta ficha.' : 'Nenhuma anotação ainda.'}>
+            <ReadNotes person={person} />
+          </Revelar>
+          <Revelar titulo="Objetivos" icone={Trophy} contagem={metas.filter(meta => !meta.done).length || ''} abertoInicial={secaoPedida === 'goals' || secaoPedida === 'metas'}
+            resumo="O que vocês combinaram: puxar assunto, marcar um café, o que vier.">
+            <PersonGoals personId={person.id} personName={person.nome} />
+          </Revelar>
+          <Revelar titulo="Linha do tempo" icone={History} contagem={eventos} abertoInicial={secaoPedida === 'timeline'}
+            resumo={eventos > LIMITE_DE_HISTORICO ? `Os ${LIMITE_DE_HISTORICO} últimos de ${eventos} registros.` : 'Cadastro, fotos, interações, encontros e metas em ordem.'}>
+            <PersonTimeline person={person} />
+          </Revelar>
+        </>;
+      })()}
+      {tab === 'midia' && <>
+        {/* "📸 Fotos 12 ˅": com muitas fotos a seção vira prévia de seis — e o resto abre na galeria inteira. */}
+        {(() => {
+          const albuns = revelar(person.fotos, LIMITE_DE_PREVIA);
+          const grade = (lista: typeof person.fotos) => <div className="gallery-grid drawer-gallery">{lista.map(file => <button key={file.id} onClick={() => setFotoAberta(person.fotos.findIndex(f => f.id === file.id))}><PhotoView src={file.url} alt={person.nome} />{file.isMain && <span className="photo-caption"><Star size={13} />Foto principal</span>}</button>)}{!lista.length && <EmptyState icon={Camera} title="Sua galeria começa aqui" action="Adicionar fotos" onAction={() => setEditing(true)} />}</div>;
+          return albuns.temMais
+            ? <Revelar titulo="Fotos" icone={Camera} contagem={contagemDaSecao(albuns.total)} resumo={`Mostrando ${LIMITE_DE_PREVIA} de ${albuns.total}.`} previa={grade(albuns.visiveis)} acao="Ver todas na galeria" aoAcionar={() => { ctx.closePerson(); ctx.navigate('gallery'); }}>{grade(person.fotos)}</Revelar>
+            : grade(person.fotos);
+        })()}
+              <div className="read-text voz-bloco">
         <h3><AudioLines size={15} />A voz de {person.nome.split(' ')[0]}</h3>
         {notas > 0
           ? <><p>{notas} {notas === 1 ? 'áudio guardado' : 'áudios guardados'} · {resumo.duracao} de voz · {resumo.rotuloDoPeso} no catálogo.</p>
             <div className="voz-bloco-acoes"><Button onClick={() => setVozOpen(true)}><Mic size={15} />Ouvir a voz</Button><Button variant="ghost" onClick={() => setVozOpen(true)}><Plus size={15} />Gravar outro</Button></div></>
           : <><p>Guarde um “oi”, uma risada ou um recado. Depois é só tocar quando quiser lembrar como ela soa — e o aplicativo também pode falar por ela.</p>
             <Button onClick={() => setVozOpen(true)}><Mic size={15} />Gravar a voz</Button></>}
-      </div>}
-      {tab === 'photos' && <div className="gallery-grid drawer-gallery">{person.fotos.map((file, index) => <button key={file.id} onClick={() => setFotoAberta(index)}><PhotoView src={file.url} alt={person.nome} />{file.isMain && <span className="photo-caption"><Star size={13} />Foto principal</span>}</button>)}{!person.fotos.length && <EmptyState icon={Camera} title="Sua galeria começa aqui" action="Adicionar fotos" onAction={() => setEditing(true)} />}</div>}
+      </div>
+      </>}
+
     </div>}
     <article className="print-only print-region"><h1>{person.nome}</h1><p>{locationLabel(person, data)}</p><PhotoView person={person} /><p>{person.descricao}</p><dl>{details.map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value || 'Não informado'}</dd></div>)}</dl><h2>Avaliações</h2>{RATING_FIELDS.filter(field => !field.adult || adult).map(field => <p key={field.key}>{field.label}: {formatNumber(person.rating[field.key])} / 5</p>)}<h2>Notas</h2>{person.notas.map(note => <section key={note.id}><h3>{note.title}</h3><p>{note.content}</p></section>)}<h3>Observações</h3><p>{person.observacoesGerais}</p>{(person.customFields || []).map(custom => <p key={custom.id}>{custom.label}: {custom.value}</p>)}<p>{person.comportamento}</p><p>{person.descricaoCorporal}</p></article>
     {confirmTrash && <Confirm title="Mover esta ficha para a lixeira?" description="As fotos, notas e vínculos serão preservados. Você poderá restaurar a ficha a qualquer momento." confirmLabel="Mover para lixeira" danger onConfirm={() => ctx.trashPeople([person.id])} onClose={() => setConfirmTrash(false)} />}

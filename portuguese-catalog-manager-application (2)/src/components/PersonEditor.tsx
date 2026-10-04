@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Camera, Check, FileText, Heart, ImagePlus, Link2, Palette, Plus, Save, Sparkles, Star, Trash2, Upload, User, Users } from 'lucide-react';
 import type { Person, Photo, Vinculo, VinculoPapel } from '../types';
 import { ADULT_APPEARANCE_TAGS, ALTURA_OPTIONS, CABELO_COR_OPTIONS, CABELO_TIPO_OPTIONS, ESTILO_ROUPA_OPTIONS, FRIENDSHIP_LEVELS, PELE_OPTIONS, PRONOME_OPTIONS, QI_OPTIONS, SIGNO_OPTIONS, TIPO_CORPO_OPTIONS, VINCULO_COMIGO_OPTIONS, VINCULO_PAPEIS, vinculoInverso, vinculoLabel } from '../types';
@@ -6,6 +6,7 @@ import { useCatalog } from '../context';
 import { ageFromBirthday, calculateOverallRating, findDuplicates, formatDate, formatNumber, friendshipLabel, generateId, getAllTagNames, isAdult, normalizePhotos, PHOTO_LABELS, rarityFor, RARITY_LABELS, PALETTE, readImage, RATING_BLOCKS, RATING_FIELDS, resumoBlocos, resumoDaAvaliacao, safeLink, today, upcomingBirthday, visibleRatingFields } from '../store';
 import { Button, CheckBox, EmptyState, Field, IconButton, Modal, PhotoView } from './ui';
 import StarRating from './StarRating';
+import { ALTURA_PADRAO, formatarAltura, lerAltura, normalizarAltura, rotuloDaAltura } from '../features/corpo';
 
 const OPTION_LABELS: Record<string, string> = { medio: 'Médio', trancado: 'Trançado', indigena: 'Indígena', 'abaixo da media': 'Abaixo da média', 'acima da media': 'Acima da média', genio: 'Gênio' };
 function Options({ options, value }: { options: string[]; value: string }) { return <><option value="">Não informado</option>{value && !options.includes(value) && <option value={value}>{value}</option>}{options.map(s => <option key={s} value={s}>{OPTION_LABELS[s] || s.charAt(0).toUpperCase() + s.slice(1)}</option>)}</>; }
@@ -22,6 +23,13 @@ export default function PersonEditor({ person, update, quick = false, onSave, on
   const [tab, setTab] = useState('info'); const [busy, setBusy] = useState(false); const [preview, setPreview] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null); const [newTag, setNewTag] = useState('');
   const [vinculoPessoa, setVinculoPessoa] = useState(''); const [vinculoPapel, setVinculoPapel] = useState<VinculoPapel>('mae');
+  // O campo de altura é texto livre enquanto se digita ("1," é um estado
+  // válido no meio do caminho); virar "1,50 m" é trabalho do fim da edição.
+  const [alturaTexto, setAlturaTexto] = useState(person.altura || '');
+  const alturaLida = lerAltura(person.altura);
+  const alturaLegada = alturaLida?.tipo === 'qualitativa' ? alturaLida.rotulo : '';
+  // Trocar de ficha troca o texto do campo: cada ficha é dona da própria altura.
+  useEffect(() => { setAlturaTexto(person.altura || ''); }, [person.id]);
   const category = data.categories.find(c => c.value === person.localizacaoOnde);
   const adult = isAdult(person);
   /** Ficha ainda em branco: ganha um norte de onde começar. */
@@ -66,7 +74,22 @@ export default function PersonEditor({ person, update, quick = false, onSave, on
           <Field label="Categoria"><select value={person.localizacaoOnde} onChange={e => update(p => ({ ...p, localizacaoOnde: e.target.value, localizacaoSub: '' }))}><option value="">Escolher categoria</option>{data.categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select></Field>
           <Field label="Subcategoria"><select value={person.localizacaoSub} disabled={!category?.subs?.length} onChange={e => field('localizacaoSub', e.target.value)}><option value="">{category?.subs?.length ? 'Escolher subcategoria' : 'Sem subcategorias'}</option>{category?.subs?.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></Field>
           <Field label={quick ? 'Descrição (opcional)' : 'Descrição *'} className="span-2"><textarea value={person.descricao} onChange={e => field('descricao', e.target.value)} rows={quick ? 2 : 3} placeholder="O que você gostaria de lembrar sobre essa pessoa?" required={!quick} /></Field>
-          {!quick && <><Field label="Idade" hint={person.aniversario && ageFromBirthday(person.aniversario) !== null ? `Calculada do aniversário: ${ageFromBirthday(person.aniversario)} anos` : undefined}><input type="number" min={0} max={120} value={person.idade ?? ageFromBirthday(person.aniversario) ?? ''} onChange={e => field('idade', e.target.value === '' ? null : Number(e.target.value))} placeholder="Não informada" /></Field><Field label="Aniversário" hint={upcomingBirthday(person.aniversario) !== null ? `Faltam ${upcomingBirthday(person.aniversario)} dias` : undefined}><input type="date" value={person.aniversario || ''} onChange={e => { const value = e.target.value || null; update(p => ({ ...p, aniversario: value, idade: value && ageFromBirthday(value) !== null ? ageFromBirthday(value) : p.idade })); }} /></Field><Field label="Altura"><select value={person.altura} onChange={e => field('altura', e.target.value)}><Options options={ALTURA_OPTIONS} value={person.altura} /></select></Field><Field label="Redes sociais / WhatsApp"><input value={person.redesSociais} onChange={e => field('redesSociais', e.target.value)} placeholder="Contato ou @usuário" /></Field><Field label="Onde mora / localização"><input list={`locations-${person.id}`} value={person.localizacaoMora} onChange={e => field('localizacaoMora', e.target.value)} placeholder="Bairro, cidade ou local" /><datalist id={`locations-${person.id}`}>{data.locations.map(s => <option key={s} value={s} />)}</datalist></Field><Field label="Último visto / interação"><input type="date" value={person.ultimoVisto || ''} max={today()} onChange={e => field('ultimoVisto', e.target.value || null)} /></Field><Field label="Q.I. (anotação pessoal)"><select value={person.qi} onChange={e => field('qi', e.target.value)}><Options options={QI_OPTIONS} value={person.qi} /></select></Field>
+          {!quick && <><Field label="Idade" hint={person.aniversario && ageFromBirthday(person.aniversario) !== null ? `Calculada do aniversário: ${ageFromBirthday(person.aniversario)} anos` : undefined}><input type="number" min={0} max={120} value={person.idade ?? ageFromBirthday(person.aniversario) ?? ''} onChange={e => field('idade', e.target.value === '' ? null : Number(e.target.value))} placeholder="Não informada" /></Field><Field label="Aniversário" hint={upcomingBirthday(person.aniversario) !== null ? `Faltam ${upcomingBirthday(person.aniversario)} dias` : undefined}><input type="date" value={person.aniversario || ''} onChange={e => { const value = e.target.value || null; update(p => ({ ...p, aniversario: value, idade: value && ageFromBirthday(value) !== null ? ageFromBirthday(value) : p.idade })); }} /></Field><Field label="Altura" hint="Como você fala: 1,50 · 1,68 · 1,75. Também entende 150 e 150 cm.">
+            <div className="altura-campo">
+              <input value={alturaTexto} inputMode="decimal" placeholder="1,70" aria-label="Altura em metros" list={`alturas-${person.id}`}
+                onChange={e => { setAlturaTexto(e.target.value); field('altura', e.target.value); }}
+                onBlur={() => { const canonica = normalizarAltura(alturaTexto); setAlturaTexto(canonica); field('altura', canonica); }} />
+              <datalist id={`alturas-${person.id}`}>{['1,45', '1,50', '1,55', '1,60', '1,65', '1,70', '1,75', '1,80', '1,85', '1,90'].map(medida => <option key={medida} value={`${medida} m`} />)}</datalist>
+              <div className="altura-chips" role="group" aria-label="Atalhos de altura">
+                {['1,50', '1,60', '1,70', '1,80'].map(medida => <button key={medida} type="button" onClick={() => { setAlturaTexto(`${medida} m`); field('altura', `${medida} m`); }}>{medida}</button>)}
+              </div>
+              <select value={alturaLegada} aria-label="Altura em palavras" onChange={e => { const escolha = e.target.value; if (!escolha) return; setAlturaTexto(escolha); field('altura', escolha); }}>
+                <option value="">{alturaLida?.tipo === 'medida' ? 'Sem medida? Escolha uma palavra' : 'Ou escolha uma palavra'}</option>
+                {ALTURA_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
+              </select>
+              <small className="altura-leitura">{alturaLida ? (alturaLida.tipo === 'medida' ? `Guardado como ${rotuloDaAltura(person.altura)}.` : `${rotuloDaAltura(person.altura)}. Para o modelo 3D, vale ${formatarAltura(alturaLida.metros)}.`) : `Sem altura informada — o modelo usa ${formatarAltura(ALTURA_PADRAO)}.`}</small>
+            </div>
+          </Field><Field label="Redes sociais / WhatsApp"><input value={person.redesSociais} onChange={e => field('redesSociais', e.target.value)} placeholder="Contato ou @usuário" /></Field><Field label="Onde mora / localização"><input list={`locations-${person.id}`} value={person.localizacaoMora} onChange={e => field('localizacaoMora', e.target.value)} placeholder="Bairro, cidade ou local" /><datalist id={`locations-${person.id}`}>{data.locations.map(s => <option key={s} value={s} />)}</datalist></Field><Field label="Último visto / interação"><input type="date" value={person.ultimoVisto || ''} max={today()} onChange={e => field('ultimoVisto', e.target.value || null)} /></Field><Field label="Q.I. (anotação pessoal)"><select value={person.qi} onChange={e => field('qi', e.target.value)}><Options options={QI_OPTIONS} value={person.qi} /></select></Field>
 <Field label="Pronomes"><select value={person.pronome || ''} onChange={e => field('pronome', e.target.value)}><option value="">Não informado</option>{PRONOME_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}</select></Field>
 <Field label="Signo"><select value={person.signo || ''} onChange={e => field('signo', e.target.value)}><option value="">Não informado</option>{SIGNO_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}</select></Field>
 <Field label="Como conheceu"><input value={person.comoConheceu || ''} onChange={e => field('comoConheceu', e.target.value)} placeholder="Ex.: Na festa da Ana, trabalho..." /></Field>

@@ -1382,7 +1382,6 @@
   /* O “mais” só existe onde faltaria espaço; os botões que ele substitui só
      existem onde há espaço para eles. assim o título da tela respira. */
   .topbar-more { display: inline-flex; }
-  .topbar-actions .desktop-so { display: none; }
 
   /* A cara do topo no aparelho: em vez de uma caixa em volta de cada ícone,
      os controles da direita formam um cluster só, e o botão de navegação da
@@ -2173,4 +2172,66 @@
   .voz-bloco .btn { min-height: 44px; }
   .voz-vazia { padding: 24px 16px; }
   .voz-gravando-acoes .btn { min-height: 46px; }
+}
+
+/* ===== Seção 21: densidade, foco, revelação e "⋯" na palma da mão ===== */
+@media (max-width: 760px) {
+  /* A lupa volta ao topo: a doca ficou com cinco destinos fixos. */
+  .mobile-search-trigger { display: inline-flex; }
+
+  /* Revelação progressiva: o cabeçalho é alvo de dedo, não de mouse. */
+  .revelavel-cabeca { min-height: 48px; padding-inline: 2px; font-size: 13.5px; }
+  .revelavel-contagem { font-size: 10px; }
+
+  /* O "⋯" agrupado ocupa a largura quando abre no dedo. */
+  .mais-menu { left: auto; right: 0; min-width: min(300px, calc(100vw - 28px)); max-height: 60vh; }
+  .mais-menu-grupo > button { min-height: 44px; }
+  .barra-de-acoes { gap: 8px; }
+  .barra-de-acoes .btn { min-height: 44px; }
+
+  /* Modo foco no aparelho: sobra a tela, e a pílula para voltar. */
+  html.foco .sidebar { display: none; }
+  html.foco .page-content { padding-top: 16px; }
+  .foco-saida { right: 14px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); min-height: 42px; }
+
+  /* Densidade: no dedo, o controle vira uma pilha (um degrau por linha). */
+  .densidade-controle { grid-template-columns: 1fr; }
+  .densidade-controle button { grid-template-columns: 44px minmax(0, 1fr); justify-items: start; align-items: center; text-align: left; padding: 12px 13px; }
+  .densidade-exemplo { width: 44px; }
+  html.density-espacosa .page-content { padding-bottom: 92px; }
+
+  /* Cartão em linha única: a linha inteira é o alvo do dedo. */
+  .people-list .person-card.densa { min-height: 56px; padding: 6px 12px; }
+  .people-list .person-card.densa .avatar { width: 38px !important; height: 38px !important; }
+
+  /* Relações e o "+" com alvo de dedo. */
+  .relacao-pessoas { grid-template-columns: 1fr; }
+  .relacao-pessoas button { min-height: 52px; }
+  .relacao-atalhos button { min-height: 44px; }
+  .quick-escolha { min-height: 60px; }
+  .quick-escolha-icone { width: 46px; height: 46px; }
+}
+
+/* Música no celular: o player ocupa a largura toda e o campo de link vira uma
+   coluna só, porque lado a lado o botão "Salvar e tocar" não caberia. */
+@media (max-width: 760px) {
+  .musica-colar { grid-template-columns: 1fr; }
+  .musica-botoes > * { flex: 1 1 auto; }
+  .presentation-musica { width: 100%; }
+}
+
+/* A pílula do ambiente sobe para não encostar na doca do celular, e o volume
+   encurta para caber com o nome do clima. */
+@media (max-width: 760px) {
+  .ambiente-bar { left: 10px; right: 10px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); max-width: none; }
+  .ambiente-volume input { width: 58px; }
+  html.foco .ambiente-bar { bottom: 14px; }
+}
+
+/* A figura no celular: mais baixa, e os controles em duas linhas, com o polegar
+   alcançando os botões de vista sem brigar com o resto da ficha. */
+@media (max-width: 760px) {
+  .figura-palco { height: 260px !important; }
+  .figura-controles button { flex: 1 1 auto; justify-content: center; }
+  .figura-notas { grid-template-columns: 1fr 1fr; }
 }

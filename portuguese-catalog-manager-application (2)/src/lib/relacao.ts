@@ -288,3 +288,42 @@ export function descreverVinculo(person: Person, people: Person[]): string[] {
 export function vinculoComigoTexto(person: Person) {
   return person.vinculoComigo ? vinculoComigoLabel(person.vinculoComigo) : '';
 }
+
+/* ------------------------------------------------------------ quem anda junto -- */
+
+export interface Conexao {
+  personId: string;
+  nome: string;
+  /** Por que as duas aparecem juntas — vai escrito na tela, não é enigma. */
+  motivo: string;
+  pontos: number;
+}
+
+/**
+ * Quem anda junto com esta pessoa, segundo o que já está no catálogo.
+ *
+ * Nada de sugestão inventada: a conta usa só o que existe na ficha — mesma
+ * categoria, mesma subcategoria, mesmo lugar onde se encontram, mesma cidade e
+ * etiquetas em comum. Serve a categoria **Relações** da ficha, que antes não
+ * tinha por onde começar além do vínculo de família.
+ */
+export function conexoesProximas(person: Person, people: Person[], limite = 6): Conexao[] {
+  const categoria = (p: Person) => p.localizacaoOnde || '';
+  const subcategoria = (p: Person) => p.localizacaoSub || '';
+  return people
+    .filter(outra => outra.id !== person.id && !outra.deletedAt)
+    .map(outra => {
+      const motivos: string[] = [];
+      let pontos = 0;
+      if (categoria(person) && categoria(outra) === categoria(person)) { pontos += 2; motivos.push('mesma categoria'); }
+      if (subcategoria(person) && subcategoria(outra) === subcategoria(person)) { pontos += 2; motivos.push('mesma subcategoria'); }
+      if (person.localizacaoOnde && person.localizacaoMora && outra.localizacaoMora === person.localizacaoMora) { pontos += 1; motivos.push(`mora em ${outra.localizacaoMora}`); }
+      const comuns = (person.tags || []).filter(tag => (outra.tags || []).includes(tag));
+      if (comuns.length) { pontos += comuns.length; motivos.push(comuns.length === 1 ? `etiqueta “${comuns[0]}”` : `${comuns.length} etiquetas em comum`); }
+      if (person.vinculoComigo && outra.vinculoComigo === person.vinculoComigo) pontos += 1;
+      return { personId: outra.id, nome: nomeCurto(outra.nome), motivo: motivos.join(' · '), pontos };
+    })
+    .filter(conexao => conexao.pontos > 0)
+    .sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome, 'pt-BR'))
+    .slice(0, limite);
+}

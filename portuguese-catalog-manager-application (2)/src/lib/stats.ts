@@ -1,5 +1,6 @@
 import type { AppData, Person } from '../types';
 import { ALTURA_OPTIONS } from '../types';
+import { faixaDaAltura, lerAltura } from '../features/corpo/altura';
 import {
   addDays, ageFromBirthday, calculateOverallRating, daysSince, getAllPhotos, getFinalScore,
   isActive, monthLabel, rarityFor, RATING_FIELDS, today,
@@ -74,9 +75,29 @@ export function ageBands(data: AppData): Slice[] {
   return bands.map(band => ({ label: band.label, value: people.filter(p => { const value = age(p); return value >= band.min && value < band.max; }).length }));
 }
 
+/**
+ * Alturas: medidas entram em faixas de 10 cm ("1,70–1,79 m") e as palavras
+ * antigas continuam com o próprio nome — um gráfico só, entendendo os dois
+ * jeitos de preencher. As faixas vêm ordenadas; as palavras, por frequência.
+ */
 export function heightDistribution(data: AppData): Slice[] {
   const people = active(data);
-  return ALTURA_OPTIONS.map(option => ({ label: option, value: people.filter(p => p.altura === option).length })).filter(slice => slice.value > 0);
+  const medidas = new Map<string, number>();
+  const palavras: Slice[] = [];
+  for (const option of ALTURA_OPTIONS) {
+    const quantas = people.filter(p => p.altura === option).length;
+    if (quantas > 0) palavras.push({ label: option, value: quantas });
+  }
+  for (const person of people) {
+    const lida = lerAltura(person.altura);
+    if (!lida || lida.tipo !== 'medida') continue;
+    const faixa = faixaDaAltura(lida.metros);
+    medidas.set(faixa, (medidas.get(faixa) || 0) + 1);
+  }
+  return [...medidas.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
+    .concat(palavras.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, 'pt-BR')));
 }
 
 export function monthlyActivity(data: AppData, months = 6) {

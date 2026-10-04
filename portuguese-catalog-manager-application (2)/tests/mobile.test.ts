@@ -117,9 +117,9 @@ describe("layout de celular", () => {
     expect(botoes).toBeTruthy();
     expect((botoes.match(/<button/g) || []).length).toBe(5);
     expect(botoes).toMatch(/Início/);
-    expect(botoes).toMatch(/Catálogo/);
-    expect(botoes).toMatch(/Buscar/);
-    expect(botoes).toMatch(/Menu/);
+    expect(botoes).toMatch(/Pessoas/);
+    expect(botoes).toMatch(/Explorar/);
+    expect(botoes).toMatch(/Mais/);
     expect(app).toMatch(/className="mobile-menu-trigger"/);
     expect(app).toMatch(/className="topbar-mobile-title"/);
     expect(sidebar).toMatch(/sidebar-scrim/);

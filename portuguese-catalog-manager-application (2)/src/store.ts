@@ -1,6 +1,7 @@
 import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, Person, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
 import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS, VINCULO_PAPEIS } from './types';
 import { DEMO_PORTRAITS } from './assets';
+import { normalizarDensidade } from './features/interface/densidade';
 
 export const STORAGE_KEY = 'catalog_manager_data';
 export const JOURNAL_KEY = 'catalog_manager_pending_v3';
@@ -133,6 +134,15 @@ export const isAdult = (p: Person) => (p.idade ?? 0) >= INTIMATE_MIN_AGE;
 export const retiredSubcategory = (value: string) => RETIRED_SUBCATEGORY_VALUES.includes(value);
 export const safeImage = (url: string) => /^(data:image\/(png|jpeg|jpg|webp|gif|bmp|avif|svg\+xml);base64,|https:\/\/|\/images\/)/i.test(url) ? url : '';
 // Links externos só entram como http(s); nada de javascript: ou data: em anexos.
+/**
+ * As músicas do aplicativo que podem guardar link (Ambiente + trilhas da
+ * apresentação). Fica aqui, e não importado do domínio de música, para o
+ * saneamento de um backup continuar sem depender de componente nenhum.
+ */
+const CHAVES_DE_MUSICA = new Set(['chuva', 'cafe', 'oceano', 'cidade', 'lofi', 'ambiente', 'cinematico', 'eletronico', 'minimalista']);
+
+import { normalizarAltura } from './features/corpo/altura';
+
 export const safeLink = (url: string) => /^(https?:\/\/|mailto:|tel:)/i.test(url.trim()) ? url.trim() : '';
 export const RARITIES = ['comum', 'raro', 'epico', 'lendario'];
 export const RARITY_LABELS: Record<string, string> = { comum: 'Comum', raro: 'Raro', epico: 'Épico', lendario: 'Lendário' };
@@ -143,7 +153,7 @@ export function getDefaultPerson(): Person {
   return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', vozes: [] };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
+  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, musicaLinks: {}, ambienteAtivo: '', ambienteVolume: 40, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -351,6 +361,8 @@ export function normalizePerson(value: unknown): Person {
   result.archivedAt = text(p.archivedAt) || null;
   result.deletedAt = text(p.deletedAt) || null;
   result.friendshipLevel = Math.max(0, Math.min(5, Math.round(numeric(p.friendshipLevel))));
+  // Altura: medida vira "1,50 m"; a palavra antiga continua palavra.
+  result.altura = normalizarAltura(text(p.altura));
   result.tipoCorpo = text(p.tipoCorpo);
   result.estiloRoupa = text(p.estiloRoupa);
   result.observacoesGerais = text(p.observacoesGerais);
@@ -406,10 +418,19 @@ export function normalizeData(value: unknown, strict = false): AppData {
   base.settings.accent = /^#[\da-f]{6}$/i.test(text(s.accent)) ? text(s.accent) : PALETTE[0];
   base.settings.notificationLeadDays = Math.max(0, Math.min(30, Math.round(numeric(s.notificationLeadDays, 3))));
   base.settings.revisitAfterDays = Math.max(1, Math.min(180, Math.round(numeric(s.revisitAfterDays, 14))));
-  base.settings.density = s.density === 'compacto' ? 'compacto' : 'confortavel';
+  base.settings.density = normalizarDensidade(s.density);
   base.settings.trashAutoCleanDays = Math.max(0, Math.min(365, Math.round(numeric(s.trashAutoCleanDays, 0))));
   base.settings.sounds = s.sounds !== false;
   base.settings.soundVolume = Math.max(0, Math.min(100, Math.round(numeric(s.soundVolume, 55))));
+  // Música por link: só http(s) e só nas chaves das músicas do aplicativo — um
+  // backup estranho não vira tocador de endereço arbitrário.
+  base.settings.ambienteAtivo = CHAVES_DE_MUSICA.has(text(s.ambienteAtivo, '')) ? text(s.ambienteAtivo, '') : '';
+  base.settings.ambienteVolume = Math.max(0, Math.min(100, Math.round(numeric(s.ambienteVolume, 40))));
+  base.settings.musicaLinks = Object.fromEntries(
+    Object.entries(object(s.musicaLinks))
+      .filter(([chave, valor]) => CHAVES_DE_MUSICA.has(chave) && typeof valor === 'string' && !!safeLink(valor))
+      .map(([chave, valor]) => [chave, safeLink(String(valor))]),
+  );
   base.settings.haptics = s.haptics !== false;
   base.settings.confetti = s.confetti !== false;
   // Conversas: o modo adulto é sempre opt-in e só vale para fichas de 18 anos ou mais.

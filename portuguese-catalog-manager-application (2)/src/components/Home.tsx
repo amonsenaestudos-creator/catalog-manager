@@ -1,15 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Clock3, Heart, Plus, Shuffle, Sparkles, Trophy, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Clock3, Heart, Plus, Sparkles, Trophy, Users } from 'lucide-react';
 import { useCatalog } from '../context';
 import { calculateOverallRating, formatDate, getFinalScore, isActive, locationLabel, rankedPeople } from '../store';
 import { Avatar, Button, Disclosure, EmptyState, IconButton, PageTitle, PhotoView, SectionHeading } from './ui';
+import { BarraDeAcoes, Revelar, acoesDaTelaInicial, iconeDaAcao, organizarAcoes, resumoDeContagens } from '../features/interface';
 import StarRating from './StarRating';
 import Analytics from './Analytics';
 import Reminders from './Reminders';
 import { ARCHIVE_SCENE } from '../assets';
 
+/** Cada ação do "⋯" do início sabe para onde ir. */
+const DESTINOS_DO_INICIO: Record<string, string> = { momentos: 'moments', ferramentas: 'toolbox', saude: 'saude', ajustes: 'settings' };
+
 const slides = [{ title: 'Cada conexão,\numa história.', text: 'Seu catálogo é feito de pessoas. E dos detalhes que você não quer esquecer.', action: 'Adicionar pessoa', page: 'add' }, { title: 'Seu mundo,\ndo seu jeito.', text: 'Crie categorias, reúna pessoas em coleções e encontre tudo com facilidade.', action: 'Organizar meu catálogo', page: 'tools' }, { title: 'Memórias que\nmerecem ficar.', text: 'Reúna fotos, anotações e momentos especiais em um único lugar.', action: 'Explorar a galeria', page: 'gallery' }];
+
+/**
+ * Início.
+ *
+ * A hierarquia segue a ordem em que alguém usa a tela, e não a ordem em que o
+ * sistema cresceu: saudação e a ação principal; depois o que chegou de novo;
+ * depois o que precisa de atenção hoje; depois o que é explorar; e só no fim
+ * — fechadas — as estatísticas e a apresentação do aplicativo. Quem quer ver
+ * tudo continua a um toque; quem só abriu o aplicativo para cadastrar alguém
+ * não precisa atravessar um painel inteiro.
+ */
 export default function Home() {
   const ctx = useCatalog(), { data } = ctx;
   const [slide, setSlide] = useState(0); const [paused, setPaused] = useState(false);
@@ -17,18 +32,60 @@ export default function Home() {
   const people = useMemo(() => data.people.filter(isActive), [data.people]); const ranking = useMemo(() => rankedPeople(people).slice(0, 5), [people]);
   const recent = [...people].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 4); const favorites = people.filter(p => p.favorite).slice(0, 5);
   const random = () => { if (people.length) ctx.openPerson(people[Math.floor(Math.random() * people.length)]); };
-  return <div className="home-page"><PageTitle eyebrow="Seu espaço pessoal" title={`Olá, ${data.settings.profileName.split(' ')[0] || 'você'}.`} description="Bom ter você por aqui. O que vamos guardar hoje?"><Button onClick={random} disabled={!people.length}><Shuffle size={16} />Surpresa</Button><Button variant="primary" onClick={() => ctx.setQuickOpen(true)}><Plus size={17} />Fichário rápido</Button></PageTitle>
-    <section className="home-banner" aria-roledescription="carrossel" aria-label="Conheça seu catálogo" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
-      <img src={ARCHIVE_SCENE} alt="Pastas lilás e um caderno organizados em uma mesa" />
-      <div className="banner-shade" />
-      <AnimatePresence mode="wait"><motion.div className="banner-copy" key={slide} initial={{ opacity: 0, y: 9 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.3 }}><h2>{slides[slide].title}</h2><p>{slides[slide].text}</p><button onClick={() => ctx.navigate(slides[slide].page)}>{slides[slide].action}<ArrowRight size={16} /></button></motion.div></AnimatePresence>
-      <div className="banner-controls"><div>{slides.map((s, i) => <button key={i} aria-label={`Mostrar destaque: ${s.title.replace('\n', ' ')}`} aria-current={slide === i} className={i === slide ? 'active' : ''} onClick={() => setSlide(i)} />)}</div><span><IconButton label="Destaque anterior" onClick={() => setSlide((slide + 2) % 3)}><ChevronLeft size={17} /></IconButton><IconButton label="Próximo destaque" onClick={() => setSlide((slide + 1) % 3)}><ChevronRight size={17} /></IconButton></span></div>
+  const abertos = data.reminders.filter(item => !item.concluido).length;
+
+  return <div className="home-page">
+    <PageTitle eyebrow="Seu espaço pessoal" title={`Olá, ${data.settings.profileName.split(' ')[0] || 'você'}.`} description="Bom ter você por aqui. O que vamos guardar hoje?">
+      {/* Nada selecionado: buscar, adicionar e explorar — e o resto no "⋯". */}
+      <BarraDeAcoes plano={organizarAcoes(acoesDaTelaInicial())} iconeDe={iconeDaAcao} titulo="Mais ações do início" subtitulo="Surpresa, ferramentas e ajustes" sufixoDe={() => null}
+        aoEscolher={id => {
+          if (id === 'buscar') ctx.setCommandOpen(true);
+          else if (id === 'adicionar') ctx.setQuickOpen(true);
+          else if (id === 'explorar') ctx.navigate('discover');
+          else if (id === 'surpresa') random();
+          else ctx.navigate(DESTINOS_DO_INICIO[id] ?? id);
+        }} />
+    </PageTitle>
+
+    {/* 1. O que chegou de novo. */}
+    <section className="home-section home-recent">
+      <SectionHeading icon={Clock3} title="Adicionados recentemente" action="Ver catálogo" onAction={() => ctx.navigate('catalog')} />
+      <div className="recent-grid">{recent.map(p => <button className="recent-person" key={p.id} onClick={() => ctx.openPerson(p)}><PhotoView person={p} /><span className="recent-shade" /><span className="recent-person-copy"><strong>{p.nome}</strong><small>{locationLabel(p, data, false)} <i />{formatDate(p.createdAt)}</small><StarRating value={calculateOverallRating(p.rating)} readonly size={12} showValue={false} /></span></button>)}</div>
+      {!recent.length && <div className="recent-empty"><span className="outline-folder"><Heart size={37} strokeWidth={1.1} /></span><h3>Uma biblioteca de boas conexões.</h3><p>Seu catálogo está pronto. Comece com alguém que faz parte da sua história.</p><Button onClick={() => ctx.setQuickOpen(true)}><Plus size={16} />Criar primeira ficha</Button></div>}
     </section>
-    <section className="home-moments-prompt"><div className="home-moments-prompt-icon"><Sparkles size={18} /></div><div><p className="eyebrow">Uma pausa para descobrir</p><h2>O que seu catálogo quer te mostrar hoje?</h2><p>Reencontre uma foto, siga uma conexão ou deixe uma apresentação rodando enquanto organiza.</p></div><button onClick={() => ctx.navigate('moments')}><span>Ir para Momentos</span><ArrowRight size={16} /></button>{recent[0] && <div className="home-moments-prompt-photo"><PhotoView person={recent[0]} /></div>}</section>
-    <div className="home-main-grid"><section><SectionHeading icon={Trophy} title="Top 5 do ranking" action="Ver ranking" onAction={() => ctx.navigate('ranking')} /><div className="home-rank-list">{ranking.map((p, i) => <button key={p.id} onClick={() => ctx.openPerson(p)}><span className={`home-position position-${i + 1}`}>{String(i + 1).padStart(2, '0')}</span><Avatar person={p} size={57} /><span className="home-rank-name"><strong>{p.nome}</strong><small>{locationLabel(p, data, false)}</small></span><span className="home-rank-score"><strong>{getFinalScore(p).toLocaleString('pt-BR', { minimumFractionDigits: 1 })}</strong><StarRating value={calculateOverallRating(p.rating)} size={11} readonly showValue={false} /></span><ChevronRight size={15} className="row-arrow" /></button>)}</div>{!ranking.length && <EmptyState icon={Trophy} title="Seu pódio começa com uma conexão" description="Adicione pessoas e suas avaliações para descobrir os destaques." action="Adicionar pessoa" onAction={() => ctx.navigate('add')} />}{favorites.length > 0 && <section className="home-favorites"><SectionHeading icon={Heart} title="Sempre por perto" action="Favoritos" onAction={() => ctx.navigate('catalog', 'favorites')} /><div>{favorites.map(p => <button key={p.id} onClick={() => ctx.openPerson(p)}><Avatar person={p} size={48} /><span>{p.nome.split(' ')[0]}</span></button>)}</div></section>}<div className="home-quick-links"><button onClick={() => ctx.navigate('drafts')}><BookOpen size={17} /><span>Continuar um rascunho</span><small>{Object.keys(data.drafts).length}</small><ArrowRight size={14} /></button><button onClick={() => ctx.navigate('folders')}><Users size={17} /><span>Minhas pastas</span><small>{data.folders.length}</small><ArrowRight size={14} /></button></div></section>
-    <section><SectionHeading icon={Clock3} title="Adicionados recentemente" action="Ver catálogo" onAction={() => ctx.navigate('catalog')} /><div className="recent-grid">{recent.map(p => <button className="recent-person" key={p.id} onClick={() => ctx.openPerson(p)}><PhotoView person={p} /><span className="recent-shade" /><span className="recent-person-copy"><strong>{p.nome}</strong><small>{locationLabel(p, data, false)} <i />{formatDate(p.createdAt)}</small><StarRating value={calculateOverallRating(p.rating)} readonly size={12} showValue={false} /></span></button>)}</div>{!recent.length && <div className="recent-empty"><span className="outline-folder"><Heart size={37} strokeWidth={1.1} /></span><h3>Uma biblioteca de boas conexões.</h3><p>Seu catálogo está pronto. Comece com alguém que faz parte da sua história.</p><Button onClick={() => ctx.setQuickOpen(true)}><Plus size={16} />Criar primeira ficha</Button></div>}</section></div>
+
+    {/* 2. O que precisa de atenção hoje. */}
     <Reminders compact />
-    <Disclosure title="Um olhar sobre o seu catálogo" defaultOpen><Analytics /></Disclosure>
+
+    {/* 3. Explorar: o ranking é a assinatura do catálogo, então fica à vista. */}
+    <div className="home-main-grid"><section>
+      <SectionHeading icon={Trophy} title="Top 5 do ranking" action="Ver ranking" onAction={() => ctx.navigate('ranking')} />
+      <div className="home-rank-list">{ranking.map((p, i) => <button key={p.id} onClick={() => ctx.openPerson(p)}><span className={`home-position position-${i + 1}`}>{String(i + 1).padStart(2, '0')}</span><Avatar person={p} size={57} /><span className="home-rank-name"><strong>{p.nome}</strong><small>{locationLabel(p, data, false)}</small></span><span className="home-rank-score"><strong>{getFinalScore(p).toLocaleString('pt-BR', { minimumFractionDigits: 1 })}</strong><StarRating value={calculateOverallRating(p.rating)} size={11} readonly showValue={false} /></span><ChevronRight size={15} className="row-arrow" /></button>)}</div>
+      {!ranking.length && <EmptyState icon={Trophy} title="Seu pódio começa com uma conexão" description="Adicione pessoas e suas avaliações para descobrir os destaques." action="Adicionar pessoa" onAction={() => ctx.navigate('add')} />}
+      {/* O que é atalho de segunda ordem espera fechado: favoritas, rascunhos e pastas. */}
+      <Revelar titulo="Mais atalhos" icone={Heart} className="home-atalhos" resumo={resumoDeContagens([['favoritas', favorites.length], ['rascunhos', Object.keys(data.drafts).length], ['pastas', data.folders.length]]) || 'Nada guardado fora do catálogo ainda.'}>
+        {favorites.length > 0 && <section className="home-favorites"><SectionHeading icon={Heart} title="Sempre por perto" action="Favoritos" onAction={() => ctx.navigate('catalog', 'favorites')} /><div>{favorites.map(p => <button key={p.id} onClick={() => ctx.openPerson(p)}><Avatar person={p} size={48} /><span>{p.nome.split(' ')[0]}</span></button>)}</div></section>}
+        <div className="home-quick-links"><button onClick={() => ctx.navigate('drafts')}><BookOpen size={17} /><span>Continuar um rascunho</span><small>{Object.keys(data.drafts).length}</small><ArrowRight size={14} /></button><button onClick={() => ctx.navigate('folders')}><Users size={17} /><span>Minhas pastas</span><small>{data.folders.length}</small><ArrowRight size={14} /></button></div>
+      </Revelar>
+    </section>
+      {/* 4. Uma pausa para descobrir — e os lembretes abertos, que são ação. */}
+      <section>
+        <section className="home-moments-prompt"><div className="home-moments-prompt-icon"><Sparkles size={18} /></div><div><p className="eyebrow">Uma pausa para descobrir</p><h2>O que seu catálogo quer te mostrar hoje?</h2><p>Reencontre uma foto, siga uma conexão ou deixe uma apresentação rodando enquanto organiza.</p></div><button onClick={() => ctx.navigate('moments')}><span>Ir para Momentos</span><ArrowRight size={16} /></button>{recent[0] && <div className="home-moments-prompt-photo"><PhotoView person={recent[0]} /></div>}</section>
+        {abertos > 0 && <p className="home-pendencia"><Clock3 size={13} />{abertos === 1 ? '1 lembrete aberto' : `${abertos} lembretes abertos`} · <button onClick={() => ctx.navigate('reminders')}>ver todos</button></p>}
+      </section>
+    </div>
+
+    {/* 5. Apresentação e estatísticas: fechadas. A tela não entrega o painel
+        inteiro para quem só passou por aqui. */}
+    <Revelar titulo="Conheça o Catalog" icone={Sparkles} className="home-apresentacao" resumo="Três destaques, e o que dá para fazer com cada um.">
+      <section className="home-banner" aria-roledescription="carrossel" aria-label="Conheça seu catálogo" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
+        <img src={ARCHIVE_SCENE} alt="Pastas lilás e um caderno organizados em uma mesa" />
+        <div className="banner-shade" />
+        <AnimatePresence mode="wait"><motion.div className="banner-copy" key={slide} initial={{ opacity: 0, y: 9 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.3 }}><h2>{slides[slide].title}</h2><p>{slides[slide].text}</p><button onClick={() => ctx.navigate(slides[slide].page)}>{slides[slide].action}<ArrowRight size={16} /></button></motion.div></AnimatePresence>
+        <div className="banner-controls"><div>{slides.map((s, i) => <button key={i} aria-label={`Mostrar destaque: ${s.title.replace('\n', ' ')}`} aria-current={slide === i} className={i === slide ? 'active' : ''} onClick={() => setSlide(i)} />)}</div><span><IconButton label="Destaque anterior" onClick={() => setSlide((slide + 2) % 3)}><ChevronLeft size={17} /></IconButton><IconButton label="Próximo destaque" onClick={() => setSlide((slide + 1) % 3)}><ChevronRight size={17} /></IconButton></span></div>
+      </section>
+    </Revelar>
+    <Disclosure title="Um olhar sobre o seu catálogo"><Analytics /></Disclosure>
     <footer className="home-footer"><span><Sparkles size={14} />Feito para guardar o que importa.</span><button onClick={() => ctx.navigate('guide')}>Conhecer os novos recursos<ArrowRight size={14} /></button></footer>
   </div>;
 }

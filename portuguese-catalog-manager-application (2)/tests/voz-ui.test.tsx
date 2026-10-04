@@ -15,6 +15,10 @@ async function abrirPrimeiraFicha(user: ReturnType<typeof userEvent.setup>) {
   expect(cartao).toBeTruthy();
   await act(async () => { (cartao.querySelector('button, .person-card-content') as HTMLElement).click(); });
   await waitFor(() => expect(document.querySelector('.person-drawer')).toBeTruthy(), { timeout: 20000 });
+  // A voz é mídia: desde a rodada da interface ela vive na categoria Mídia,
+  // junto das fotos — e a ficha abre em Perfil.
+  await act(async () => { (document.querySelector('.editor-tabs button[title*="Fotos"]') as HTMLElement).click(); });
+  await waitFor(() => expect(document.querySelector('.voz-bloco')).toBeTruthy(), { timeout: 20000 });
   return user;
 }
 

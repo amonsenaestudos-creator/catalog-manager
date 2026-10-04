@@ -786,11 +786,10 @@ kbd { font: 500 10px 'Inter Variable', Inter, sans-serif; border: 1px solid var(
 .alert-preview li { font-size: 11px; color: var(--muted); }
 .alert-preview small { display: block; color: var(--faint); font-size: 10px; }
 
-/* Densidade compacta global */
-.density-compact .page-content { padding-top: 20px; padding-bottom: 34px; }
-.density-compact .page-title { margin-bottom: 15px; }
-.density-compact .person-card-content { padding: 9px 11px; }
-.density-compact .gallery-grid { gap: 9px; }
+/* Densidade: o degrau compacto (os três degraus moram na seção de densidade) */
+html.density-compacta .page-content { padding-top: 20px; padding-bottom: 34px; }
+html.density-compacta .page-title { margin-bottom: 15px; }
+html.density-compacta .gallery-grid { gap: 9px; }
 
 .guide-new { display: flex; align-items: center; gap: 15px; padding: 17px 19px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent-soft); margin-bottom: 18px; }
 .guide-new h2 { font-size: 16px; }
@@ -1613,7 +1612,8 @@ img, video, canvas { max-width: 100%; }
 
 /* -------------------------------------------- 15.4 topo enxuto (o “mais”) */
 /* O botão nasce escondido: no computador o topo já tem os sete botões todos. */
-.topbar-more { display: none; }
+.topbar-more { display: inline-flex; }
+.mobile-search-trigger { display: none; }
 
 /* --------------------------------------------------- 15.6 galeria: barra -- */
 .gallery-barra {
@@ -2350,3 +2350,224 @@ html.visor-aberto, html.visor-aberto body { overflow: hidden; overscroll-behavio
 .voz-player { width: 100%; height: 40px; }
 .voz-previa-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
 
+
+
+/* ==========================================================================
+   Densidade, foco, revelação e ação por contexto (rodada da interface)
+   --------------------------------------------------------------------------
+   Estas regras vêm depois de todo o resto de propósito: elas ajustam o que já
+   existe em vez de reescrever. A densidade troca variáveis; o foco esconde o
+   que é moldura; a revelação e o menu agrupado são componentes novos.
+   ========================================================================== */
+
+/* ----- Densidade: compacta · confortável · espaçosa ----- */
+:root { --dens-gap: 18px; --dens-min: 210px; --dens-pad: 14px; }
+html.density-compacta { --dens-gap: 10px; --dens-min: 166px; --dens-pad: 10px; }
+html.density-espacosa { --dens-gap: 28px; --dens-min: 268px; --dens-pad: 22px; }
+.people-grid, .recent-grid, .home-main-grid { gap: var(--dens-gap); }
+.people-grid { grid-template-columns: repeat(auto-fill, minmax(var(--dens-min), 1fr)); }
+.people-grid.compact { grid-template-columns: repeat(auto-fill, minmax(calc(var(--dens-min) - 44px), 1fr)); }
+.person-card-content { padding: var(--dens-pad) calc(var(--dens-pad) + 2px); }
+html.density-espacosa .page-content { padding-top: 30px; padding-bottom: 62px; }
+html.density-espacosa .page-title { margin-bottom: 34px; }
+html.density-espacosa .person-facts > div { padding: 19px 0; }
+html.density-espacosa .home-rank-list > button { padding-block: 11px; }
+html.density-espacosa .nav-item { min-height: 46px; }
+html.density-espacosa .read-text > p { font-size: 12.5px; }
+html.density-compacta .home-rank-list .avatar { width: 46px !important; height: 46px !important; }
+html.density-compacta .person-facts { gap: 0 20px; }
+html.density-compacta .recent-person { height: 200px; }
+
+/* ----- Modo foco: só o conteúdo ----- */
+html.foco .sidebar, html.foco .workspace-footer, html.foco .mobile-bottom-nav,
+html.foco .app-status, html.foco .topbar-breadcrumb, html.foco .global-search,
+html.foco .page-description, html.foco .disclosure, html.foco .home-apresentacao,
+html.foco .home-atalhos, html.foco .ficha-relacoes { display: none; }
+html.foco .workspace { margin-left: 0; }
+html.foco .page-content { max-width: 1180px; margin: 0 auto; padding-top: 26px; }
+html.foco .topbar { background: transparent; border-bottom-color: transparent; backdrop-filter: none; }
+.foco-saida { position: fixed; right: 18px; bottom: 18px; z-index: 120; display: inline-flex; align-items: center; gap: 8px; padding: 11px 16px; border-radius: 999px; border: 1px solid var(--line-hover); background: var(--surface-3); color: var(--muted); font-size: 11.5px; box-shadow: 0 14px 34px #0005; }
+.foco-saida:hover { color: var(--txt); border-color: var(--accent); }
+
+/* ----- Revelação progressiva ----- */
+.revelavel { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 4px; }
+.revelavel-cabeca { display: flex; align-items: center; gap: 11px; width: 100%; padding: 13px 2px; text-align: left; font-size: 14px; font-weight: 550; color: var(--txt); }
+.revelavel-cabeca:hover { color: var(--accent); }
+.revelavel-cabeca > svg:first-child { color: var(--faint); flex: none; }
+.revelavel-titulo { flex: 1; min-width: 0; }
+.revelavel-contagem { flex: none; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--faint); font-size: 10px; }
+.revelavel-seta { flex: none; color: var(--faint); transition: transform .18s ease; }
+.revelavel.aberto .revelavel-seta { transform: rotate(180deg); }
+.revelavel-resumo { padding: 0 2px 12px; color: var(--muted); font-size: 11.5px; }
+.revelavel-previa { padding-bottom: 6px; }
+.revelavel-corpo { padding: 2px 0 8px; }
+.revelavel-descricao { margin-bottom: 12px; color: var(--muted); font-size: 11.5px; }
+.revelavel-acao { margin-top: 12px; }
+html.reduce-motion .revelavel-seta { transition: none; }
+.revelavel .person-facts > div:first-child, .revelavel .person-facts > div:nth-child(2) { padding-top: 6px; }
+
+/* ----- "⋯" agrupado: um menu, não uma lixeira ----- */
+.mais-menu { min-width: 248px; max-height: min(72vh, 540px); overflow-y: auto; overscroll-behavior: contain; }
+.mais-menu-cabecalho { padding: 8px 10px 4px; }
+.mais-menu-cabeca { color: var(--txt); font-size: 12px; font-weight: 550; }
+.mais-menu-cabecalho small { display: block; margin-top: 2px; color: var(--faint); font-size: 10px; }
+.mais-menu-grupo + .mais-menu-grupo { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.mais-menu-titulo { padding: 7px 10px 3px; color: var(--faint); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; }
+.mais-menu-grupo > button { width: 100%; padding: 10px; border-radius: 6px; color: var(--muted); font-size: 12px; display: flex; align-items: flex-start; gap: 9px; text-align: left; }
+.mais-menu-grupo > button:hover:not(:disabled) { background: var(--accent-soft); color: var(--txt); }
+.mais-menu-grupo > button > svg { flex: none; margin-top: 1px; }
+.mais-menu-detalhe { display: block; margin: 2px 0 0; color: var(--faint); font-size: 10px; white-space: normal; }
+.dropdown-menu.mais-menu > .mais-menu-grupo > button { white-space: normal; }
+.dropdown-menu.a-esquerda { right: auto; left: 0; }
+
+/* ----- Barra de ação contextual ----- */
+.barra-de-acoes { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.barra-de-acoes .menu-mais { flex: none; }
+
+/* ----- O controle de densidade em Ajustes ----- */
+.densidade-controle { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-bottom: 12px; }
+.densidade-controle button { display: grid; gap: 7px; justify-items: center; padding: 14px 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--muted); text-align: center; }
+.densidade-controle button:hover { border-color: var(--line-hover); color: var(--txt); }
+.densidade-controle button.active { border-color: var(--accent); background: var(--accent-soft); color: var(--txt); }
+.densidade-controle strong { font-size: 12px; }
+.densidade-controle small { color: var(--faint); font-size: 10px; }
+.densidade-exemplo { display: grid; gap: 3px; width: 100%; }
+.densidade-exemplo i { display: block; height: 5px; border-radius: 3px; background: var(--line-hover); }
+.densidade-exemplo i:nth-child(2) { width: 76%; }
+.densidade-exemplo i:nth-child(3) { width: 52%; }
+.densidade-controle button.active .densidade-exemplo i { background: var(--accent); opacity: .6; }
+
+/* ----- Cartão em linha única: [foto] Maria · IFBA · ★8,4 ----- */
+.people-list .person-card.densa { display: flex; align-items: center; gap: 10px; padding: 7px 11px; }
+.people-list .person-card.densa .list-person-open { flex: 1; min-width: 0; gap: 10px; align-items: center; }
+.people-list .person-card.densa .list-person-open > span { display: grid; gap: 2px; min-width: 0; }
+.people-list .person-card.densa .list-person-open strong { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.people-list .person-card.densa .list-person-open small { overflow: hidden; color: var(--faint); font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+.people-list .person-card.densa .densa-acoes { display: flex; align-items: center; gap: 8px; flex: none; }
+
+/* ----- Relações na ficha ----- */
+.ficha-relacoes .relacao-selo { color: var(--txt); font-size: 13px; }
+.ficha-relacoes .relacao-motivo { color: var(--muted); font-size: 11.5px; }
+.ficha-relacoes .relacao-fatos { margin-top: 6px; }
+.relacao-pessoas { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 8px; }
+.relacao-pessoas button { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); text-align: left; }
+.relacao-pessoas button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.relacao-pessoas span { display: grid; min-width: 0; }
+.relacao-pessoas strong { font-size: 12px; }
+.relacao-pessoas small { color: var(--faint); font-size: 10px; }
+.relacao-atalhos { display: flex; flex-wrap: wrap; gap: 8px; }
+.relacao-atalhos button { display: inline-flex; align-items: center; gap: 7px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); font-size: 11.5px; }
+.relacao-atalhos button:hover { border-color: var(--accent); color: var(--txt); }
+
+/* ----- O "+" inteligente: o que você quer criar? ----- */
+.quick-escolhas { display: grid; gap: 8px; }
+.quick-escolha { display: flex; align-items: center; gap: 13px; padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); text-align: left; }
+.quick-escolha:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.quick-escolha-icone { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.quick-escolha strong { display: block; font-size: 13px; }
+.quick-escolha small { color: var(--muted); font-size: 11px; }
+.quick-escolha:disabled { opacity: .6; }
+
+/* ----- Início: hierarquia da tela ----- */
+.home-section { margin-bottom: 26px; }
+.home-pendencia { display: flex; align-items: center; gap: 6px; margin-top: 14px; color: var(--muted); font-size: 11px; }
+.home-pendencia button { color: var(--accent); }
+.home-atalhos { margin-top: 18px; }
+
+/* ----- Animação que explica: a contagem pulsa quando muda ----- */
+/* Quando uma foto entra, o número da aba não troca em silêncio: ele dá um
+   pulso curto. A `key` do React remonta o <small>, então a animação roda de
+   novo a cada mudança — e não fica piscando à toa. */
+@keyframes pulso-contagem { 0% { transform: scale(1); } 40% { transform: scale(1.22); background: var(--accent-soft); } 100% { transform: scale(1); } }
+.contagem-animada { animation: pulso-contagem .45s ease-out; }
+html.reduce-motion .contagem-animada { animation: none; }
+
+/* ============================================================================
+   Música por link (rodada "as músicas não funcionam direito")
+   ----------------------------------------------------------------------------
+   O painel do Ambiente e a trilha da apresentação usam a mesma peça. Aqui só
+   existe a moldura: o player de verdade é o iframe do serviço, e ele precisa de
+   espaço previsível para não empurrar o resto da tela.
+   ========================================================================== */
+.musica-player { display: grid; gap: 10px; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.musica-topo { display: flex; align-items: center; gap: 9px; }
+.musica-icone { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.musica-copy { display: grid; min-width: 0; }
+.musica-copy strong { font-size: 12.5px; }
+.musica-copy small { overflow: hidden; color: var(--faint); font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+.musica-acoes { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.musica-embed { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #000; }
+.musica-embed iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
+.musica-audio { width: 100%; height: 34px; }
+.musica-aviso { margin: 0; color: var(--faint); font-size: 10.5px; line-height: 1.5; }
+.musica-botoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.musica-colar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.musica-colar input { min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--txt); font-size: 12px; }
+/* Na ficha, "Ouvir" fica ao lado do valor da música favorita. */
+.musica-ouvir { display: inline-flex; align-items: center; gap: 4px; margin-left: 7px; padding: 2px 7px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--accent); font-size: 10px; vertical-align: middle; }
+.musica-ouvir:hover { border-color: var(--accent); background: var(--accent-soft); }
+/* A trilha dentro do Modo apresentação: discreta, para não competir com a foto. */
+.presentation-musica { width: min(360px, 100%); margin: 10px auto 0; }
+.presentation-musica .musica-embed iframe { aspect-ratio: 16 / 9; }
+
+/* ============================================================================
+   Música ambiente do site (rodada "tocando no próprio site")
+   ----------------------------------------------------------------------------
+   O som gerado aqui não pertence a nenhuma tela: a pílula fica no canto,
+   discreta, e aparece só quando existe um clima ligado.
+   ========================================================================== */
+.musica-site { display: flex; align-items: center; gap: 8px; }
+.musica-volume { display: flex; align-items: center; gap: 6px; min-width: 0; margin-left: auto; color: var(--faint); }
+.musica-volume input { width: 96px; accent-color: var(--accent); }
+.musica-trocar { align-self: flex-start; font-size: 11px; }
+
+.ambiente-bar { position: fixed; z-index: 210; left: 18px; bottom: 18px; display: flex; align-items: center; gap: 9px; max-width: min(420px, calc(100vw - 36px)); padding: 8px 10px 8px 8px; border: 1px solid var(--line-hover); border-radius: 999px; background: color-mix(in srgb, var(--surface) 92%, transparent); box-shadow: 0 18px 40px #00000047; backdrop-filter: blur(14px); }
+.ambiente-bar .ambiente-botao { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--accent); color: #fff; }
+.ambiente-bar .ambiente-botao[aria-pressed="false"] { background: var(--surface-2); color: var(--txt); border: 1px solid var(--line-hover); }
+.ambiente-copy { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--faint); }
+.ambiente-copy > span { display: grid; min-width: 0; }
+.ambiente-copy strong { overflow: hidden; color: var(--txt); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.ambiente-copy small { color: var(--faint); font-size: 9.5px; letter-spacing: .02em; }
+.ambiente-volume { display: flex; align-items: center; gap: 5px; color: var(--faint); }
+.ambiente-volume input { width: 78px; accent-color: var(--accent); }
+/* Modo foco: a pílula fica. É justamente quando a tela some que o som precisa
+   de um controle à mão — mas ela encolhe para não disputar com o conteúdo. */
+html.foco .ambiente-bar { opacity: .72; }
+html.foco .ambiente-bar:hover, html.foco .ambiente-bar:focus-within { opacity: 1; }
+
+/* ============================================================================
+   Altura medida e figura 3D (rodada "1,50 m e um manequim das métricas")
+   ----------------------------------------------------------------------------
+   O campo de altura tem três caminhos (digitar, atalho, palavra antiga) e a
+   figura é um canvas que não pode virar um retângulo preto em tema nenhum.
+   ========================================================================== */
+.altura-campo { display: grid; gap: 7px; }
+.altura-campo input { font-variant-numeric: tabular-nums; }
+.altura-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.altura-chips button { padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.altura-chips button:hover { border-color: var(--accent); color: var(--txt); }
+.altura-campo select { font-size: 12px; }
+.altura-leitura { color: var(--faint); font-size: 10.5px; }
+
+.figura-3d { display: grid; gap: 10px; }
+.figura-palco { position: relative; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 14px;
+  background: radial-gradient(120% 90% at 50% 108%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 70%), linear-gradient(180deg, var(--surface-2), var(--surface)); }
+.figura-palco canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.figura-palco canvas:active { cursor: grabbing; }
+.figura-palco canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.figura-sem-canvas { display: flex; gap: 8px; max-width: 320px; margin: 0; padding: 16px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.figura-controles, .figura-ajustes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.figura-controles button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11px; }
+.figura-controles button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--txt); }
+.figura-controles button:disabled { opacity: .5; cursor: not-allowed; }
+.figura-ajustes { justify-content: space-between; }
+.figura-ajustes label { display: flex; align-items: center; gap: 7px; color: var(--faint); font-size: 11px; }
+.figura-ajustes input[type="range"] { width: 110px; accent-color: var(--accent); }
+.figura-aviso { margin: 0; color: var(--faint); font-size: 10.5px; line-height: 1.55; }
+.figura-notas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.figura-notas li { display: grid; gap: 1px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.figura-notas li strong { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+.figura-notas li span { color: var(--txt); font-size: 12px; }
+.figura-notas li small { color: var(--faint); font-size: 9.5px; }
+.figura-notas .figura-fora { border-style: dashed; }
+html.foco .figura-3d .figura-notas { display: none; }

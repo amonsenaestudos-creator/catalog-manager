@@ -13,6 +13,11 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 
 - **Celular (UI própria):** barra inferior para Início, Catálogo, cadastro rápido, busca e menu; menu lateral deslizante; grades, formulários, tierlists e abas responsivas; áreas seguras do aparelho respeitadas. Além disso, o que só existe no aparelho: **folha que sobe do pé da tela** (filtros, ações, detalhes) com puxador e arrastar para baixo para fechar, **deslizar da borda esquerda para voltar** com trilha lilás, **toque longo** como menu de contexto, **título grande que se recolhe** ao rolar, doca que sai da frente quando uma folha ou o visor assumem a tela e o “⋯” no topo que reúne disfarce, privacidade, tema, desfazer/refazer e o status do salvamento. O “+” do meio é um círculo de gradiente com o rótulo “Adicionar” embaixo — afunda no toque, vibra igual aos vizinhos e, com o fichário rápido aberto, a doca inteira recolhe como recolhe com as folhas —; e a direita do topo é um cluster só — sino, “⋯” e o seu retrato dentro da mesma pílula, sem caixa em volta de cada ícone — (os três têm 40px, `line-height: 0` no quadrado, ícones de 20px, selo colado no canto e o filete que separa ações de perfil é um traço curto no meio, porque o retrato não usa o botão padrão do computador e uma borda inteira atravessaria a pílula). Menu e seta de voltar são exatamente a mesma caixa, para o título não pular quando um entra no lugar do outro, e quem chega no Início zera o histórico — a raiz fica sem seta e o primeiro “voltar” para de levar à tela de onde a pessoa saiu — com o fundo do topo derretendo na página enquanto ela está no começo e virando vidro quando rola. Na galeria e no cofre, a barra de tipo/filtro/modo fica **grudada embaixo das abas** — a altura é medida no pixel (`useFaixasGrudadas`), para o título de cada dia parar logo abaixo dela — e depois de rolar aparece o botão de voltar ao começo do álbum. As medidas (alvo de 48px, raios, sombras, tipografia e as três larguras de tela) estão na seção 14 de `src/celular.css`, a camada própria do celular — folhas, gestos, galeria, visor e cofre — na seção 15, e a **UI do aparelho refeita** nas seções 16 e 17 do mesmo arquivo (16: capa, doca, catálogo e ficha; 17: a ficha por dentro, painel, ajustes e gaveta): o cartão de pessoa é a **foto com o nome por cima** (e o modo lista é a linha larga para ler, com o coração na direita, onde o polegar cai), a doca marca a aba ativa com **pílula atrás do ícone**, o cabeçalho da tela é **capa** com as ações rolando na lateral sem quebrar linha, e a **ficha abre em tela cheia** com as abas colando no alto e a barra de ação no pé da tela. O `src/index.css` é só a porta que importa os três alvos (`base.css`, o que os dois compartilham; `celular.css`, regra que só existe dentro de `@media` de toque; `computador.css`, só `min-width: 1101px`) — é assim desde que o `mobile.css` legado foi aposentado, porque ele escondia a doca e o título do topo para todo canto e reescrevia a doca antiga por cima da nova.
 - **Prancha do celular (12 telas):** rode `npm run dev` e abra **`/celular.html`** para ver as doze telas lado a lado em 390×844, rodando o CSS real do aplicativo — inclusive Galeria em mosaico com a barra grudada no topo, cofre do Meu espaço, visor de fotos, folha de ações e folha de filtros. Uma tela sozinha e maior: `/celular.html?tela=visor` (ou `galeria`, `acoes`, `cofre`, `filtros`, `conversa`, `ficha`, `ajustes`, …).
+- **Interface orientada a contexto:** a ficha abre com o essencial (as três informações principais, a nota e as contagens) e cada seção revela o resto no toque; as oito abas viraram cinco categorias — **Perfil · Avaliações · Mídia · Relações · Registros**; a barra de ação do pé da ficha mostra 2–3 ações prováveis (e muda com a categoria aberta) e todo o resto vive no **⋯** agrupado em *Ações · Organização · Avançado*. O mesmo vale para o topo: buscar, avisos e perfil ficam à vista, e disfarce, privacidade, tema, desfazer, densidade e modo foco moram no **⋯**. Nada foi removido — só deixou de disputar atenção. As regras ficam em `src/features/interface` (`acoes.ts`, `revelacao.ts`, `densidade.ts`, `foco.ts`), com testes próprios.
+- **Modo foco:** `⋯ → Entrar no modo foco` (ou `Alt+F`) esconde menu lateral, rodapé, doca do celular, estatísticas e textos de apoio; sobra o conteúdo, com uma pílula discreta para voltar. A escolha é lembrada entre sessões.
+- **Densidade em três degraus:** em **Ajustes** (e no `⋯` do topo, que alterna) a interface vai de **Compacta** (mais informação; com ela o modo lista do catálogo vira uma linha de leitura: foto, nome, lugar, nota e última interação) a **Espaçosa** (cards grandes, mais respiro). O valor antigo (`compacto`) migra sozinho para `compacta`.
+- **“+” inteligente:** o botão central pergunta o que você quer criar — pessoa (fichário rápido), fotos (medidas na hora, entram na galeria sem ficha), nota ou pasta — em vez de levar direto ao cadastro de pessoa.
+- **Início por hierarquia:** saudação e a ação principal; o que chegou de novo; o que precisa de atenção hoje; explorar; e só no fim — fechados — os atalhos, a apresentação do aplicativo e as estatísticas.
 - **Ações rápidas:** toque no botão de raio no cabeçalho (ou pressione `Q`) para abrir mais de vinte utilidades: filtros prontos, surpresa, roleta, comparação, agenda de hoje, avisos, CSV, resumo copiável/compartilhável, tela cheia, privacidade, tema e densidade.
 - **Catálogo:** favoritos, arquivo, lixeira, seleção em lote, filtros, buscas salvas e CSV.
 - **Notas gerais:** ideias, observações, referências e lembretes vinculáveis a pessoas e pastas.
@@ -25,17 +30,45 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Tierlists:** participantes por categoria/subcategoria, faixas personalizadas, cores, ordenação, duplicação independente e **listas especiais** com nomes e fotos opcionais que não criam fichas no catálogo.
 - **Galeria:** mosaico com a proporção real de cada arquivo, quadra de quadrados iguais e linha do tempo agrupada por dia com a data grudada no topo; busca por nome/anotação/pessoa, filtros de tipo, pessoa, pasta e álbum numa folha, com chips removíveis — tudo numa faixa que segura o topo da tela enquanto o álbum rola; seleção em lote (toque, Shift para intervalo, barra fixa no pé da tela com pasta, álbum, favoritar, cofre e excluir); upload múltiplo, fotos não vinculadas, vínculos, duplicatas, álbuns e antes/depois — no antes/depois o divisor é arrastado com o dedo em cima da foto (a linha fina ganha 34px de alvo, a página continua rolando por cima, e as setas do teclado também movem).
 - O modo de ver (mosaico, quadra, linha do tempo) fica salvo por tela: galeria e cofre têm chaves próprias.
+- **Altura e figura 3D:** a altura da ficha é uma **medida** (`1,50`, `150` e `150 cm` viram `1,50 m`; os atalhos vão de 1,50 a 1,80) e as palavras antigas continuam valendo como estimativa. Em Avaliações, a seção **Corpo em 3D** monta um manequim a partir da altura, do tipo de corpo e das notas — arraste para girar, veja de frente, de lado ou três quartos, salve como imagem. O que não vira forma (rosto, beleza geral, comportamento) aparece nomeado embaixo da figura.
 - **Visor de fotos:** tela inteira com deslizar para trocar de foto, pinça e toque duplo para zoom, puxar para baixo para fechar, um toque para esconder as barras, faixa de miniaturas, coração com animação, baixar, folha de detalhes (vincular ficha, mover de pasta, tipo, excluir) e, no computador, setas, `+`/`-`, `F`, `I` e `Esc`. `Esc` fecha. A mesma tela abre as fotos da ficha (aba **Fotos** e a capa) e as do cofre do Meu espaço.
 - **Lembretes:** datas, edição, prioridade, conclusão e adiamento.
 - **Ajustes:** perfil, tema, acessibilidade, sons e comemorações, PIN opcional, importação, exportação e pontos de restauração.
 - **Painel:** nível e XP, desafios da semana (marcados automaticamente), aniversários e revisitas, roleta, cinturão da campeã do duelo, gráficos e conquistas.
-- **Momentos:** uma surpresa do dia baseada no catálogo, resumo de fotos/vídeos/pessoas/notas, exploração por conexões, máquina do tempo, ambientes visuais e Modo apresentação com reprodução de fotos, miniaturas e trilha escolhida. Tudo é opcional: não há streak de login nem bloqueio de conteúdo.
+- **Momentos:** uma surpresa do dia baseada no catálogo, resumo de fotos/vídeos/pessoas/notas, exploração por conexões, máquina do tempo, **climas que tocam música de verdade** (por link, dentro do painel Ambiente) e Modo apresentação com reprodução de fotos, miniaturas e trilha escolhida. Tudo é opcional: não há streak de login nem bloqueio de conteúdo.
 - **Desafios:** Quiz do próprio catálogo, Modo Detetive com casos gerados a partir de relações reais, quebra-cabeça de fotos, “Quem é?”, objetivos semanais, cartas colecionáveis, editor rápido de cards, álbum paginado, Hall da fama, lugares/contextos e exportação de mural visual. As respostas usam somente dados já registrados.
 - **Ficha:** aba **Linha do tempo** com cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota; opção **Fixar no topo** no menu.
 - **Agenda:** exportação `.ics` para Google Agenda, Outlook e iPhone; cronômetro que dá um tique a cada 10 minutos.
 - **Tierlists:** exportação em PNG pelo menu **Mais**.
 - **Ferramentas:** 50 utilidades em cinco grupos (Catálogo e dados, Organização em lote, Conversa e social, Meu espaço e rotina, Utilidades do dia a dia), com busca, ícones no mesmo estilo do resto do app e atalho `T`. Cada ferramenta declara os campos que precisa e mostra o resultado em tela, com botão de copiar e download quando faz sentido.
 - **Novidades do Catalog:** guia navegável dos recursos novos e aprimorados. A lista está em `src/features.ts`.
+
+## Interface orientada a contexto
+
+A pergunta que guiou esta rodada não foi "como colocar todas essas funções na
+tela?", e sim "em que momento a pessoa precisa de cada uma?". A resposta virou
+domínio: `src/features/interface`.
+
+- **Uma decisão por vez** (`acoes.ts`): as ações são dado (id, rótulo, grupo,
+  primária, perigo) e `organizarAcoes` decide o corte — no máximo três na
+  barra, nunca menos de duas quando há ação suficiente, perigosa nunca na
+  barra, nada repetido entre a barra e o menu. A barra da ficha responde à
+  categoria aberta: em Mídia a terceira ação é *Adicionar foto*, em Registros é
+  *Nova nota*, em Avaliações é *Reavaliar*. A aba antiga (`photos`, `notes`,
+  `timeline`) é traduzida por `categoriaDaAba`, então nada mais no aplicativo
+  precisou mudar.
+- **Revelação progressiva** (`revelacao.ts` + componente `Revelar`): a seção
+  fechada mostra contagem e resumo ("Sobre · 9 informações", "Fotos · 12"), e
+  abre no toque — com prévia do essencial quando faz sentido.
+- **Densidade** (`densidade.ts` + componente em Ajustes): três degraus com
+  prévia visual; a classe que o `<html>` recebe e a migração do valor antigo
+  são testadas.
+- **Modo foco** (`foco.ts`): a classe `foco` no `<html>` esconde o que é
+  moldura, via CSS — sem JS escondendo elemento por elemento.
+- **Menu agrupado** (`MenuMais`) e **barra contextual** (`BarraDeAcoes`):
+  componentes pequenos que recebem o plano pronto. No computador o menu abre
+  colado no botão; no celular quem serve os menus longos continua sendo a folha
+  (`FolhaDeAcoes`, agora com grupos).
 
 ## Conversa simulada 2.0
 
@@ -151,11 +184,79 @@ Um catálogo de fotos lembra o rosto; o Catalog também guarda o som.
 - **Galeria no teclado, sem o visor:** `S` entra na seleção em lote; com fotos escolhidas, `Shift` + clique estende o intervalo.
 - **No aparelho, os gestos substituem as teclas:** deslizar da borda esquerda volta uma tela, segurar o título da tela aciona o pânico (≈0,7s), segurar uma foto ou um cartão abre a folha de ações, puxar a folha para baixo fecha, e no visor deslizar troca, pinça/`2 toques` zoom e puxar para baixo fecha.
 
+## Altura e figura 3D
+
+A altura saiu do campo de palavras e virou medida, sem perder quem já tinha
+preenchido:
+
+| Você digita | A ficha guarda |
+| --- | --- |
+| `1,50` · `1.50` · `1,5` · `1,50 m` | `1,50 m` |
+| `150` · `150 cm` | `1,50 m` |
+| `alta` · `baixinha` | a palavra, como antes (e o modelo usa uma estimativa dita na tela) |
+
+A figura de Avaliações é um **manequim de ateliê**, não um retrato: pontos de
+controle (ombro, cintura, quadril, peito) viram fatias sobrepostas de elipsoides,
+giradas e projetadas na hora (`src/features/corpo/`). Nada de biblioteca 3D, nada de arquivo — o corpo
+inteiro é aritmética, e por isso acompanha as notas. Nota **3 é neutra** e
+**sem nota também é neutro**: quem nunca avaliou não aparece mais magro do que
+quem deu 1. Peito, quadril, corpo e cabelo mexem na forma de verdade; **rosto,
+beleza geral e comportamento ficam de fora**, com a lista do que ficou embaixo
+da figura. Se o navegador não desenhar canvas, a seção entrega a mesma leitura
+em texto (`1,70 m · ombros 38 cm · cintura 27 cm…`).
+
+## Música no site
+
+O Catalog toca música **dentro do próprio site**, de dois jeitos:
+
+1. **Ambiente gerado aqui.** Chuva · Café · Oceano · Cidade · Lo-fi são receitas
+   de áudio contínuo montadas na hora com Web Audio (`features/musica/ambiente.ts`):
+   ruído filtrado para chuva, mar e cidade, acordes e vinil para o lo-fi. Não
+   baixa nada, não depende de internet nem de login, e o som **continua tocando
+   enquanto você navega** — quem manda no áudio é o módulo de ambiente, não a
+   tela que ligou. Uma pílula no canto pausa, ajusta o volume e desliga.
+2. **O meu link**, para quem quer a própria música. Cada clima (e cada trilha do
+   Modo apresentação: Ambiente · Cinemático · Eletrônico · Minimalista) tem uma
+   busca curada no YouTube como ponto de partida e aceita o link que você colar:
+
+- **Toca dentro do app:** vídeo, playlist e faixa do YouTube (inclui link curto
+  `youtu.be` e Shorts), Spotify (faixa, álbum, playlist, episódio), SoundCloud e
+  arquivo de áudio direto (`.mp3`, `.m4a`, `.ogg`, `.wav`, `.flac`…).
+- **Abre fora do app:** qualquer outro endereço — e o botão diz para onde vai, em
+  vez de fingir que tocou. Página de busca do YouTube, por exemplo, não tem player
+  embutido; o aviso está escrito na tela.
+- **Só `https://` entra.** `javascript:`, `data:` e hosts desconhecidos são
+  recusados no campo e barrados de novo quando um backup é importado: só as
+  chaves das músicas do app gravam link, e só endereço http(s).
+- **Sem autoplay escondido.** O play é sempre um gesto seu. O clima salvo volta no
+  primeiro toque da visita seguinte (som sem gesto o navegador bloqueia — e forçar
+  seria pior). Sem Spotify logado, o embutido de lá toca a prévia; sem internet,
+  nenhum player de link toca — e a tela diz isso.
+- **Um clima por vez.** Ligar outro desmonta o anterior: nunca dois ambientes
+  somados, e nada de música fantasma depois de trocar de clima.
+
+O domínio é `src/features/musica/` (`ambiente.ts` gera o som do site e manda no
+áudio, `links.ts` lê o endereço, `catalogo.ts` guarda as músicas,
+`components/PlayerDeMusica.tsx` e `components/AmbienteBar.tsx` desenham). O clima
+ligado e o volume ficam em `settings.ambienteAtivo` e `settings.ambienteVolume`;
+os links escolhidos, em `settings.musicaLinks`, chave por música. Na ficha, o
+campo **Música favorita** ganhou o botão **Ouvir**, que abre a busca pelo nome
+guardado.
+
+## Atalhos de interface
+
+- `Alt+F`: liga e desliga o modo foco.
+- `Ctrl/Cmd+K`: busca global.
+- `Q`: central de ações rápidas — inclusive o degrau de densidade.
+- `Ctrl+Z` / `Ctrl+Shift+Z`: desfazer e refazer (também no ⋯ do topo).
+
 ## Implementação
 
 - `ARCHITECTURE.md`: mapa de domínios, regras de dependência, limites de tamanho e plano de migração incremental. Cada feature nova deve começar por esse contrato.
 - `src/features/discovery/`: domínio de exploração com facades (`index.ts`), README próprio e as telas `Momentos` e `Desafios` separadas de `src/components`.
 - `src/features/people/`, `gallery/`, `relationships/` e `gamification/`: facades públicas e contratos de domínio para reduzir imports diretos de arquivos legados.
+- `src/features/musica/`: música por link (climas do Ambiente, trilhas da apresentação e o player embutido) — nenhum arquivo de música entra no app.
+- `src/features/corpo/`: altura medida (leitura, formato e estimativas) e a figura 3D — métricas viram proporções viram elipsoides projetados.
 - `src/App.tsx`: entrada, navegação, atalhos e privacidade.
 - `src/context.tsx`: estado, comandos, salvamento e histórico de desfazer.
 - `src/store.ts`: migração, avaliações, filtros, normalização, duplicatas e CSV.
