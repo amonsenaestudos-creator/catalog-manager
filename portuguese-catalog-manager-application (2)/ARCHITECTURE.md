@@ -10,7 +10,10 @@ O projeto está em uma migração incremental de `src/components`, `src/lib` e `
 src/
 ├── app/                         # regras de composição global (em expansão)
 ├── features/
+│   ├── interface/               # apresentação: densidade, revelação, foco e ação por contexto
 │   ├── discovery/               # Momentos, Desafios e exploração
+│   ├── musica/                  # climas e trilhas por link (YouTube, Spotify, áudio direto)
+│   ├── corpo/                   # altura medida e figura 3D montada das métricas
 │   ├── people/                  # fichas, cadastro e dados de pessoas
 │   ├── gallery/                 # fotos, vídeos, álbuns e órfãs
 │   ├── relationships/           # relações entre fichas e contexto
@@ -25,11 +28,41 @@ src/
 └── types.ts                     # contrato legado; novos tipos devem ficar perto do domínio
 ```
 
+## Como a interface decide o que mostrar
+
+A partir da rodada "interface orientada a contexto", a apresentação segue três
+regras que moram em `src/features/interface` (e não espalhadas em JSX):
+
+1. **Uma decisão por vez.** Uma tela oferece as 2–4 ações mais prováveis; o
+   resto vive no "⋯", agrupado. O corte é `organizarAcoes`, em `acoes.ts`.
+2. **Revelação progressiva.** Seção fechada mostra contagem e resumo; o
+   conteúdo aparece no toque. Os limites são `revelacao.ts`; quem desenha é o
+   componente `Revelar`.
+3. **A complexidade existe, mas espera.** Modo foco (`foco.ts`) tira a moldura
+   da frente; a densidade (`densidade.ts`) tem três degraus, e o valor antigo
+   (`compacto`) migra para `compacta` na normalização do `store`.
+
+Categorias da ficha (`perfil`, `avaliacoes`, `midia`, `relacoes`,
+`registros`) e a tradução das abas antigas também vivem em `acoes.ts` — nenhuma
+tela precisa saber que "photos" virou "midia".
+
 ## Navegação atual
 
-- **Início:** visão geral e atalhos para ações frequentes.
+- **Início:** hierarquia por uso — saudação e a ação principal; o que chegou
+  de novo; o que precisa de atenção hoje; explorar; e só no fim, fechadas, as
+  estatísticas e a apresentação do aplicativo.
 - **Catálogo:** pessoas, favoritos, arquivo, lixeira e seleção em lote.
-- **Explorar:** Descobrir, Momentos e Desafios.
+- **Avaliações da ficha:** notas, radar comparado à média, histórico e a
+  **figura 3D** (`features/corpo`). A altura é guardada como medida ("1,50 m"),
+  aceitando as palavras antigas como estimativa; o modelo é aritmética pura
+  (elipsoides + projeção ortográfica), sem biblioteca 3D e sem arquivo.
+- **Explorar:** Descobrir, Momentos e Desafios. O som do Momentos vem de
+  `features/musica`: os climas do Ambiente são **gerados no site** por
+  `ambiente.ts` (Web Audio, um clima por vez, som que atravessa telas e volta no
+  primeiro toque da visita seguinte); a trilha do Modo apresentação e quem quiser
+  música própria usam **link** — `links.ts` decide se toca embutido ou só abre
+  fora, e `settings.musicaLinks` guarda a escolha. Nenhum arquivo de música entra
+  no aplicativo.
 - **Biblioteca:** Galeria, Pastas, Agenda, Meu espaço e Ferramentas.
 - **Sistema:** Ajustes, privacidade, notificações, Command Palette (`Ctrl/Cmd + K`) e a Saúde do catálogo (Biblioteca → Mais).
 

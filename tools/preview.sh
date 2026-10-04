@@ -5,9 +5,11 @@
 # (processos morrem, node_modules volta sem permissão, preview/ desaparece).
 # Este script é a forma mais rápida de reconstruir tudo em um comando:
 #
-#   tools/preview.sh           # serve o build que já existe em dist/
-#   tools/preview.sh --build   # refaz o build antes de servir
-#   tools/preview.sh --arquivo # gera catalog-previa.html (um arquivo, sem servidor)
+#   tools/preview.sh                 # serve o build que já existe em dist/
+#   tools/preview.sh --build         # refaz o build antes de servir
+#   tools/preview.sh --persistente   # serve preview/ (o build copiado, que sobrevive
+#                                    # à sessão); com --build, refaz antes de copiar
+#   tools/preview.sh --arquivo       # gera catalog-previa.html (um arquivo, sem servidor)
 #
 # O servidor é o do Python (existe sempre) e fica em primeiro plano. Para uma
 # URL que não dependa desta sandbox, o CI publica o mesmo build no GitHub
@@ -24,6 +26,19 @@ if [ "${1:-}" = "--arquivo" ]; then
   bash "$0" --build >/dev/null
   python3 "$RAIZ/tools/arquivo-unico.py" "$APP/dist" "$RAIZ/catalog-previa.html"
   exit 0
+fi
+
+# --persistente: além de servir, guarda o build em preview/ (fora do snapshot do
+# git, dentro do workspace). É o modo que faz a prévia voltar em um comando depois
+# que a sessão limpa o node_modules — sem reinstalar dependência nenhuma.
+if [ "${1:-}" = "--persistente" ] || [ "${1:-}" = "--persistente-com-build" ]; then
+  if [ "${1:-}" = "--persistente-com-build" ] || [ ! -f "$RAIZ/preview/index.html" ]; then
+    bash "$0" --build
+    mkdir -p "$RAIZ/preview"
+    cp -r "$APP/dist/." "$RAIZ/preview/"
+  fi
+  echo "Prévia persistente em http://localhost:$PORTA (Ctrl+C para parar)"
+  exec python3 -m http.server "$PORTA" --bind 0.0.0.0 --directory "$RAIZ/preview"
 fi
 
 if [ "${1:-}" = "--build" ]; then

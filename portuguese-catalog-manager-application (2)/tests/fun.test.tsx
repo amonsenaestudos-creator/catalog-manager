@@ -153,8 +153,11 @@ describe("telas com as novidades", () => {
 
     await act(async () => { (document.querySelector(".person-card.is-pinned h3")!.parentElement as HTMLElement).click(); });
     await waitFor(() => expect(document.querySelector(".person-drawer")).toBeTruthy());
-    const timelineTab = screen.getByRole("button", { name: /Linha do tempo/i });
-    await act(async () => { timelineTab.click(); });
+    // A ficha virou cinco categorias: a linha do tempo mora em Registros e a
+    // seção abre no toque (revelação progressiva).
+    await act(async () => { screen.getByRole("button", { name: /^Registros/ }).click(); });
+    const timelineSecao = await screen.findByRole("button", { name: /Linha do tempo/i });
+    await act(async () => { timelineSecao.click(); });
     await waitFor(() => expect(document.querySelector(".person-timeline")).toBeTruthy());
     expect(within(document.querySelector(".person-timeline") as HTMLElement).getByText(/Ficha criada/i)).toBeInTheDocument();
     expect(document.querySelectorAll(".person-timeline li").length).toBeGreaterThanOrEqual(2); // cadastro + foto principal

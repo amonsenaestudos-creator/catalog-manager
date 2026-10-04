@@ -12,12 +12,16 @@ import { FolhaDeAcoes } from './Folha';
 import SurpreendaMe from './SurpreendaMe';
 import type { AcaoDeFolha } from './Folha';
 import { useToqueLongo } from '../lib/toque';
+import { cartaoEmLinhaUnica } from '../features/interface';
 import StarRating from './StarRating';
 
 const SCOPES: { value: CatalogFilter['scope']; label: string }[] = [{ value: 'active', label: 'Todas as pessoas' }, { value: 'favorites', label: 'Favoritos' }, { value: 'archived', label: 'Arquivadas' }, { value: 'trash', label: 'Lixeira' }];
 export default function Catalog() {
   const ctx = useCatalog(); const { data, filter, setFilter } = ctx;
   const [view, setView] = useState<'grid' | 'list'>('grid'); const [advanced, setAdvanced] = useState(false);
+  // Densidade compacta + modo lista = o cartão vira uma linha de leitura:
+  // foto, nome, lugar e nota. Ver `features/interface/densidade.ts`.
+  const densa = cartaoEmLinhaUnica(data.settings.density);
   const [selectionMode, setSelectionMode] = useState(false); const [selected, setSelected] = useState<string[]>([]);
   const [menu, setMenu] = useState<string | null>(null); const [exportMenu, setExportMenu] = useState(false); const [savedMenu, setSavedMenu] = useState(false); const [surpresaOpen, setSurpresaOpen] = useState(false);
   const [saveFilter, setSaveFilter] = useState(false); const [filterName, setFilterName] = useState(''); const [renameFilter, setRenameFilter] = useState<string | null>(null);
@@ -106,7 +110,7 @@ export default function Catalog() {
       // depois do toque longo o navegador ainda dispara o clique: engolido aqui,
       // a folha abre sem a ficha abrindo por trás dela.
       onClickCapture={evento => { if (toqueFicha.segurou()) { evento.preventDefault(); evento.stopPropagation(); } }}>
-      {visible.map(p => <motion.article layout="position" key={p.id} data-ficha={p.id} style={{ '--pessoa': corDaPessoa(p) } as React.CSSProperties} className={`person-card ${ids.includes(p.id) ? 'selected' : ''} ${p.pinned ? 'is-pinned' : ''} ${!p.deletedAt && rarityFor(calculateOverallRating(p.rating)) === 'lendario' ? 'legendary-glow' : ''}`} transition={{ duration: 0.22 }} onContextMenu={evento => { evento.preventDefault(); setMenu(menu === p.id ? null : p.id); }}>
+      {visible.map(p => <motion.article layout="position" key={p.id} data-ficha={p.id} style={{ '--pessoa': corDaPessoa(p) } as React.CSSProperties} className={`person-card ${densa && view === 'list' ? 'densa' : ''} ${ids.includes(p.id) ? 'selected' : ''} ${p.pinned ? 'is-pinned' : ''} ${!p.deletedAt && rarityFor(calculateOverallRating(p.rating)) === 'lendario' ? 'legendary-glow' : ''}`} transition={{ duration: 0.22 }} onContextMenu={evento => { evento.preventDefault(); setMenu(menu === p.id ? null : p.id); }}>
         {p.pinned && <span className="pinned-flag" title="Fixada no topo"><Pin size={11} /></span>}
         {view === 'grid' ? <>
           <button className="card-photo-button" onClick={() => selectionMode ? selectPerson(p.id) : openPerson(p)} aria-label={`Abrir ficha de ${p.nome}`}><PhotoView person={p} /></button>
@@ -121,6 +125,13 @@ export default function Catalog() {
             <div className="card-bottom"><StarRating readonly size={14} value={calculateOverallRating(p.rating)} />{renderPersonMenu(p)}</div>
             {filter.incomplete && <div className="small-completion"><span>{completeness(p).percent}% completa</span><i style={{ width: `${completeness(p).percent}%` }} /></div>}
           </div>
+        </> : densa ? <>
+          {selectionMode && <input type="checkbox" checked={ids.includes(p.id)} onChange={() => selectPerson(p.id)} aria-label={`Selecionar ${p.nome}`} />}
+          <button className="list-person-open" onClick={() => openPerson(p)} aria-label={`Abrir ficha de ${p.nome}`}>
+            <Avatar person={p} size={34} />
+            <span><strong>{p.nome}{p.favorite && <Heart size={12} className="pink" fill="currentColor" />}</strong><small>{locationLabel(p, data, false)} · ★ {calculateOverallRating(p.rating).toLocaleString('pt-BR', { minimumFractionDigits: 1 })} · {formatDate(p.ultimoVisto || p.createdAt)}</small></span>
+          </button>
+          <div className="densa-acoes">{visibleTags(p).slice(0, 1).map(t => <Tag key={t} name={t} />)}<StarRating value={calculateOverallRating(p.rating)} size={12} readonly showValue={false} />{renderPersonMenu(p)}</div>
         </> : <>
           {selectionMode && <input type="checkbox" checked={ids.includes(p.id)} onChange={() => selectPerson(p.id)} aria-label={`Selecionar ${p.nome}`} />}
           <button className="list-person-open" onClick={() => openPerson(p)}><Avatar person={p} size={60} /><span><strong>{p.nome}{p.favorite && <Heart size={13} className="pink" fill="currentColor" />}</strong><small>{locationLabel(p, data)}</small></span></button>

@@ -210,12 +210,13 @@ describe("casca de celular nova", () => {
 
   it("cabe numa mão só: o topo guarda três alvos e o resto vai para a folha", () => {
     const app = readFileSync(resolve(__dirname, "../src/App.tsx"), "utf8");
-    expect(css).toMatch(/^\.topbar-more \{ display: none; \}$/m);
+    expect(css).toMatch(/^\.topbar-more \{ display: inline-flex; \}$/m);
     const celular = css.slice(css.indexOf("/* ---------------------------------------------------------------- 15.5 doca */"));
-    expect(css).toMatch(/@media \(max-width: 760px\) \{[\s\S]{0,700}\.topbar-more \{ display: inline-flex; \}/);
-    expect(css).toMatch(/\.topbar-actions \.desktop-so \{ display: none; \}/);
-    expect(app).toMatch(/<TopbarMais onAbrirRapidas=\{\(\) => setQuickTools\(true\)\} \/>/);
-    expect((app.match(/desktop-so/g) || []).length).toBe(4);   // raio, disfarce, privacidade e tema
+    // o "⋯" vale nas duas telas; a lupa aparece só no aparelho
+    expect(css).toMatch(/@media \(max-width: 760px\) \{[\s\S]{0,700}\.mobile-search-trigger \{ display: inline-flex; \}/);
+    expect(css).toMatch(/^\.mobile-search-trigger \{ display: none; \}$/m);
+    expect(app).toMatch(/<TopbarMais onAbrirRapidas=\{\(\) => setQuickTools\(true\)\} foco=\{foco\.foco\} onAlternarFoco=\{foco\.alternar\} \/>/);
+    expect((app.match(/desktop-so/g) || []).length).toBe(0);   // nada é exclusivo do computador
     expect(celular).toBeTruthy();
   });
 

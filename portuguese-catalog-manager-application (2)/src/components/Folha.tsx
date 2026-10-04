@@ -116,10 +116,16 @@ export interface AcaoDeFolha {
  * Uma linha por ação, do tamanho do polegar, com a mais perigosa separada em
  * baixo. É o que abre ao segurar uma foto, um cartão ou uma linha.
  */
-export function FolhaDeAcoes({ titulo, subtitulo, itens, aoFechar, acao }: {
+export function FolhaDeAcoes({ titulo, subtitulo, itens, grupos, aoFechar, acao }: {
   titulo?: string;
   subtitulo?: string;
   itens: AcaoDeFolha[];
+  /**
+   * Versão agrupada da mesma folha: quando a lista passa de sete linhas, o
+   * dedo perde o lugar. Com grupos ("Ações", "Organização", "Avançado") o
+   * menu continua sendo um menu, e não uma lixeira de funcionalidades.
+   */
+  grupos?: { titulo?: string; itens: AcaoDeFolha[] }[];
   aoFechar: () => void;
   /** Ação principal extra, mostrada antes das linhas (ex.: "Abrir a foto"). */
   acao?: { rotulo: string; onClick: () => void };
@@ -134,8 +140,9 @@ export function FolhaDeAcoes({ titulo, subtitulo, itens, aoFechar, acao }: {
     }
     aoFechar();
   };
-  const perigosas = itens.filter(item => item.perigo);
-  const comuns = itens.filter(item => !item.perigo);
+  const lista = grupos?.flatMap(grupo => grupo.itens) || itens;
+  const perigosas = lista.filter(item => item.perigo);
+  const comuns = lista.filter(item => !item.perigo);
   const linha = (item: AcaoDeFolha) => {
     const Icone = item.icone;
     return (
@@ -157,8 +164,21 @@ export function FolhaDeAcoes({ titulo, subtitulo, itens, aoFechar, acao }: {
         </div>
       )}
       {acao && <button type="button" className="folha-acao principal" onClick={() => { acao.onClick(); fechar(); }}>{acao.rotulo}</button>}
-      <div className="folha-acoes-lista">{comuns.map(linha)}</div>
-      {perigosas.length > 0 && <div className="folha-acoes-lista perigo">{perigosas.map(linha)}</div>}
+      {grupos
+        ? grupos.map((grupo, indice) => {
+          const linhas = grupo.itens.filter(item => !item.perigo);
+          const graves = grupo.itens.filter(item => item.perigo);
+          if (!grupo.itens.length) return null;
+          return <div className="folha-acoes-grupo" key={grupo.titulo || `grupo-${indice}`}>
+            {grupo.titulo && <p className="folha-grupo-titulo">{grupo.titulo}</p>}
+            {linhas.length > 0 && <div className="folha-acoes-lista">{linhas.map(linha)}</div>}
+            {graves.length > 0 && <div className="folha-acoes-lista perigo">{graves.map(linha)}</div>}
+          </div>;
+        })
+        : <>
+          <div className="folha-acoes-lista">{comuns.map(linha)}</div>
+          {perigosas.length > 0 && <div className="folha-acoes-lista perigo">{perigosas.map(linha)}</div>}
+        </>}
     </Folha>
   );
 }

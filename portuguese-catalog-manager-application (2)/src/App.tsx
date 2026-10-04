@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import { ArrowLeft, ChevronRight, CloudOff, EyeOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Moon, Plus, Redo2, RotateCcw, ScanEye, Search, ShieldCheck, Sparkles, Sun, Undo2, Users, Zap } from 'lucide-react';
+import { ArrowLeft, ChevronRight, CloudOff, Gauge, Heart, Home as HomeIcon, Loader2, LockKeyhole, Menu, Minimize2, Plus, RotateCcw, Search, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { CatalogProvider, useCatalog } from './context';
 import { formatDate, today } from './store';
 import { Avatar, Button, IconButton, Toast } from './components/ui';
@@ -44,6 +44,9 @@ import { playSound } from './lib/sound';
 import { tickDoMundo } from './lib/dialogue/events';
 import { useBordaVoltar } from './lib/toque';
 import { LETTER_PAGES, KONAMI, MIRROR, PAGE_NAMES, SHORTCUT_PAGES } from './app/navigation';
+import { CLASSES_DE_DENSIDADE, classeDaDensidade, rotuloDoFoco, useModoFoco } from './features/interface';
+import { AmbienteBar } from './features/musica';
+import { useCelula } from './lib/dispositivo';
 import PrivacyScreen from './app/components/PrivacyScreen';
 import TopbarMais from './app/components/TopbarMais';
 import StatusDoApp from './app/components/StatusDoApp';
@@ -109,15 +112,10 @@ function Application() {
   useEffect(() => { setDirecao(voltando.current ? 'tras' : 'frente'); voltando.current = false; }, [page]);
 
   // Tela de celular: o dedo que está na largura do aparelho faz o voltar valer.
-  const [celula, setCelula] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const consulta = window.matchMedia('(max-width: 760px)');
-    const atualizar = () => setCelula(!!consulta.matches);
-    atualizar();
-    consulta.addEventListener?.('change', atualizar);
-    return () => consulta.removeEventListener?.('change', atualizar);
-  }, []);
+  // A mesma medida que o CSS usa — ver `useCelula` em `lib/dispositivo`.
+  const celula = useCelula();
+  // Modo foco: a interface recolhe e sobra o conteúdo. Ver `features/interface`.
+  const foco = useModoFoco();
 
   // Rolei um pouco: o topo assume o título e a tela libera espaço para o conteúdo.
   useEffect(() => {
@@ -194,7 +192,7 @@ function Application() {
   }, [data.settings.theme, data.settings.largeText, data.settings.reducedMotion, data.settings.autoTheme, ctx.privacy, authenticated]);
   useEffect(() => {
     document.documentElement.classList.toggle('blur-mode', ctx.blur && authenticated);
-    document.documentElement.classList.toggle('density-compact', data.settings.density === 'compacto');
+    for (const classe of CLASSES_DE_DENSIDADE) document.documentElement.classList.toggle(classe, classe === classeDaDensidade(data.settings.density));
     document.documentElement.style.setProperty('--accent', data.settings.accent || '#c786ec');
     document.documentElement.style.setProperty('--accent-soft', `${data.settings.accent || '#c786ec'}22`);
   }, [ctx.blur, authenticated, data.settings.density, data.settings.accent]);
@@ -246,6 +244,9 @@ function Application() {
         || target.isContentEditable || !!focado?.isContentEditable;
       // Quem está escrevendo (inclusive na conversa aberta fora de modal) não dispara atalhos.
       if (digitando || document.querySelector('[role="dialog"]')) return;
+      // Modo foco no teclado. Fica fora do alfabeto de atalhos soltos porque
+      // "f" já leva aos favoritos; Alt+F vale em qualquer tela.
+      if (event.altKey && !mod && value === 'f') { event.preventDefault(); foco.alternar(); return; }
       if (!mod && !event.altKey) {
         // Código-espelho: o konami de cabeça para baixo. Uma vez por catálogo.
         if (value.startsWith('arrow')) {
@@ -314,18 +315,17 @@ function Application() {
             <span className="topbar-breadcrumb">Meu espaço<ChevronRight size={12} /><b>{PAGE_NAMES[page] || 'Organizar'}</b></span>
             <button className="global-search" onClick={() => ctx.setCommandOpen(true)}><Search size={16} /><span>Buscar pessoas, tags e muito mais...</span><kbd>Ctrl K</kbd></button>
           </div>
+          {/* Topo enxuto: o que é ação provável fica à vista (buscar, avisos,
+              perfil) e o que é ferramenta — disfarce, privacidade, tema,
+              desfazer, foco — vive no "⋯", agrupado. Ver `app/components/TopbarMais`. */}
           <div className="topbar-actions">
-            <IconButton label="Abrir ações rápidas (Q)" className="quick-tools-trigger desktop-so" onClick={() => setQuickTools(true)} data-tour="quick"><Zap size={17} /></IconButton>
+            <IconButton label="Buscar (Ctrl+K)" className="mobile-search-trigger" onClick={() => ctx.setCommandOpen(true)}><Search size={19} /></IconButton>
             {/* TopbarMais compõe a FolhaDeAcoes titulo="O que você precisa agora?" em app/components. */}
-            <TopbarMais onAbrirRapidas={() => setQuickTools(true)} />
+            <TopbarMais onAbrirRapidas={() => setQuickTools(true)} foco={foco.foco} onAlternarFoco={foco.alternar} />
             <div className={`save-status ${ctx.status === 'error' ? 'save-error' : ''}`} title={ctx.demo ? 'As alterações da demonstração não são gravadas.' : `Última gravação: ${formatDate(ctx.lastSavedAt, true)}`}>
               {ctx.demo ? <><CloudOff size={13} /><span>Demonstração</span></> : ctx.status === 'saved' ? <><span className="saved-dot" /><span>Tudo salvo</span></> : ctx.status === 'error' ? <button onClick={ctx.retrySave}><RotateCcw size={13} />Tentar salvar</button> : <><Loader2 size={13} className="spin" /><span>Salvando...</span></>}
             </div>
-            <div className="history-buttons"><IconButton label="Desfazer última alteração (Ctrl+Z)" disabled={!ctx.canUndo} onClick={ctx.undo}><Undo2 size={16} /></IconButton><IconButton label="Refazer alteração (Ctrl+Shift+Z)" disabled={!ctx.canRedo} onClick={ctx.redo}><Redo2 size={16} /></IconButton></div>
             <NotificationCenter />
-            <IconButton label={ctx.blur ? 'Desativar modo disfarce (B)' : 'Ativar modo disfarce (B)'} className="desktop-so" onClick={() => ctx.setBlur(!ctx.blur)}><ScanEye size={17} /></IconButton>
-            <IconButton label="Ativar privacidade (Ctrl+Shift+P)" className="desktop-so" onClick={() => ctx.setPrivacy(true)}><EyeOff size={17} /></IconButton>
-            <IconButton label={data.settings.theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'} className="desktop-so" onClick={() => ctx.commit(d => ({ ...d, settings: { ...d.settings, theme: d.settings.theme === 'dark' ? 'light' : 'dark' } }), undefined, false)}>{data.settings.theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</IconButton>
             <button className="topbar-profile" aria-label="Editar meu perfil" onClick={() => ctx.navigate('settings')}><Avatar src={data.settings.avatar} name={data.settings.profileName} size={32} /></button>
           </div>
         </header>
@@ -338,14 +338,18 @@ function Application() {
           <button onClick={() => ctx.navigate('guide')}>Atalhos e ajuda</button>
         </div>
       </div>
+      {/* Docas e barras: cinco itens, no máximo. "Mais" abre a gaveta, que já é
+          agrupada (Seu espaço · Explorar · Progresso · Biblioteca). O que
+          estava espalhado na doca — buscar — vira o ícone de lupa no topo. */}
       <nav className="mobile-bottom-nav" aria-label="Navegação rápida">
         <button className={page === 'home' ? 'active' : ''} onClick={() => { ctx.buzz?.(6); ctx.navigate('home'); }}><HomeIcon size={20} /><span>Início</span></button>
-        <button className={page === 'catalog' ? 'active' : ''} onClick={() => { ctx.buzz?.(6); ctx.navigate('catalog'); }}><Users size={20} /><span>Catálogo</span></button>
+        <button className={page === 'catalog' ? 'active' : ''} onClick={() => { ctx.buzz?.(6); ctx.navigate('catalog'); }}><Users size={20} /><span>Pessoas</span></button>
         <button aria-label="Adicionar pessoa" aria-expanded={ctx.quickOpen} onClick={abrirAdicionar} className="mobile-add"><span><Plus size={24} /></span><small>Adicionar</small></button>
-        <button onClick={() => ctx.setCommandOpen(true)}><Search size={20} /><span>Buscar</span></button>
-        <button onClick={() => setMobileMenu(true)} aria-expanded={mobileMenu}><Menu size={20} /><span>Menu</span></button>
+        <button className={page === 'discover' ? 'active' : ''} onClick={() => { ctx.buzz?.(6); ctx.navigate('discover'); }}><Sparkles size={20} /><span>Explorar</span></button>
+        <button onClick={() => setMobileMenu(true)} aria-expanded={mobileMenu}><Menu size={20} /><span>Mais</span></button>
       </nav>
     </div>
+    {foco.foco && <button className="foco-saida" onClick={() => { ctx.buzz?.(6); foco.alternar(); }} aria-label={rotuloDoFoco(true)}><Minimize2 size={15} />Sair do foco</button>}
     {quickTools && <QuickTools onClose={() => setQuickTools(false)} />}
     {selected && <PersonDrawer key={selected.id} person={selected} />}
     {ctx.quickOpen && <QuickAddModal />}
@@ -356,6 +360,8 @@ function Application() {
     <AnimatePresence>{!ctx.privacy && ctx.celebration && (ctx.celebration.kind === 'nivel'
       ? <LevelUpBadge key={ctx.celebration.id} level={ctx.celebration.level || ctx.level.level} title={ctx.celebration.description} onClose={ctx.dismissCelebration} />
       : <AchievementToast key={ctx.celebration.id} title={ctx.celebration.title} description={ctx.celebration.description} onClose={ctx.dismissCelebration} />)}</AnimatePresence>
+    {/* A música do site vive fora das telas: a pílula aparece só quando há um clima ligado. */}
+    {!ctx.privacy && <AmbienteBar />}
     {ctx.privacy && <PrivacyScreen />}
     {!ctx.privacy && <Toast />}
     {!ctx.privacy && <OnboardingTour />}

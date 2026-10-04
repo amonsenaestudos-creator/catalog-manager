@@ -552,11 +552,25 @@ export interface AppData {
     splash?: boolean;
     panicEnabled?: boolean;
     blurMode?: boolean;
-    density?: 'confortavel' | 'compacto';
+    density?: 'compacta' | 'confortavel' | 'espacosa';
     trashAutoCleanDays?: number;
     // Sons de interface gerados por código (ligados por padrão) e extras divertidos.
     sounds?: boolean;
     soundVolume?: number;
+    /**
+     * Música por link: cada clima do Ambiente e cada trilha da apresentação
+     * guarda aqui o endereço escolhido. Ausente = usar a busca curada.
+     * Chave é o id da música (`chuva`, `lofi`, `cinematico`…).
+     */
+    musicaLinks?: Record<string, string>;
+    /**
+     * Clima ligado no momento (`chuva`, `lofi`…), vazio quando ninguém escolheu.
+     * O som volta sozinho no primeiro toque da próxima visita — nunca por
+     * autoplay forçado, que o navegador bloquearia.
+     */
+    ambienteAtivo?: string;
+    /** Volume do ambiente, de 0 a 100. */
+    ambienteVolume?: number;
     haptics?: boolean;
     confetti?: boolean;
     // Conversas: modo adulto (opt-in), ritmo e estilo da simulação.

@@ -5,6 +5,7 @@ import { useCatalog } from '../../../context';
 import { formatDate, getAllPhotos, isActive, today } from '../../../store';
 import type { Photo, Person } from '../../../types';
 import { Button, EmptyState, IconButton, PageTitle, SectionHeading } from '../../../components/ui';
+import { PlayerDeMusica, SEM_MUSICA, TRILHAS_DA_APRESENTACAO, ehClimaDoAmbiente, musicaPorId, pararAmbiente, definirVolumeDoAmbiente, tocarAmbiente, volumeDoAmbiente } from '../../musica';
 
 type Icon = ComponentType<{ size?: number; strokeWidth?: number }>;
 type GiftKind = 'pessoa' | 'foto' | 'colecao' | 'memoria' | 'historia' | 'estatistica';
@@ -97,6 +98,18 @@ export default function Momentos() {
     return nodes;
   }, [people, photos, data.collections, data.memories, chainStep]);
 
+  // Clima salvo de outra visita: aparece como escolhido e começa no primeiro
+  // toque da página — som sem gesto o navegador bloqueia, e forçar seria pior.
+  useEffect(() => {
+    const salvo = data.settings.ambienteAtivo || '';
+    if (!ehClimaDoAmbiente(salvo) || data.settings.sounds === false) return;
+    setAmbient(salvo);
+    definirVolumeDoAmbiente(data.settings.ambienteVolume ?? volumeDoAmbiente());
+    tocarAmbiente(salvo);
+    // Só na entrada da tela: o som é do site, não desta renderização.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const playDiscovery = () => {
     setChainStep(step => step + 1);
     if (soundOn) ctx.sound('swoosh');
@@ -119,7 +132,7 @@ export default function Momentos() {
 
   return <div className="moments-page">
     <PageTitle eyebrow="Seu catálogo em movimento" title="Momentos" description="Uma forma calma de voltar ao que importa — sem obrigação de entrar todos os dias.">
-      <Button onClick={() => setSoundOn(value => !value)} aria-pressed={soundOn}>{soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}Som: {soundOn ? 'ligado' : 'desligado'}</Button>
+      <Button onClick={() => { const proximo = !soundOn; setSoundOn(proximo); if (!proximo) { pararAmbiente(); setAmbient(null); ctx.commit(d => ({ ...d, settings: { ...d.settings, ambienteAtivo: '' } }), undefined, false); } }} aria-pressed={soundOn}>{soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}Som: {soundOn ? 'ligado' : 'desligado'}</Button>
       <Button variant="primary" onClick={() => setPresentationOpen(true)} disabled={!photos.length}><CirclePlay size={17} />Modo apresentação</Button>
     </PageTitle>
 
@@ -163,7 +176,15 @@ export default function Momentos() {
         <div className="moments-panel-heading"><div><span className="eyebrow">Enquanto você organiza</span><h2><Headphones size={18} />Ambiente</h2></div><span className={`ambient-live ${ambient ? 'on' : ''}`}><i />{ambient ? 'ativo' : 'opcional'}</span></div>
         <p className="moments-panel-description">Escolha um clima para deixar o catálogo aberto. Sem contagem regressiva, sem pressão.</p>
         <div className="ambient-visual" style={{ '--ambient-color': ambientOptions.find(option => option.id === ambient)?.color || '#c786ec' } as CSSProperties}><div className="ambient-wave ambient-wave-a" /><div className="ambient-wave ambient-wave-b" /><span>{ambient ? ambientOptions.find(option => option.id === ambient)?.label : 'Seu ritmo'}</span></div>
-        <div className="ambient-options">{ambientOptions.map(option => { const AmbientIcon = option.icon; return <button key={option.id} className={ambient === option.id ? 'active' : ''} onClick={() => { setAmbient(value => value === option.id ? null : option.id); if (soundOn) ctx.sound('success'); }} aria-pressed={ambient === option.id}><AmbientIcon size={16} /><span>{option.label}<small>{option.detail}</small></span></button>; })}</div>
+        <div className="ambient-options">{ambientOptions.map(option => { const AmbientIcon = option.icon; return <button key={option.id} className={ambient === option.id ? 'active' : ''} onClick={() => {
+            const desligando = ambient === option.id;
+            setAmbient(desligando ? null : option.id);
+            if (desligando) { pararAmbiente(); ctx.commit(d => ({ ...d, settings: { ...d.settings, ambienteAtivo: '' } }), undefined, false); }
+            else if (soundOn) { definirVolumeDoAmbiente(data.settings.ambienteVolume ?? 40); tocarAmbiente(option.id); ctx.commit(d => ({ ...d, settings: { ...d.settings, ambienteAtivo: option.id } }), undefined, false); }
+            if (soundOn) ctx.sound('success');
+          }} aria-pressed={ambient === option.id}><AmbientIcon size={16} /><span>{option.label}<small>{option.detail}</small></span></button>; })}</div>
+        {/* O clima não é só cor: escolhido, ele abre o player logo abaixo. */}
+        {!!musicaPorId(ambient || '') && <PlayerDeMusica musica={musicaPorId(ambient || '')!} />}
       </section>
     </div>
 
@@ -190,13 +211,14 @@ function Presentation({ onClose, photos, people, soundOn, onSound }: { onClose: 
   const ctx = useCatalog();
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [track, setTrack] = useState('Minimalista');
+  const [track, setTrack] = useState('minimalista');
   const current = photos[index];
   const owner = current?.personId ? people.get(current.personId) : undefined;
-  const tracks = ['Ambiente', 'Cinemático', 'Eletrônico', 'Minimalista', 'Sem música'];
-  const next = (direction: number) => { setIndex(value => (value + direction + photos.length) % photos.length); if (soundOn && track !== 'Sem música') ctx.sound('swoosh'); };
+  const tracks = [{ id: SEM_MUSICA, rotulo: 'Sem música' }, ...TRILHAS_DA_APRESENTACAO];
+  const trilha = musicaPorId(track);
+  const next = (direction: number) => { setIndex(value => (value + direction + photos.length) % photos.length); if (soundOn && track !== SEM_MUSICA) ctx.sound('swoosh'); };
   useEffect(() => { if (!playing || !photos.length) return; const timer = window.setInterval(() => next(1), 4300); return () => window.clearInterval(timer); }, [playing, photos.length, soundOn, track]);
-  useEffect(() => { if (soundOn && track !== 'Sem música') ctx.sound('success'); }, []);
   if (!current) return null;
-  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Modo apresentação"><div className="presentation-shell"><div className="presentation-topbar"><div><span className="eyebrow">Catálogo em reprodução</span><h2>{owner?.nome || current.name || 'Uma memória'}</h2></div><div className="presentation-top-actions"><IconButton label={soundOn ? 'Desligar som' : 'Ligar som'} onClick={onSound}>{soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</IconButton><IconButton label="Fechar apresentação" onClick={onClose}><X size={20} /></IconButton></div></div><div className="presentation-stage"><AnimatePresence mode="wait"><motion.div className="presentation-photo" key={current.id} initial={{ opacity: 0, scale: .985 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: .35 }}><img src={current.url} alt={owner ? `Foto de ${owner.nome}` : 'Foto do catálogo'} /></motion.div></AnimatePresence><button className="presentation-arrow presentation-prev" onClick={() => next(-1)} aria-label="Foto anterior"><ChevronLeft size={23} /></button><button className="presentation-arrow presentation-next" onClick={() => next(1)} aria-label="Próxima foto"><ChevronRight size={23} /></button><div className="presentation-counter">{String(index + 1).padStart(2, '0')} / {String(photos.length).padStart(2, '0')}</div></div><div className="presentation-controls"><button className="presentation-play" onClick={() => setPlaying(value => !value)}>{playing ? <Pause size={17} /> : <Play size={17} />} {playing ? 'Pausar' : 'Reproduzir'}</button><div className="presentation-tracks"><span><Music2 size={14} />Trilha</span>{tracks.map(option => <button key={option} className={track === option ? 'active' : ''} onClick={() => setTrack(option)}>{option}</button>)}</div><div className="presentation-thumbs">{photos.slice(0, 8).map((photo, thumbIndex) => <button key={photo.id} className={thumbIndex === index ? 'active' : ''} onClick={() => setIndex(thumbIndex)} aria-label={`Ir para foto ${thumbIndex + 1}`}><img src={photo.url} alt="" /></button>)}</div></div></div></div>;
+  return <div className="presentation-overlay" role="dialog" aria-modal="true" aria-label="Modo apresentação"><div className="presentation-shell"><div className="presentation-topbar"><div><span className="eyebrow">Catálogo em reprodução</span><h2>{owner?.nome || current.name || 'Uma memória'}</h2></div><div className="presentation-top-actions"><IconButton label={soundOn ? 'Desligar som' : 'Ligar som'} onClick={onSound}>{soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</IconButton><IconButton label="Fechar apresentação" onClick={onClose}><X size={20} /></IconButton></div></div><div className="presentation-stage"><AnimatePresence mode="wait"><motion.div className="presentation-photo" key={current.id} initial={{ opacity: 0, scale: .985 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: .35 }}><img src={current.url} alt={owner ? `Foto de ${owner.nome}` : 'Foto do catálogo'} /></motion.div></AnimatePresence><button className="presentation-arrow presentation-prev" onClick={() => next(-1)} aria-label="Foto anterior"><ChevronLeft size={23} /></button><button className="presentation-arrow presentation-next" onClick={() => next(1)} aria-label="Próxima foto"><ChevronRight size={23} /></button><div className="presentation-counter">{String(index + 1).padStart(2, '0')} / {String(photos.length).padStart(2, '0')}</div></div><div className="presentation-controls"><button className="presentation-play" onClick={() => setPlaying(value => !value)}>{playing ? <Pause size={17} /> : <Play size={17} />} {playing ? 'Pausar' : 'Reproduzir'}</button><div className="presentation-tracks"><span><Music2 size={14} />Trilha</span>{tracks.map(option => <button key={option.id} className={track === option.id ? 'active' : ''} onClick={() => setTrack(option.id)}>{option.rotulo}</button>)}</div><div className="presentation-thumbs">{photos.slice(0, 8).map((photo, thumbIndex) => <button key={photo.id} className={thumbIndex === index ? 'active' : ''} onClick={() => setIndex(thumbIndex)} aria-label={`Ir para foto ${thumbIndex + 1}`}><img src={photo.url} alt="" /></button>)}</div></div>
+        {trilha && <PlayerDeMusica musica={trilha} compacto className="presentation-musica" />}</div></div>;
 }

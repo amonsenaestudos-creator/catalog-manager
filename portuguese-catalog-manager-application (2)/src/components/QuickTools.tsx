@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { Archive, Bell, CalendarClock, CheckCircle2, Clipboard, Columns3, Download, EyeOff, FileWarning, FolderOpen, GalleryHorizontal, Gauge, Heart, ImageOff, Maximize2, Moon, Plus, RefreshCw, ScanEye, Search, Share2, Shuffle, SlidersHorizontal, Sparkles, Star, Sun, Trophy, Users } from 'lucide-react';
 import { useCatalog } from '../context';
+import { informacaoDaDensidade, proximaDensidade } from '../features/interface';
 import { DEFAULT_FILTER, exportCsv, isActive } from '../store';
 import { Modal } from './ui';
 
@@ -58,7 +59,7 @@ export default function QuickTools({ onClose }: { onClose: () => void }) {
     { title: ctx.blur ? 'Mostrar conteúdo' : 'Modo disfarce', description: 'Desfoque fotos e nomes rapidamente', icon: ScanEye, run: closeRun(() => ctx.setBlur(!ctx.blur)) },
     { title: 'Privacidade', description: 'Cubra toda a tela imediatamente', icon: EyeOff, run: closeRun(() => ctx.setPrivacy(true)) },
     { title: data.settings.theme === 'dark' ? 'Tema claro' : 'Tema escuro', description: 'Troque o tema com um toque', icon: data.settings.theme === 'dark' ? Sun : Moon, run: () => ctx.commit(d => ({ ...d, settings: { ...d.settings, theme: d.settings.theme === 'dark' ? 'light' : 'dark' } }), undefined, false) },
-    { title: data.settings.density === 'compacto' ? 'Densidade confortável' : 'Densidade compacta', description: 'Ajuste quanto cabe na tela', icon: SlidersHorizontal, run: () => ctx.commit(d => ({ ...d, settings: { ...d.settings, density: d.settings.density === 'compacto' ? 'confortavel' : 'compacto' } }), undefined, false) },
+    { title: `Densidade: ${informacaoDaDensidade(data.settings.density).nome}`, description: `Passa para ${informacaoDaDensidade(proximaDensidade(data.settings.density)).nome.toLowerCase()}`, icon: SlidersHorizontal, run: () => ctx.commit(d => ({ ...d, settings: { ...d.settings, density: proximaDensidade(d.settings.density) } }), `Densidade ${informacaoDaDensidade(proximaDensidade(data.settings.density)).nome.toLowerCase()}.`, false) },
     { title: 'Tela cheia', description: 'Ganhe espaço no celular ou tablet', icon: Maximize2, run: closeRun(fullscreen) },
     { title: 'Catálogo completo', description: `${people.length} pessoas ativas`, icon: Users, run: catalog() },
   ];
