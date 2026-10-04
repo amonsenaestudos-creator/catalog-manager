@@ -2557,8 +2557,8 @@ html.foco .ambiente-bar:hover, html.foco .ambiente-bar:focus-within { opacity: 1
 .figura-palco canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .figura-sem-canvas { display: flex; gap: 8px; max-width: 320px; margin: 0; padding: 16px; color: var(--muted); font-size: 12px; line-height: 1.55; }
 .figura-controles, .figura-ajustes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.figura-controles button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11px; }
-.figura-controles button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--txt); }
+.figura-controles button, .figura-silhueta { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11px; }
+.figura-controles button[aria-pressed="true"], .figura-silhueta[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--txt); }
 .figura-controles button:disabled { opacity: .5; cursor: not-allowed; }
 .figura-ajustes { justify-content: space-between; }
 .figura-ajustes label { display: flex; align-items: center; gap: 7px; color: var(--faint); font-size: 11px; }
