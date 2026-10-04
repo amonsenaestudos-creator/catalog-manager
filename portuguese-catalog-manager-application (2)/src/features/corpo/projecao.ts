@@ -154,16 +154,26 @@ export function projetarModelo(pecas: PecaDoModelo[], yaw: number, pitch: number
     .sort((a, b) => a.profundidade - b.profundidade);
 }
 
-/** Altura total que a figura ocupa depois de girada (para enquadrar na tela). */
+/**
+ * Altura total que a figura ocupa depois de girada (para enquadrar na tela).
+ *
+ * A conta usa a **caixa exata** de cada elipse girada, eixo por eixo. A versão
+ * antiga usava `hypot(rx, ry)` nos dois eixos — o que fazia a sombra de contato
+ * (larga e quase sem altura) inflar a figura para baixo, e o boneco aparecia
+ * pequeno no meio do palco, com um vazio embaixo dos pés.
+ */
 export function caixaDoModelo(elipses: ElipseProjetada[]): { largura: number; altura: number; base: number; topo: number } {
   if (!elipses.length) return { largura: 0, altura: 0, base: 0, topo: 0 };
   let esquerda = Infinity, direita = -Infinity, base = Infinity, topo = -Infinity;
   for (const elipse of elipses) {
-    const alcance = Math.hypot(elipse.rx, elipse.ry);
-    esquerda = Math.min(esquerda, elipse.centro[0] - alcance);
-    direita = Math.max(direita, elipse.centro[0] + alcance);
-    base = Math.min(base, elipse.centro[1] - alcance);
-    topo = Math.max(topo, elipse.centro[1] + alcance);
+    const theta = (elipse.angulo * Math.PI) / 180;
+    const cosseno = Math.abs(Math.cos(theta)), seno = Math.abs(Math.sin(theta));
+    const meiaLargura = Math.hypot(elipse.rx * cosseno, elipse.ry * seno);
+    const meiaAltura = Math.hypot(elipse.rx * seno, elipse.ry * cosseno);
+    esquerda = Math.min(esquerda, elipse.centro[0] - meiaLargura);
+    direita = Math.max(direita, elipse.centro[0] + meiaLargura);
+    base = Math.min(base, elipse.centro[1] - meiaAltura);
+    topo = Math.max(topo, elipse.centro[1] + meiaAltura);
   }
   return { largura: direita - esquerda, altura: topo - base, base, topo };
 }

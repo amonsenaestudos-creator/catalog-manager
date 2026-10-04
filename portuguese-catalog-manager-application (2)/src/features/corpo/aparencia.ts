@@ -106,26 +106,45 @@ export interface Roupa {
   /** A peça de baixo (calça, short, saia). */
   baixo: string;
   sapato: string;
+  /**
+   * Onde a peça de baixo termina, em fração da altura: 0,07 é calça comprida,
+   * 0,33 é saia na altura do joelho. É o que faz uma pessoa de calça e outra de
+   * saia serem reconhecíveis como duas pessoas, e não só duas cores.
+   */
+  barra: number;
+  /** Quanto a barra abre em relação à perna (calça justa 1, calça larga 1,35). */
+  folga: number;
 }
 
 /**
- * Cada estilo de roupa é uma paleta — três cores, não trinta. O objetivo não é
- * moda: é reconhecer a pessoa de longe, na silhueta colorida.
+ * Cada estilo de roupa é uma paleta — três cores, não trinta — e um corte. O
+ * objetivo não é moda: é reconhecer a pessoa de longe, na silhueta colorida.
  */
 export const ROUPAS: Record<string, Roupa> = {
-  'casual': { topo: '#6f8fbf', baixo: '#3f4a63', sapato: '#efe9e4' },
-  'social': { topo: '#33333d', baixo: '#26262e', sapato: '#191920' },
-  'esportivo': { topo: '#2fb3a0', baixo: '#2b3550', sapato: '#f2f2f2' },
-  'clássico': { topo: '#8c6f4f', baixo: '#4d4133', sapato: '#3a2f26' },
-  'alternativo': { topo: '#6b4d8f', baixo: '#2c2436', sapato: '#1f1a24' },
-  'streetwear': { topo: '#e2603f', baixo: '#2f3138', sapato: '#f4f0e6' },
-  'romântico': { topo: '#e8a9bd', baixo: '#b98fa8', sapato: '#fbf4f6' },
-  'minimalista': { topo: '#d8d5da', baixo: '#3b3a40', sapato: '#8f8d94' },
-  'vintage': { topo: '#b98b5e', baixo: '#5b4a3a', sapato: '#e8dfc9' },
-  'criativo': { topo: '#4fa5c9', baixo: '#a1573f', sapato: '#f0e2b6' },
+  'casual': { topo: '#6f8fbf', baixo: '#3f4a63', sapato: '#efe9e4', barra: 0.08, folga: 1.12 },
+  'social': { topo: '#33333d', baixo: '#26262e', sapato: '#191920', barra: 0.06, folga: 1.0 },
+  'esportivo': { topo: '#2fb3a0', baixo: '#2b3550', sapato: '#f2f2f2', barra: 0.07, folga: 1.02 },
+  'clássico': { topo: '#8c6f4f', baixo: '#4d4133', sapato: '#3a2f26', barra: 0.06, folga: 1.0 },
+  'alternativo': { topo: '#6b4d8f', baixo: '#2c2436', sapato: '#1f1a24', barra: 0.07, folga: 1.05 },
+  'streetwear': { topo: '#e2603f', baixo: '#2f3138', sapato: '#f4f0e6', barra: 0.09, folga: 1.35 },
+  'romântico': { topo: '#e8a9bd', baixo: '#b98fa8', sapato: '#fbf4f6', barra: 0.33, folga: 1.5 },
+  'minimalista': { topo: '#d8d5da', baixo: '#3b3a40', sapato: '#8f8d94', barra: 0.07, folga: 1.08 },
+  'vintage': { topo: '#b98b5e', baixo: '#5b4a3a', sapato: '#e8dfc9', barra: 0.24, folga: 1.3 },
+  'criativo': { topo: '#4fa5c9', baixo: '#a1573f', sapato: '#f0e2b6', barra: 0.08, folga: 1.18 },
 };
 
-const ROUPA_PADRAO: Roupa = { topo: '#8b7fa8', baixo: '#3a3644', sapato: '#2c2933' };
+/** Sem estilo declarado: calça comprida e um top da cor da pessoa. */
+const ROUPA_PADRAO: Roupa = { topo: '#8b7fa8', baixo: '#3a3644', sapato: '#2c2933', barra: 0.075, folga: 0.98 };
+
+/**
+ * Só o corte (barra e folga) do estilo declarado. A figura precisa disso para
+ * posicionar a peça de baixo, e a cor fica com quem desenha.
+ */
+export function corteDaRoupa(person: Person): { barra: number; folga: number } {
+  const estilo = (person.estiloRoupa || '').trim().toLowerCase();
+  const roupa = ROUPAS[estilo] || ROUPA_PADRAO;
+  return { barra: roupa.barra, folga: roupa.folga };
+}
 
 /**
  * A roupa da figura: o estilo declarado na ficha. `personalizado` (ou campo
@@ -138,7 +157,37 @@ export function roupaDe(person: Person, corDaPessoa: string): Roupa {
   return ROUPAS[estilo] || { ...ROUPA_PADRAO, topo: corDaPessoa };
 }
 
+/* --------------------------------------------------------------- silhueta -- */
+
+/**
+ * Leitura da silhueta a partir do que a ficha diz.
+ *
+ * A ficha não tem um campo de gênero, e não é para ter. Mas o tipo de corpo, o
+ * cabelo e o estilo de roupa juntos já dizem para que lado a figura deve
+ * pender — e o corpo humano tem, sim, duas leituras de proporção (ombros mais
+ * largos de um lado, quadril mais largo do outro). O ajuste é pequeno de
+ * propósito: ele arredonda a leitura, não decide quem a pessoa é.
+ */
+export type Silhueta = 'feminina' | 'masculina' | 'neutra';
+
+const FAMILIAS_FEMININAS: FamiliaDeCabelo[] = ['longo', 'ondulado', 'cacheado', 'franja', 'medio'];
+
+export function silhuetaDe(person: Person): Silhueta {
+  const tipo = (person.tipoCorpo || '').trim().toLowerCase();
+  const familia = familiaDoCabelo(person.cabeloTipo);
+  const estilo = (person.estiloRoupa || '').trim().toLowerCase();
+  let feminina = 0, masculina = 0;
+  if (tipo === 'curvilíneo' || tipo === 'plus size') feminina += 2;
+  if (FAMILIAS_FEMININAS.includes(familia)) feminina += 1;
+  if (estilo === 'romântico') feminina += 1;
+  if (familia === 'moicano' || familia === 'mullet') masculina += 2;
+  if (tipo === 'atlético' || tipo === 'robusto') masculina += 1;
+  if (person.cabeloTipo && ['raspado', 'undercut'].includes((person.cabeloTipo || '').trim().toLowerCase())) masculina += 1;
+  if (feminina === masculina) return 'neutra';
+  return feminina > masculina ? 'feminina' : 'masculina';
+}
+
 /** Versão monocromática, para o modo silhueta: só a forma importa. */
-export const ROUPA_SILHUETA: Roupa = { topo: '#7a7684', baixo: '#615d6c', sapato: '#4a4753' };
+export const ROUPA_SILHUETA: Roupa = { topo: '#7a7684', baixo: '#615d6c', sapato: '#4a4753', barra: 0.075, folga: 1.1 };
 export const PELE_SILHUETA = '#8d8996';
 export const CABELO_SILHUETA = '#6f6b7a';

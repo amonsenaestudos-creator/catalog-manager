@@ -16,7 +16,7 @@
 import { getDefaultPerson, RATING_FIELDS } from '../../store';
 import type { Person } from '../../types';
 import { metrosDaAltura } from './altura';
-import { familiaDoCabelo, type FamiliaDeCabelo } from './aparencia';
+import { corteDaRoupa, familiaDoCabelo, silhuetaDe, type FamiliaDeCabelo, type Silhueta } from './aparencia';
 
 /** Os critérios que mexem no desenho, e como cada um pesa. */
 export const CRITERIOS_DE_FORMA: Record<string, { papel: string; rotulo: string }> = {
@@ -60,6 +60,12 @@ export interface Proporcoes {
   pernas: number;
   tronco: number;
   cabeca: number;
+  /** Onde a peça de baixo termina (0,07 calça comprida · 0,33 saia no joelho). */
+  barraDaCalca: number;
+  /** Quanto a barra abre em relação à perna (1 calça justa · 1,5 saia rodada). */
+  folgaDaBarra: number;
+  /** Leitura da silhueta: arredonda ombros e quadril para o lado certo. */
+  silhueta: Silhueta;
 }
 
 export interface ExplicacaoDaForma {
@@ -128,12 +134,18 @@ export function lerForma(person: Person): LeituraDaForma {
   const volume = tipo.volume * aspectoDoCorpo;
   const largura = (base: number) => base * escala * volume;
 
-  const ombros = largura(BASE.ombros * tipo.ombros);
-  const quadril = largura(BASE.quadril * tipo.quadril) * passoDaNota(nota(person, 'quadril'), 'quadril');
+  // A silhueta só arredonda a leitura: ombros e quadril puxam para o lado que a
+  // ficha sugere (tipo de corpo, cabelo e estilo), em passos pequenos.
+  const silhueta = silhuetaDe(person);
+  const peso = silhueta === 'feminina' ? { ombros: 0.95, cintura: 0.93, quadril: 1.06 }
+    : silhueta === 'masculina' ? { ombros: 1.06, cintura: 1.0, quadril: 0.95 }
+      : { ombros: 1, cintura: 1, quadril: 1 };
+  const ombros = largura(BASE.ombros * tipo.ombros) * peso.ombros;
+  const quadril = largura(BASE.quadril * tipo.quadril) * passoDaNota(nota(person, 'quadril'), 'quadril') * peso.quadril;
   const passoPeito = passoDaNota(nota(person, 'peitos'), 'peitos');
   const passoBunda = passoDaNota(nota(person, 'bunda'), 'bunda');
   const peito = largura(BASE.peito);
-  const cintura = largura(BASE.cintura * tipo.cintura);
+  const cintura = largura(BASE.cintura * tipo.cintura) * peso.cintura;
   const profundidadePeito = arredondar(BASE.profundidadePeito * escala * volume, 4);
   const profundidadeCintura = arredondar(BASE.profundidadeCintura * escala * volume, 4);
   const profundidadeQuadril = arredondar(BASE.profundidadeQuadril * escala * volume * 0.88, 4);
@@ -142,6 +154,7 @@ export function lerForma(person: Person): LeituraDaForma {
   const seios = arredondar(altura * 0.0255 * passoPeito, 4);
   const gluteos = arredondar(altura * 0.027 * passoBunda, 4);
   const cabeloVolume = passoDaNota(nota(person, 'cabelo'), 'cabelo');
+  const roupa = corteDaRoupa(person);
 
   const proporcoes: Proporcoes = {
     altura, alturaEstimada: alturaLida.estimativa,
@@ -153,6 +166,8 @@ export function lerForma(person: Person): LeituraDaForma {
     // Pernas longas o bastante para a figura parecer gente, e a cabeça na
     // proporção clássica de ateliê (1/7,5 da altura).
     pernas: 0.47, tronco: 0.38, cabeca: 1 / 7.5,
+    // O corte da peça de baixo vem do estilo de roupa; sem estilo, calça comprida.
+    barraDaCalca: roupa.barra, folgaDaBarra: roupa.folga, silhueta,
   };
 
   // Explicações: o que entrou na conta e o que ficou de fora, com o valor lido.

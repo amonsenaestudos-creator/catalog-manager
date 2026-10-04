@@ -151,10 +151,10 @@ describe('modelo e projeção', () => {
     const ids = pecas.map(peca => peca.id);
     expect(ids).toContain('cabeca');
     // Cada trecho do corpo é fatiado: um controle a mais é um trecho a mais.
-    expect(ids.filter(id => id.startsWith('pernad-'))).toHaveLength(10 * 3);
-    expect(ids.filter(id => id.startsWith('pernae-'))).toHaveLength(10 * 3);
-    expect(ids.filter(id => id.startsWith('calcad-'))).toHaveLength(10 * 2);
-    expect(ids.filter(id => id.startsWith('calcae-'))).toHaveLength(10 * 2);
+    expect(ids.filter(id => id.startsWith('pernad-'))).toHaveLength(10 * 4);
+    expect(ids.filter(id => id.startsWith('pernae-'))).toHaveLength(10 * 4);
+    expect(ids.filter(id => id.startsWith('calcad-'))).toHaveLength(10 * 3);
+    expect(ids.filter(id => id.startsWith('calcae-'))).toHaveLength(10 * 3);
     expect(ids.filter(id => id.startsWith('bracod-'))).toHaveLength(10 * 4);
     expect(ids.filter(id => id.startsWith('bracoe-'))).toHaveLength(10 * 4);
     expect(ids.filter(id => id.startsWith('pe-'))).toHaveLength(2);
@@ -297,23 +297,23 @@ describe('cabelo, pele e roupa', () => {
     expect(tem('coque', 'cabelo-coque')).toBe(true);
     expect(tem('moicano', 'crista-')).toBe(true);
     expect(tem('dreadlock', 'tranca-')).toBe(true);
-    // Cabelo comprido desce muito abaixo do ombro; cabelo curto nem tem mecha.
+    // Cabelo comprido desce abaixo da cintura; cabelo curto nem tem cascata.
     const fundo = (tipo: string) => Math.min(...desenho(tipo)
-      .filter(peca => peca.id.startsWith('cabelo-mecha'))
+      .filter(peca => peca.id.startsWith('cabelo-cascata'))
       .map(peca => peca.centro[1] - peca.raios[1]));
     expect(fundo('liso')).toBeLessThan(1.7 * 0.72);
     expect(fundo('chanel')).toBeGreaterThan(fundo('liso'));
-    expect(desenho('pixie').some(peca => peca.id.startsWith('cabelo-mecha'))).toBe(false);
+    expect(desenho('pixie').some(peca => peca.id.startsWith('cabelo-cascata'))).toBe(false);
     // Duas fichas iguais em tudo, menos no cabelo, dão bonecos diferentes.
     expect(desenho('liso').length).not.toBe(desenho('pixie').length);
   });
 
   it('as mechas descem pelos lados, nunca pelo meio do rosto', () => {
     // Uma mecha no eixo do rosto desce pelo queixo e vira barba.
-    const rcx = 0.044 * 1.7;
+    const rcx = 0.0415 * 1.7;
     for (const tipo of ['liso', 'ondulado', 'cacheado', 'medio', 'franja', 'mullet', 'coque', 'dreadlock']) {
       const descidas = modeloDaPessoa(proporcoesDe({ cabeloTipo: tipo }))
-        .filter(peca => peca.id.startsWith('cabelo-mecha') || peca.id.startsWith('tranca-'));
+        .filter(peca => peca.id.startsWith('cabelo-cascata') || peca.id.startsWith('tranca-'));
       expect(descidas.length, tipo).toBeGreaterThan(0);
       for (const mecha of descidas) expect(Math.abs(mecha.centro[0]), `${tipo} · ${mecha.id}`).toBeGreaterThan(rcx * 0.45);
     }
@@ -321,12 +321,18 @@ describe('cabelo, pele e roupa', () => {
 
   it('o cabelo comprido emoldura o corpo em vez de tapar o tronco', () => {
     const proporcoes = proporcoesDe({ cabeloTipo: 'longo' });
-    const mechas = modeloDaPessoa(proporcoes).filter(peca => peca.id.startsWith('cabelo-mecha'));
-    const maisJunto = Math.min(...mechas.map(mecha => Math.abs(mecha.centro[0])));
-    const maisLonge = Math.max(...mechas.map(mecha => Math.abs(mecha.centro[0])));
-    // Nenhuma mecha cai no meio do peito, e as de fora passam do quadril.
+    const cascatas = modeloDaPessoa(proporcoes).filter(peca => peca.id.startsWith('cabelo-cascata'));
+    // As cascatas que aparecem de frente são as das laterais; as de trás
+    // (profundidade alta) são o cabelo nas costas, que ninguém vê de frente.
+    const laterais = cascatas.filter(peca => peca.centro[2] > -0.075);
+    const maisJunto = Math.min(...laterais.map(peca => Math.abs(peca.centro[0]) - peca.raios[0]));
+    const maisLonge = Math.max(...laterais.map(peca => Math.abs(peca.centro[0]) + peca.raios[0]));
+    const fundo = Math.min(...cascatas.map(peca => peca.centro[1]));
+    // Nenhuma cascata cai no meio do peito, e o cabelo não fica mais largo que
+    // os ombros; nas costas, ele desce abaixo da cintura.
     expect(maisJunto).toBeGreaterThan(proporcoes.ombros * 0.3);
-    expect(maisLonge).toBeGreaterThan(proporcoes.quadril);
+    expect(fundo).toBeLessThan(0.62 * 1.7);
+    expect(maisLonge).toBeLessThan(proporcoes.ombros * 1.15);
   });
 
   it('seios e glúteos são pares de verdade, e do lado certo do corpo', () => {
