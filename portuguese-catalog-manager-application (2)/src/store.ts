@@ -1,4 +1,4 @@
-import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LocationOption, Memory, Person, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
+import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LigacaoDoMapa, LocationOption, MapaMental, Memory, NoDoMapa, Person, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
 import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS, VINCULO_PAPEIS } from './types';
 import { DEMO_PORTRAITS } from './assets';
 import { normalizarDensidade } from './features/interface/densidade';
@@ -153,7 +153,7 @@ export function getDefaultPerson(): Person {
   return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', vozes: [] };
 }
 export function emptyData(): AppData {
-  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, musicaLinks: {}, ambienteAtivo: '', ambienteVolume: 40, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
+  return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], mapas: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, musicaLinks: {}, ambienteAtivo: '', ambienteVolume: 40, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
 }
 
 function object(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
@@ -299,6 +299,7 @@ function photo(value: unknown, personId: string | null): Photo {
     description: text(p.description), favorite: !!p.favorite, albumIds: [...new Set(strings(p.albumIds))],
     hash: text(p.hash) || photoHash(text(p.url)), capturedAt: text(p.capturedAt) || null,
     width: numeric(p.width) || undefined, height: numeric(p.height) || undefined,
+    editedAt: text(p.editedAt) || null,
   };
 }
 /**
@@ -537,6 +538,30 @@ export function normalizeData(value: unknown, strict = false): AppData {
       return { id: text(card.id) || generateId(), title: text(card.title, 'Pista sem título'), content: text(card.content), status: (['observando', 'conectando', 'confirmado', 'arquivado'].includes(text(card.status)) ? card.status : 'observando') as InvestigationCard['status'], personId: base.people.some(p => p.id === text(card.personId)) ? text(card.personId) : null, noteId: base.generalNotes.some(n => n.id === text(card.noteId)) ? text(card.noteId) : null, folderId: base.folders.some(f => f.id === text(card.folderId)) ? text(card.folderId) : null, color: /^#[\da-f]{6}$/i.test(text(card.color)) ? text(card.color) : PALETTE[0], createdAt: text(card.createdAt, new Date().toISOString()), updatedAt: text(card.updatedAt, new Date().toISOString()) };
     }) } as InvestigationBoard;
   });
+  base.mapas = array(raw.mapas).map(value => {
+    const mapa = object(value);
+    const nos = array(mapa.nos).map(item => {
+      const no = object(item);
+      return {
+        id: text(no.id) || generateId(), texto: text(no.texto, 'Sem título'),
+        x: numeric(no.x), y: numeric(no.y),
+        cor: /^#[\da-f]{6}$/i.test(text(no.cor)) ? text(no.cor) : PALETTE[0],
+        personId: base.people.some(p => p.id === text(no.personId)) ? text(no.personId) : null,
+        nota: text(no.nota),
+      } as NoDoMapa;
+    });
+    const ids = new Set(nos.map(no => no.id));
+    return {
+      id: text(mapa.id) || generateId(), nome: text(mapa.nome, 'Mapa sem nome'), descricao: text(mapa.descricao),
+      nos,
+      // um fio só vale entre dois nós que existem: o que aponta para o vazio cai
+      ligacoes: array(mapa.ligacoes).map(item => {
+        const fio = object(item);
+        return { id: text(fio.id) || generateId(), de: text(fio.de), para: text(fio.para), rotulo: text(fio.rotulo) } as LigacaoDoMapa;
+      }).filter(fio => fio.de !== fio.para && ids.has(fio.de) && ids.has(fio.para)),
+      createdAt: text(mapa.createdAt, new Date().toISOString()), updatedAt: text(mapa.updatedAt, new Date().toISOString()),
+    } as MapaMental;
+  });
   base.savedFilters = array(raw.savedFilters).map(v => { const f = object(v); return { id: text(f.id) || generateId(), name: text(f.name), filter: normalizeFilter(f.filter) }; });
   base.drafts = Object.fromEntries(Object.entries(object(raw.drafts)).map(([key, v]) => { const d = object(v); return [key, { id: key, kind: ['add', 'edit', 'quick'].includes(text(d.kind)) ? d.kind : 'add', personId: text(d.personId) || undefined, payload: normalizePerson(d.payload), updatedAt: text(d.updatedAt, new Date().toISOString()) } as PersonDraft]; }));
   base.personTemplates = array(raw.personTemplates).map(value => {
@@ -689,7 +714,9 @@ export const makeActivity = (texto: string, tipo: AppData['activity'][number]['t
 export function duplicatePerson(p: Person) { const copy = structuredClone(p), id = generateId(); return { ...copy, id, nome: `${p.nome} (cópia)`, archivedAt: null, deletedAt: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), fotos: copy.fotos.map(f => ({ ...f, id: generateId(), personId: id })), notas: copy.notas.map(n => ({ ...n, id: generateId() })) }; }
 
 export function completeness(p: Person) {
-  const fields: [string, boolean][] = [['Nome', !!p.nome.trim()], ['Descrição', !!p.descricao.trim() && !p.descricao.startsWith('Adicionado rapidamente')], ['Foto', p.fotos.length > 0], ['Categoria', !!p.localizacaoOnde], ['Contato', !!p.redesSociais], ['Avaliação', calculateOverallRating(p.rating) > 0], ['Localização', !!p.localizacaoMora], ['Tags', p.tags.length > 0]];
+  // A descrição saiu da conta: ela é opcional, então não pode aparecer como
+  // "falta preencher" nem segurar a conquista de ficha completa.
+  const fields: [string, boolean][] = [['Nome', !!p.nome.trim()], ['Foto', p.fotos.length > 0], ['Categoria', !!p.localizacaoOnde], ['Contato', !!p.redesSociais], ['Avaliação', calculateOverallRating(p.rating) > 0], ['Localização', !!p.localizacaoMora], ['Tags', p.tags.length > 0]];
   return { percent: Math.round(fields.filter(([, v]) => v).length / fields.length * 100), missing: fields.filter(([, v]) => !v).map(([label]) => label) };
 }
 export function matchesSearch(p: Person, query: string, data: AppData) {
@@ -887,12 +914,6 @@ export const monthLabel = (month: string) => {
 
 export function downloadBlob(blob: Blob, filename: string) { const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500); }
 export function downloadJson(value: unknown, filename: string) { downloadBlob(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }), filename); }
-export function exportCsv(people: Person[], data: AppData) {
-  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[\s]*[=+\-@]/.test(s)) s = `'${s}`; return `"${s.replace(/"/g, '""')}"`; };
-  const rows = [['Nome', 'Apelido', 'Descrição', 'Categoria', 'Subcategoria', 'Localização', 'Contato', 'Tags', 'Nota geral', 'Pontos', 'Favorito', 'Situação', 'Última interação', 'Interações', 'Cadastro'], ...people.map(p => [p.nome, p.apelido, p.descricao, locationLabel(p, data, false), data.categories.find(c => c.value === p.localizacaoOnde)?.subs?.find(s => s.value === p.localizacaoSub)?.label || p.localizacaoSub, p.localizacaoMora, p.redesSociais, p.tags.join(', '), formatNumber(calculateOverallRating(p.rating)), formatNumber(getFinalScore(p)), p.favorite ? 'Sim' : 'Não', p.deletedAt ? 'Lixeira' : p.archivedAt ? 'Arquivado' : 'Ativo', p.ultimoVisto, p.viHojeCount, p.createdAt])];
-  downloadBlob(new Blob(['\uFEFF', rows.map(r => r.map(cell).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8;' }), `catalog-resultados-${today()}.csv`);
-}
-
 export async function readImage(file: File, maxSize = 1440): Promise<string> {
   if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) throw new Error('Escolha uma imagem JPG, PNG, WebP ou GIF.');
   if (file.size > 20 * 1024 * 1024) throw new Error('A imagem deve ter menos de 20 MB.');

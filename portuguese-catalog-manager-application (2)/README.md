@@ -12,32 +12,35 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 ## Onde encontrar
 
 - **Celular (UI própria):** barra inferior para Início, Catálogo, cadastro rápido, busca e menu; menu lateral deslizante; grades, formulários, tierlists e abas responsivas; áreas seguras do aparelho respeitadas. Além disso, o que só existe no aparelho: **folha que sobe do pé da tela** (filtros, ações, detalhes) com puxador e arrastar para baixo para fechar, **deslizar da borda esquerda para voltar** com trilha lilás, **toque longo** como menu de contexto, **título grande que se recolhe** ao rolar, doca que sai da frente quando uma folha ou o visor assumem a tela e o “⋯” no topo que reúne disfarce, privacidade, tema, desfazer/refazer e o status do salvamento. O “+” do meio é um círculo de gradiente com o rótulo “Adicionar” embaixo — afunda no toque, vibra igual aos vizinhos e, com o fichário rápido aberto, a doca inteira recolhe como recolhe com as folhas —; e a direita do topo é um cluster só — sino, “⋯” e o seu retrato dentro da mesma pílula, sem caixa em volta de cada ícone — (os três têm 40px, `line-height: 0` no quadrado, ícones de 20px, selo colado no canto e o filete que separa ações de perfil é um traço curto no meio, porque o retrato não usa o botão padrão do computador e uma borda inteira atravessaria a pílula). Menu e seta de voltar são exatamente a mesma caixa, para o título não pular quando um entra no lugar do outro, e quem chega no Início zera o histórico — a raiz fica sem seta e o primeiro “voltar” para de levar à tela de onde a pessoa saiu — com o fundo do topo derretendo na página enquanto ela está no começo e virando vidro quando rola. Na galeria e no cofre, a barra de tipo/filtro/modo fica **grudada embaixo das abas** — a altura é medida no pixel (`useFaixasGrudadas`), para o título de cada dia parar logo abaixo dela — e depois de rolar aparece o botão de voltar ao começo do álbum. As medidas (alvo de 48px, raios, sombras, tipografia e as três larguras de tela) estão na seção 14 de `src/celular.css`, a camada própria do celular — folhas, gestos, galeria, visor e cofre — na seção 15, e a **UI do aparelho refeita** nas seções 16 e 17 do mesmo arquivo (16: capa, doca, catálogo e ficha; 17: a ficha por dentro, painel, ajustes e gaveta): o cartão de pessoa é a **foto com o nome por cima** (e o modo lista é a linha larga para ler, com o coração na direita, onde o polegar cai), a doca marca a aba ativa com **pílula atrás do ícone**, o cabeçalho da tela é **capa** com as ações rolando na lateral sem quebrar linha, e a **ficha abre em tela cheia** com as abas colando no alto e a barra de ação no pé da tela. O `src/index.css` é só a porta que importa os três alvos (`base.css`, o que os dois compartilham; `celular.css`, regra que só existe dentro de `@media` de toque; `computador.css`, só `min-width: 1101px`) — é assim desde que o `mobile.css` legado foi aposentado, porque ele escondia a doca e o título do topo para todo canto e reescrevia a doca antiga por cima da nova.
-- **Prancha do celular (12 telas):** rode `npm run dev` e abra **`/celular.html`** para ver as doze telas lado a lado em 390×844, rodando o CSS real do aplicativo — inclusive Galeria em mosaico com a barra grudada no topo, cofre do Meu espaço, visor de fotos, folha de ações e folha de filtros. Uma tela sozinha e maior: `/celular.html?tela=visor` (ou `galeria`, `acoes`, `cofre`, `filtros`, `conversa`, `ficha`, `ajustes`, …).
+- **Prancha do celular (13 telas):** rode `npm run dev` e abra **`/celular.html`** para ver as treze telas lado a lado em 390×844, rodando o CSS real do aplicativo — inclusive Galeria em mosaico com a barra grudada no topo, cofre do Meu espaço, visor de fotos, editor de imagens com a moldura de corte armada, folha de ações e folha de filtros. Uma tela sozinha e maior: `/celular.html?tela=visor` (ou `galeria`, `editor`, `acoes`, `cofre`, `filtros`, `conversa`, `ficha`, `ajustes`, …).
 - **Interface orientada a contexto:** a ficha abre com o essencial (as três informações principais, a nota e as contagens) e cada seção revela o resto no toque; as oito abas viraram cinco categorias — **Perfil · Avaliações · Mídia · Relações · Registros**; a barra de ação do pé da ficha mostra 2–3 ações prováveis (e muda com a categoria aberta) e todo o resto vive no **⋯** agrupado em *Ações · Organização · Avançado*. O mesmo vale para o topo: buscar, avisos e perfil ficam à vista, e disfarce, privacidade, tema, desfazer, densidade e modo foco moram no **⋯**. Nada foi removido — só deixou de disputar atenção. As regras ficam em `src/features/interface` (`acoes.ts`, `revelacao.ts`, `densidade.ts`, `foco.ts`), com testes próprios.
 - **Modo foco:** `⋯ → Entrar no modo foco` (ou `Alt+F`) esconde menu lateral, rodapé, doca do celular, estatísticas e textos de apoio; sobra o conteúdo, com uma pílula discreta para voltar. A escolha é lembrada entre sessões.
 - **Densidade em três degraus:** em **Ajustes** (e no `⋯` do topo, que alterna) a interface vai de **Compacta** (mais informação; com ela o modo lista do catálogo vira uma linha de leitura: foto, nome, lugar, nota e última interação) a **Espaçosa** (cards grandes, mais respiro). O valor antigo (`compacto`) migra sozinho para `compacta`.
 - **“+” inteligente:** o botão central pergunta o que você quer criar — pessoa (fichário rápido), fotos (medidas na hora, entram na galeria sem ficha), nota ou pasta — em vez de levar direto ao cadastro de pessoa.
 - **Início por hierarquia:** saudação e a ação principal; o que chegou de novo; o que precisa de atenção hoje; explorar; e só no fim — fechados — os atalhos, a apresentação do aplicativo e as estatísticas.
-- **Ações rápidas:** toque no botão de raio no cabeçalho (ou pressione `Q`) para abrir mais de vinte utilidades: filtros prontos, surpresa, roleta, comparação, agenda de hoje, avisos, CSV, resumo copiável/compartilhável, tela cheia, privacidade, tema e densidade.
-- **Catálogo:** favoritos, arquivo, lixeira, seleção em lote, filtros, buscas salvas e CSV.
+- **Ações rápidas:** toque no botão de raio no cabeçalho (ou pressione `Q`) para abrir mais de vinte utilidades: filtros prontos, surpresa, roleta, comparação, agenda de hoje, avisos, **planilha** das fichas, resumo copiável/compartilhável, tela cheia, privacidade, tema e densidade.
+- **Catálogo:** favoritos, arquivo, lixeira, seleção em lote, filtros, buscas salvas e exportação em **planilha** — completa ou resumo, do filtro inteiro ou só das fichas selecionadas.
 - **Notas gerais:** ideias, observações, referências e lembretes vinculáveis a pessoas e pastas.
 - **Pastas:** grupos mistos de pessoas, fotos, notas e histórias, sem duplicar os itens.
 - **Quadro de investigação:** cartões pessoais em etapas de observação, conexão, confirmação e arquivo.
+- **Mapas mentais:** um plano livre para pensar uma história, um plano ou a teia de gente em volta de uma ficha — nós com cor e nota, fios com rótulo, nó vinculado a alguém do catálogo (um clique abre a ficha), **Organizar** em anéis a partir da raiz, **Mapa das relações** pronto a partir de uma ficha e exportação em **PNG**, **Markdown** ou copiado. Cada passo entra no `Ctrl+Z` do aplicativo.
 - **Organizar:** coleções legadas, categorias, subcategorias, localizações, tags, rascunhos, possíveis duplicatas e atividade.
 - **Voz das pessoas:** na ficha, o bloco **A voz de …** guarda o som de verdade dela — grave pelo microfone ou envie um arquivo que já existe (“bom dia”, uma risada, um recado), com nome, duração, peso, favorito, player, download, compartilhamento e exclusão. Limites escritos na tela: **2 MB por áudio e 8 MB por pessoa** (um minuto de voz custa cerca de 200 KB). O áudio fica no seu aparelho, junto das fotos, e entra no backup como qualquer outro dado.
 - **Compartilhar:** o resumo de uma ficha sai como texto pelo compartilhamento do aparelho (WhatsApp, Telegram, e-mail) ou vai para a área de transferência quando não houver; o áudio de voz sai como arquivo (`.webm`), com download como plano B. Nada é enviado sozinho e o link do catálogo nunca carrega dado de ninguém.
 - **Saúde do catálogo:** a leitura de manutenção — nota de 0 a 100, 12 tipos de achado (ficha sem foto ou pela metade, duplicata, referência quebrada, foto repetida, lixeira parada, rascunho esquecido, lembrete atrasado, backup vencido, espaço apertado) e uma **faxina de ponteiros** que limpa só o vínculo que aponta para quem não existe mais, sem apagar ficha, foto ou texto. Fica em Biblioteca → Mais, na busca global e no atalho da tela. O que a máquina não resolve leva você à tela certa — ou já abre o catálogo filtrado (ex.: só quem está sem foto).
 - **Tierlists:** participantes por categoria/subcategoria, faixas personalizadas, cores, ordenação, duplicação independente e **listas especiais** com nomes e fotos opcionais que não criam fichas no catálogo.
-- **Galeria:** mosaico com a proporção real de cada arquivo, quadra de quadrados iguais e linha do tempo agrupada por dia com a data grudada no topo; busca por nome/anotação/pessoa, filtros de tipo, pessoa, pasta e álbum numa folha, com chips removíveis — tudo numa faixa que segura o topo da tela enquanto o álbum rola; seleção em lote (toque, Shift para intervalo, barra fixa no pé da tela com pasta, álbum, favoritar, cofre e excluir); upload múltiplo, fotos não vinculadas, vínculos, duplicatas, álbuns e antes/depois — no antes/depois o divisor é arrastado com o dedo em cima da foto (a linha fina ganha 34px de alvo, a página continua rolando por cima, e as setas do teclado também movem).
+- **Galeria:** mosaico com a proporção real de cada arquivo, quadra de quadrados iguais e linha do tempo agrupada por dia com a data grudada no topo; busca por nome/anotação/pessoa, filtros de tipo, pessoa, pasta e álbum numa folha, com chips removíveis — tudo numa faixa que segura o topo da tela enquanto o álbum rola; seleção em lote (toque, Shift para intervalo, barra fixa no pé da tela com pasta, álbum, **ajustar a luz de todas de uma vez**, favoritar, cofre e excluir); upload múltiplo, fotos não vinculadas, vínculos, duplicatas, álbuns e antes/depois — no antes/depois o divisor é arrastado com o dedo em cima da foto (a linha fina ganha 34px de alvo, a página continua rolando por cima, e as setas do teclado também movem).
+- **Editor de imagens:** segurar a foto na grade — ou tocar no lápis do visor, da ficha e do cofre — abre o editor: **cortar** com as proporções de álbum (1:1, 4:5, 9:16, 16:9…), girar em passos de 90°, espelhar, luz e cor (brilho, contraste, saturação, temperatura, desfoque e vinheta), filtros prontos com prévia em miniatura, **pincel** com grossura e opacidade, figuras (linha, seta, retângulo, círculo), texto com contorno legível, **mosaico** para esconder rosto ou placa, borracha que tira só o desenho e o **conta-gotas**, que lê a cor de qualquer ponto da foto e ainda monta a paleta dela. Cada passo desfaz; no fim, baixar, **salvar como nova** ou **substituir** a original.
 - O modo de ver (mosaico, quadra, linha do tempo) fica salvo por tela: galeria e cofre têm chaves próprias.
 - **Altura e figura 3D:** a altura da ficha é uma **medida** (`1,50`, `150` e `150 cm` viram `1,50 m`; os atalhos vão de 1,50 a 1,80) e as palavras antigas continuam valendo como estimativa. Em Avaliações, a seção **Corpo em 3D** monta um manequim a partir da altura, do tipo de corpo e das notas — arraste para girar, veja de frente, de lado ou três quartos, salve como imagem. O que não vira forma (rosto, beleza geral, comportamento) aparece nomeado embaixo da figura.
-- **Visor de fotos:** tela inteira com deslizar para trocar de foto, pinça e toque duplo para zoom, puxar para baixo para fechar, um toque para esconder as barras, faixa de miniaturas, coração com animação, baixar, folha de detalhes (vincular ficha, mover de pasta, tipo, excluir) e, no computador, setas, `+`/`-`, `F`, `I` e `Esc`. `Esc` fecha. A mesma tela abre as fotos da ficha (aba **Fotos** e a capa) e as do cofre do Meu espaço.
+- **Visor de fotos:** tela inteira com deslizar para trocar de foto, pinça e toque duplo para zoom, puxar para baixo para fechar, um toque para esconder as barras, faixa de miniaturas, coração com animação, lápis que abre o editor de imagens, baixar, folha de detalhes (vincular ficha, mover de pasta, tipo, excluir) e, no computador, setas, `+`/`-`, `F`, `I` e `Esc`. `Esc` fecha. A mesma tela abre as fotos da ficha (aba **Fotos** e a capa) e as do cofre do Meu espaço.
 - **Lembretes:** datas, edição, prioridade, conclusão e adiamento.
 - **Ajustes:** perfil, tema, acessibilidade, sons e comemorações, PIN opcional, importação, exportação e pontos de restauração.
 - **Painel:** nível e XP, desafios da semana (marcados automaticamente), aniversários e revisitas, roleta, cinturão da campeã do duelo, gráficos e conquistas.
 - **Momentos:** uma surpresa do dia baseada no catálogo, resumo de fotos/vídeos/pessoas/notas, exploração por conexões, máquina do tempo, **climas que tocam música de verdade** (por link, dentro do painel Ambiente) e Modo apresentação com reprodução de fotos, miniaturas e trilha escolhida. Tudo é opcional: não há streak de login nem bloqueio de conteúdo.
 - **Desafios:** Quiz do próprio catálogo, Modo Detetive com casos gerados a partir de relações reais, quebra-cabeça de fotos, “Quem é?”, objetivos semanais, cartas colecionáveis, editor rápido de cards, álbum paginado, Hall da fama, lugares/contextos e exportação de mural visual. As respostas usam somente dados já registrados.
 - **Ficha:** aba **Linha do tempo** com cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota; opção **Fixar no topo** no menu.
+- **Cadastro:** só o **nome** é obrigatório — a descrição virou **"Descrição (opcional)"** e saiu da conta de ficha a completar (não dá para cobrar o que é opcional). No lugar dos campos que saíram (**Pronomes** e **Signo**) entrou **Relacionamento**: quando a ficha diz que há alguém, ela mostra um recado no topo, o cartão do catálogo ganha um aviso e a conversa começa dizendo isso. O que já estava gravado continua no arquivo — nada foi apagado.
 - **Agenda:** exportação `.ics` para Google Agenda, Outlook e iPhone; cronômetro que dá um tique a cada 10 minutos.
 - **Tierlists:** exportação em PNG pelo menu **Mais**.
 - **Ferramentas:** 50 utilidades em cinco grupos (Catálogo e dados, Organização em lote, Conversa e social, Meu espaço e rotina, Utilidades do dia a dia), com busca, ícones no mesmo estilo do resto do app e atalho `T`. Cada ferramenta declara os campos que precisa e mostra o resultado em tela, com botão de copiar e download quando faz sentido.
@@ -74,7 +77,7 @@ domínio: `src/features/interface`.
 
 A conversa com cada pessoa vive na ficha (**Conversar**) e é montada na hora a partir da própria ficha. Não é um banco de frases soltas: a resposta passa por intenção detectada, personalidade, humor, química, tom liberado e memória do papo.
 
-- **Persona da ficha:** idade, comportamento, descrição, categoria, subcategoria, etiquetas, signo, música favorita, localização, nível de amizade, pronome e observações viram traços de personalidade (ousadia, reserva, timidez, humor, verbosidade, emojis, gírias), interesses concretos e um jeito de escrever.
+- **Persona da ficha:** idade, comportamento, descrição, categoria, subcategoria, etiquetas, música favorita, localização, nível de amizade e observações viram traços de personalidade (ousadia, reserva, timidez, humor, verbosidade, emojis, gírias), interesses concretos e um jeito de escrever. O que já estava gravado em campos que saíram da ficha (signo e pronome) continua sendo lido — nada é jogado fora.
 - **Química e estágios:** a conversa acumula química de 0 a 100 e atravessa cinco estágios — conhecendo agora, pegando intimidade, confiante, próxima e especial. O estágio muda o tamanho das respostas, as perguntas e o que ela aceita ouvir.
 - **O clima é automático:** não existe painel de tom no chat. Ela vai do papo leve ao flerte (e, com ficha 18+ e modo adulto ligado, ao clima quente) conforme a intimidade construída, sempre ajustada por reserva e ousadia da persona. Se o assunto passar do ponto, ela **desconversa** com naturalidade em vez de responder, e a química não sobe.
 - **Humor automático:** ela chega a um humor (alegre, brincalhona, flertando, tímida, curiosa, carinhosa, fechada ou neutra) e reage ao que você escreve. Cobranças fecham o clima; desabafos trazem carinho. O cabeçalho só mostra o estado atual, sem botões.
@@ -182,6 +185,8 @@ Um catálogo de fotos lembra o rosto; o Catalog também guarda o som.
 - `Esc`: fechar o modal atual, preservando rascunhos.
 - **Galeria com o visor aberto:** `←`/`→` trocam a foto, `+` e `-` dão zoom, `F` favorite, `I` abre os detalhes e `Esc` fecha.
 - **Galeria no teclado, sem o visor:** `S` entra na seleção em lote; com fotos escolhidas, `Shift` + clique estende o intervalo.
+- **Editor de imagens:** `C` cortar · `R` girar · `A` ajustar · `F` filtros · `P` pintar · `S` formas · `T` texto · `B` esconder · `E` borracha · `I` conta-gotas; `Ctrl+Z` e `Ctrl+Shift+Z` desfazem e refazem dentro do editor; `Esc` sai direto se nada mudou e pergunta antes se mudou; `Enter` confirma a letra que está sendo escrita.
+- **Mapas mentais:** arrastar o plano anda pelo mapa, a roda do mouse aproxima, dois cliques num ponto vazio criam um nó, dois cliques num nó renomeiam, `Enter` confirma o nome, `Esc` cancela uma ligação armada e `Delete`/`Backspace` remove o nó selecionado (o `Ctrl+Z` do aplicativo devolve).
 - **No aparelho, os gestos substituem as teclas:** deslizar da borda esquerda volta uma tela, segurar o título da tela aciona o pânico (≈0,7s), segurar uma foto ou um cartão abre a folha de ações, puxar a folha para baixo fecha, e no visor deslizar troca, pinça/`2 toques` zoom e puxar para baixo fecha.
 
 ## Altura e figura 3D
@@ -204,6 +209,136 @@ quem deu 1. Peito, quadril, corpo e cabelo mexem na forma de verdade; **rosto,
 beleza geral e comportamento ficam de fora**, com a lista do que ficou embaixo
 da figura. Se o navegador não desenhar canvas, a seção entrega a mesma leitura
 em texto (`1,70 m · ombros 38 cm · cintura 27 cm…`).
+
+## Editor de imagens
+
+A foto deixou de ser só algo que se olha: dá para **cortar, girar, ajustar a luz,
+pintar e tirar a cor da própria foto** sem sair do aplicativo — e sem mandar nada
+para servidor nenhum, porque a edição acontece no canvas do navegador.
+
+**Onde abre.** Segurar a foto (na galeria, no cofre ou na ficha) traz a folha de
+ações com **Editar imagem**; o visor ganhou um lápis no topo, ao lado do coração.
+Nos dois casos o editor sobe por cima de tudo (`z-index` 300) e trava a rolagem;
+no aparelho a doca sai da frente e o painel vira uma faixa embaixo da foto.
+
+**A regra que segura tudo.** O arquivo original não é tocado enquanto se edita: o
+que existe é uma **receita** — corte, giro, espelho, luz, cor e as marcas do dedo
+— que só vira pixels **uma vez**, no salvar. Por isso desfazer é imediato (volta
+um passo da receita, não uma imagem anterior), "salvar como nova" deixa a original
+intacta, e girar depois de cortar recorta o lugar certo do arquivo em vez de
+reencodar um JPEG pela terceira vez.
+
+| O que a receita guarda | Em que espaço | Por quê |
+| --- | --- | --- |
+| O corte | pixels do **arquivo** | cortar nunca perde resolução: o recorte é sempre do original |
+| Giro e espelho | passos de 90° e eixos | ângulo livre faria o recorte deixar de ser um retângulo do arquivo |
+| As marcas do dedo | pixels da **saída** | o dedo desenha no que está vendo; girar depois move o desenho junto |
+| O contorno | recorte da **saída** | arredondar ou ovalar não muda quais pixels do arquivo entram |
+
+**O conta-gotas.** Tocar na foto com a ferramenta **Cor** lê aquele pixel, mostra
+o hex copiado, joga a cor no pincel e guarda nas "usadas há pouco" (no aparelho,
+pelo `localStorage`). Junto vem a **paleta da foto**: as cores que mais aparecem
+nela, sem repetir o mesmo bege seis vezes. Onde o navegador tem o conta-gotas
+nativo (Chrome e Edge), o painel oferece também o do sistema — que lê a cor fora
+da janela do aplicativo.
+
+**Salvar.** Três saídas, todas com aviso em português: **Salvar** substitui a foto
+(mantendo ficha, pasta, álbuns, tipo e coração, e recalculando a impressão digital
+usada para achar duplicatas), **Salvar como nova** guarda uma cópia ao lado
+(`praia.jpg` → `praia-editada.jpg`) e **Baixar** traz o arquivo para o aparelho —
+recusado com o modo privacidade ligado, porque aí nada sai. A ficha da foto passa
+a mostrar **Editada em …**, e a proporção no mosaico acompanha o novo tamanho.
+
+**Antes e depois.** Segurar o botão **Original** mostra a foto como ela entrou,
+por cima da edição — é um `<img>`, não um segundo desenho, então comparar não
+custa nada e funciona até onde não há canvas. Enquanto dura, a moldura de corte e
+a letra em rascunho saem da frente.
+
+**A mesma luz em várias fotos.** Fotos do mesmo lugar saem com o mesmo problema:
+todas escuras, todas azuis, todas sem graça. No lote da galeria (e no do cofre),
+**Ajustar** abre uma folha com as receitas prontas e os sete controles, mostrando
+o antes e o depois na primeira foto escolhida — e grava **todas as escolhidas de
+uma vez**, com barra de progresso. É um `commit` só, então um `Ctrl+Z` devolve o
+lote inteiro; o que não abriu (foto hospedada em outro site) fica de fora e
+aparece pelo nome, em vez de sumir em silêncio.
+
+**O contorno e o tamanho do arquivo.** Na ferramenta **Cortar**, além da
+proporção, dá para escolher o contorno da foto que sai: cantos retos,
+**arredondados** ou **oval** — que, numa foto quadrada, é um círculo. O contorno
+entra na receita, aparece na prévia na hora e desfaz como qualquer passo; onde o
+navegador não guarda transparência (JPEG) o canto sai branco, e o painel diz isso
+antes. Ao lado fica o **tamanho da foto salva** — cheio, grande, média ou pequena
+—, com as medidas do arquivo escritas no painel antes de você salvar, porque o
+catálogo mora no aparelho e é o tamanho do arquivo que decide quantas fotos cabem.
+
+**Quando não dá.** Sem canvas (navegador antigo, economia de memória) o editor não
+finge: mostra a foto original por cima, escreve o que não foi possível fazer e
+recusa o salvar em vez de devolver um arquivo em branco. Foto hospedada em outro
+site suja o canvas e não pode ser reencodada — o aviso diz para baixar e enviar de
+novo. A exportação tenta WebP, cai para JPEG e depois PNG, e limita o lado maior a
+2400 px para uma edição não virar um arquivo de 20 MB.
+
+A regra vive em `src/features/gallery/edicao.ts` (conta pura), o desenho em
+`tela.ts`, as ferramentas em `ferramentas.ts` e a tela em
+`components/EditorDeImagem.tsx` com o painel em `components/PainelDeEdicao.tsx`;
+quem abre usa o hook `useEdicaoDeFoto()`, que já devolve a gravação ligada ao
+`Ctrl+Z` da sessão.
+
+## Mapas mentais
+
+Uma tela para pensar com setas. Diferente do **Quadro de investigação** (que tem
+etapas e colunas), aqui o plano é livre — e o catálogo continua sendo o chão: um
+nó pode ser uma ficha.
+
+- **Criar:** `Mapas mentais` na barra lateral (grupo Biblioteca) → **Novo mapa**.
+  O mapa já nasce com a ideia central no meio, porque um mapa vazio não tem onde
+  clicar. **Mapa das relações** cria um pronto a partir de uma ficha: ela no
+  centro e os vínculos em volta, cada fio com o parentesco escrito — nos dois
+  sentidos, porque o mapa lê tanto quem ela diz que é dela quanto quem diz que ela
+  é a mãe, a irmã, a namorada.
+- **Mexer:** arraste o plano para andar, use a roda do mouse (ou `+`/`−` no canto)
+  para aproximar, arraste um nó para mudá-lo de lugar, **dois cliques num ponto
+  vazio** criam um nó ali e **dois cliques num nó** renomeiam sem sair do lugar.
+  O nó tem cor (as seis primeiras da paleta do aplicativo), **nota própria** — que
+  é do mapa, não da ficha — e pode ser **vinculado a alguém do catálogo**: aí o nó
+  mostra o nome da pessoa e um clique abre a ficha.
+- **Ligar:** selecione um nó, **Ligar a outro nó** e toque no destino. O fio não
+  tem direção (é um mapa mental, não um fluxograma), aceita **rótulo** ("mãe",
+  "dívida", "julho") e o **×** no meio dele desfaz a ligação. `Esc` cancela uma
+  ligação armada; `Delete` remove o nó selecionado e os fios que encostavam nele.
+- **Organizar:** rearruma tudo em anéis a partir da raiz — um fio de distância é o
+  primeiro anel, dois fios o segundo — e o que não tem caminho até a raiz não é
+  esquecido: vai para uma fileira embaixo, à vista.
+- **Exportar:** **Imagem em PNG** (com título, contagem de nós e data no
+  cabeçalho), **Contorno em Markdown** (um traço por nó, recuo por nível, o rótulo
+  do fio entre parênteses, a ficha vinculada depois de um travessão e a nota
+  depois de dois pontos) ou **Copiar o contorno** para colar num e-mail.
+- **Desfazer:** cada passo — nó criado, arrasto, ligação, mapa renomeado, mapa
+  apagado inteiro — passa pelo `commit` do contexto e entra no `Ctrl+Z` do
+  aplicativo. Uma mudança que não muda nada não grava passo.
+- O mapa mora no catálogo (entra no backup e na restauração) e não toca em nenhuma
+  ficha. A regra é função pura em `src/features/mapas/mapa.ts`; o desenho que vira
+  PNG está em `src/features/mapas/tela.ts`, e os dois são testáveis sem navegador.
+
+## As fichas em planilha
+
+O export deixou de ser um CSV solto e virou planilha, com duas medidas e três
+caminhos:
+
+| O quê | Onde |
+| --- | --- |
+| **Completa** — 40 colunas (descrição, aniversário, altura, corpo, estilo, cabelo, pele, QI, vínculo com você, família, amizade, raridade, como conheceu, música, comportamento, observações, fotos, vozes, notas, anexos, campos livres…) | `⋯` do catálogo, ações rápidas (`Q`), paleta de comandos (`Ctrl+K`) e ferramentas rápidas (`T`) |
+| **Resumo** — as 17 colunas do dia a dia (nome, apelido, idade, relacionamento, "tem alguém?", categoria, subcategoria, onde mora, contato, etiquetas, nota, pontos, favorita, estado da ficha, última interação, interações, cadastro) | nos mesmos lugares, no menu ao lado do botão de exportar |
+| **Só as selecionadas** | a barra que aparece ao marcar fichas no catálogo |
+| **Copiar** (cola direto numa célula do Sheets ou do Excel) | menu de exportar, ações rápidas e ranking |
+
+O arquivo abre certo nos dois programas: acento preservado (BOM), `;` entre
+células, quebra de linha `CRLF`, tudo entre aspas e o que começa com `=`, `+`, `-`
+ou `@` vira texto — ninguém executa fórmula sem querer (número continua número).
+Uma coluna que erre devolve célula vazia em vez de derrubar o arquivo inteiro. O
+modo privacidade bloqueia a exportação, como bloqueia as outras. A regra vive em
+`src/lib/planilha.ts`: uma coluna declarada por vez, com `id`, cabeçalho, escopo e
+a função que lê a ficha.
 
 ## Música no site
 
@@ -259,9 +394,11 @@ guardado.
 - `src/features/corpo/`: altura medida (leitura, formato e estimativas) e a figura 3D — métricas viram proporções viram elipsoides projetados.
 - `src/App.tsx`: entrada, navegação, atalhos e privacidade.
 - `src/context.tsx`: estado, comandos, salvamento e histórico de desfazer.
-- `src/store.ts`: migração, avaliações, filtros, normalização, duplicatas e CSV.
+- `src/store.ts`: migração, avaliações, filtros, normalização e duplicatas.
+- `src/lib/planilha.ts`: as colunas da planilha e a escrita em CSV/TSV (BOM, `;`, aspas e proteção contra fórmula).
 - `src/lib/storage.ts`: IndexedDB, recuperação local e versões de backup.
 - `src/lib/export.ts`: exportações PNG por Canvas (ficha, ranking e tierlist), sem interpolar conteúdo pessoal em HTML.
+- `src/features/mapas/`: mapas mentais — domínio puro (`mapa.ts`), desenho que vira PNG (`tela.ts`) e a tela (`components/`).
 - `src/lib/sound.ts`: sintetizador de sons de interface (Web Audio) com as regras de silêncio.
 - `src/lib/persona.ts`: leitura da ficha (comportamento, idade, interesses, signo, música, localização) e montagem da persona que fala.
 - `src/lib/dialogue.ts`: motor da conversa simulada — intenções, clima automático, química, estágios, memória, humor, estilo de escrita, sugestões, análise e exportação.
@@ -269,6 +406,9 @@ guardado.
 - `src/lib/toolkit.ts`: as 50 ferramentas, com campos, prévia e execução sobre os dados.
 - `src/components/Toolbox.tsx`: tela Ferramentas, com busca, grupos, formulário dinâmico e resultado.
 - `src/lib/ics.ts`: exportação da agenda em iCalendar.
+- `src/features/gallery/edicao.ts`: a receita da edição de imagens — geometria (corte, giro, espelho) nos dois espaços de pixels, moldura e alças do corte, marcas do dedo, ajustes e filtros, cores (hex, luminância, paleta, recentes), histórico e a gravação no catálogo. Conta pura: não conhece React, canvas nem navegador.
+- `src/features/gallery/tela.ts`: quem fala com o canvas — carregar, desenhar a base, compor as marcas, ler cor de um pixel, achar as cores dominantes, gerar as miniaturas de filtro e exportar. Devolve `false`/`null` quando não há canvas.
+- `src/features/gallery/components/`: o editor dividido em tela (`useTelaDoEditor`), gesto (`useGestosDoEditor`), palco (`PalcoDeEdicao`), painel (`PainelDeEdicao`) e orquestração (`EditorDeImagem`), com o hook `useEdicaoDeFoto` para as telas abrirem e `AjusteEmLote` para a mesma luz em várias fotos.
 - `src/lib/galeria.ts`: a conta da galeria — proporção de cada foto, span do mosaico, agrupamento por dia, filtros, chips, seleção por intervalo e resumo.
 - `src/lib/toque.ts`: gestos do dedo — `useToqueLongo`, `useArrastarParaFechar` e `useBordaVoltar`, todos com `Pointer Events` e neutros onde não há toque.
 - `src/components/Folha.tsx`: a folha que sobe do pé da tela (com `FolhaDeAcoes`, o menu de contexto do dedo) — puxador, arrastar para fechar, fundo travado e `Esc` preservado.
@@ -281,8 +421,8 @@ guardado.
 - `src/components/`: telas e componentes reutilizáveis.
 - `src/components/Notes.tsx`, `Folders.tsx` e `InvestigationBoard.tsx`: anotações gerais, grupos mistos e quadro por etapas.
 - `src/index.css`: porta de entrada do estilo — só importa os três arquivos abaixo, na ordem `base`, `celular`, `computador`.
-- `src/base.css`: tokens dos temas, tipografia, componentes e o layout que os dois alvos compartilham, além de foco de teclado, movimento reduzido e impressão.
-- `src/celular.css`: todo o sistema de toque (seções 11 a 17: casca, doca, folhas, gestos, galeria, visor, cofre e a UI refeita do aparelho). Nenhuma regra nasce fora de um `@media`, então o computador não é alcançado por ela.
+- `src/base.css`: tokens dos temas, tipografia, componentes e o layout que os dois alvos compartilham, além de foco de teclado, movimento reduzido, impressão e a seção do editor de imagens (`.editor*`: camada 300, palco, moldura de corte com as oito alças, painel, trilha e o diálogo de descarte — escuro em qualquer tema, porque editar foto pede fundo neutro).
+- `src/celular.css`: todo o sistema de toque (seções 11 a 17: casca, doca, folhas, gestos, galeria, visor, cofre e a UI refeita do aparelho; a seção 22 é o editor no bolso — coluna única, painel como faixa de até 42vh, alças de corte com 34px de alvo, doca escondida e áreas seguras — e a 23 é o ajuste em lote, com os filtros rolando de lado e o trilho na altura do dedo). Nenhuma regra nasce fora de um `@media`, então o computador não é alcançado por ela.
 - `src/computador.css`: só bloco `@media (min-width: 1101px)` — conversa em tela cheia, janela média e os rótulos dos modos na galeria.
 - `src/assets.ts`: imagens locais embutidas no build. A fonte Inter também é incluída localmente.
 - `src/features/voice/`: domínio da voz — `voz.ts` (regras puras: limites, contas, formato e nome do arquivo), `gravador.ts` (MediaRecorder e arquivos) e a tela `components/VozDaPessoa.tsx`. Não há voz sintetizada aqui.
@@ -308,12 +448,13 @@ nada foi perdido e nada foi inventado por engano no caminho.
 
 ## Validação
 
-O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos — **2.419 kB** (990 kB gzip). O `dist/` não é versionado: ele é resultado, não código. O mesmo para `node_modules/` (o `.gitignore` e o item 0.4 de `MELHORIAS.md` cuidam disso). Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira, além de:
+O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos — **2.580 kB** (1.042 kB gzip). O `dist/` não é versionado: ele é resultado, não código. O mesmo para `node_modules/` (o `.gitignore` e o item 0.4 de `MELHORIAS.md` cuidam disso). Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira, além de:
 
 - `tests/chat.test.ts`: persona derivada da ficha, detecção de intenções, química e estágios, travas de idade e de clima, memória, variedade das respostas, sugestões e análise da conversa.
 - `tests/toolbox.test.ts`: as 50 ferramentas (contagem, grupos, ids únicos), execução sem quebrar com catálogo vazio, resultado visível nas ferramentas de leitura, uso do `commit` nas que alteram dados e conferência das contas do dia a dia.
 - `tests/toolbox-ui.test.tsx`: a tela Ferramentas navegando, filtrando e executando de verdade, e a conversa simulada abrindo pela ficha com medidor de química, humor automático e resposta salva.
 - `tests/galeria-celular.test.tsx`: a conta do mosaico e da linha do tempo, os filtros e chips, a folha de ações, a barra do lote no pé da tela, o topo enxuto do celular e a tela da galeria aberta de verdade (mosaico → visor → favoritar → segurar → filtros → lote), a faixa grudada medida no pixel e o cofre do Meu espaço usando o mesmo mosaico, o mesmo lote e o mesmo visor.
+- `tests/editor-de-imagem.test.tsx`: o editor por dentro e por fora — a conta da receita (corte nos dois espaços de pixels, giro que troca as medidas, desenho que gira junto, moldura e as oito alças, ajustes que viram a mesma string na prévia e no arquivo, cores e paleta, marcas e borracha, histórico com teto de passos), a gravação no catálogo (substituir, salvar como nova, foto solta, id que não existe, nome com sufixo), o editor aberto sem canvas (aviso em vez de retângulo preto, salvar recusado), o editor com um canvas de mentira (desenho, traço do dedo, conta-gotas, exportação, antes/depois), o ajuste em várias fotos (prévia em CSS, os sete trilhos, a falha dita pelo nome e as duas fotos gravadas no catálogo de verdade), o estilo (camada acima do visor, doca que sai da frente, alvos de dedo, painel só no computador), a galeria abrindo o editor pela folha de ações e pelo lápis do visor, e a divisão dos arquivos que impede o componente de voltar a crescer.
 - `tests/isolamento.test.ts`: o contrato da separação — a porta importa os três na ordem, nenhum `mobile.css` legado de volta, nada solto fora de `@media` no arquivo do celular e nada de largura de bolso na base.
 - `tests/saude-catalogo.test.ts`: a análise e a faxina do domínio de saúde — catálogo em ordem não inventa pendência, a mesma data de referência dá o mesmo resultado, duplicata é crítica, ponteiro quebrado é reparável, lixeira/lembrete/backup são contados pela data de referência, a faxina limpa só o ponteiro e não toca em ficha, foto, álbum ou conversa.
 - `tests/saude-ui.test.tsx`: a tela navegando de verdade — nota, cartões do resumo, achados com gravidade, filtro por gravidade, faxina com relatório e o achado que leva ao catálogo com o filtro pronto.
@@ -330,4 +471,4 @@ no topo). Se você refizer alguma dessas telas, ajuste o teste junto com o CSS.
 
 A última instalação de dependências reportou três alertas de auditoria npm (um baixo, um moderado e um alto). As atualizações compatíveis reduziram os alertas, mas uma revisão de segurança das dependências ainda é necessária antes de publicação pública.
 
-Para homologar, use o modo demonstração e confira: criar/editar/recuperar rascunhos, arquivar/restaurar/excluir, exportar CSV e PNG, mover participantes nas tierlists, editar lembretes, criar notas/pastas/quadros, alternar tema, ativar privacidade e recarregar após o indicador de gravação confirmar sucesso.
+Para homologar, use o modo demonstração e confira: criar/editar/recuperar rascunhos, arquivar/restaurar/excluir, exportar planilha (completa e resumo) e PNG, criar e exportar um mapa mental, mover participantes nas tierlists, editar lembretes, criar notas/pastas/quadros, alternar tema, ativar privacidade e recarregar após o indicador de gravação confirmar sucesso.

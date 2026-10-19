@@ -10,7 +10,7 @@
  * Filtro, ordem e modo de ver vivem no mesmo lugar nas duas telas.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Camera, Check, ChevronUp, Copy, Download, Folder, Grid3x3, Heart, ImagePlus, Layers, LayoutGrid, Link2, Lock, Scale, Search, SlidersHorizontal, Trash2, Unlink, X } from 'lucide-react';
+import { CalendarDays, Camera, Check, ChevronUp, Copy, Download, Folder, Grid3x3, Heart, ImagePlus, Layers, LayoutGrid, Link2, Lock, Scale, Search, SlidersHorizontal, Trash2, Unlink, Wand2, X } from 'lucide-react';
 import type { Album, Photo } from '../types';
 import { useCatalog } from '../context';
 import { downloadBlob, findDuplicatePhotos, formatDate, generateId, getAllPhotos, isAdult, medirImagem, normalizePhotos, PHOTO_LABELS, readImage } from '../store';
@@ -22,6 +22,7 @@ import type { AcaoDeFolha } from './Folha';
 import GaleriaGrade from './GaleriaGrade';
 import VisorDeFotos from './VisorDeFotos';
 import { FILTROS_PADRAO, MODOS_GALERIA, ORDENACOES, aplicarFiltros, chipsDeFiltro, contarFiltrosAtivos, fotoEmPasta, lerModoSalvo, resumoDaGaleria, salvarModo } from '../lib/galeria';
+import { AjusteEmLote, useEdicaoDeFoto } from '../features/gallery';
 import type { FiltrosDeGaleria, ModoGaleria } from '../lib/galeria';
 import { movimentoReduzido } from '../lib/toque';
 import { useFaixasGrudadas } from '../hooks/useFaixasGrudadas';
@@ -62,6 +63,10 @@ export default function Gallery() {
   const chips = useMemo(() => chipsDeFiltro(filtros, data), [filtros, data]);
   const ativos = contarFiltrosAtivos(filtros);
   const nomeDe = useCallback((photo: Photo) => data.people.find(person => person.id === photo.personId)?.nome || 'Sem ficha', [data.people]);
+  /* Cortar, pintar, ajustar e tirar a cor da foto sem sair da galeria. */
+  const edicao = useEdicaoDeFoto();
+  const [ajusteLote, setAjusteLote] = useState(false);
+  const editar = useCallback((photo: Photo) => edicao.abrir(photo, nomeDe(photo)), [edicao, nomeDe]);
   const pastaDe = useCallback((photo: Photo) => data.folders.find(folder => fotoEmPasta(photo, folder.id, data.folders))?.name || 'Sem pasta', [data.folders]);
 
   useEffect(() => {
@@ -177,6 +182,7 @@ export default function Gallery() {
 
   /** O visor já tem a folha de detalhes com o excluir; o toque longo, não. */
   const acoesDaFoto = (photo: Photo, comExcluir = true): AcaoDeFolha[] => [
+    { rotulo: 'Editar imagem', icone: Wand2, detalhe: 'cortar, pintar, luz e cor', onClick: () => editar(photo) },
     { rotulo: photo.favorite ? 'Tirar das favoritas' : 'Guardar nas favoritas', icone: Heart, onClick: () => favoritar(photo) },
     { rotulo: selecionadas.includes(photo.id) ? 'Tirar do lote' : 'Escolher no lote', icone: Check, onClick: () => alternar(photo, false) },
     { rotulo: 'Baixar a imagem', icone: Download, onClick: () => { void baixar(photo); } },
@@ -196,6 +202,7 @@ export default function Gallery() {
           <div><dt>Tipo</dt><dd>{PHOTO_LABELS[photo.type]}</dd></div>
           <div><dt>Entrou em</dt><dd>{formatDate(photo.capturedAt || photo.createdAt)}</dd></div>
           <div><dt>Arquivo</dt><dd>{photo.name || '—'}</dd></div>
+          {photo.editedAt ? <div><dt>Editada em</dt><dd>{formatDate(photo.editedAt)}</dd></div> : null}
           {photo.description ? <div><dt>Anotação</dt><dd>{photo.description}</dd></div> : null}
         </dl>
         <Field label="Vincular a uma ficha">
@@ -343,6 +350,7 @@ export default function Gallery() {
           <div>
             <button type="button" onClick={() => setFolha('pasta')}><Folder size={17} />Pasta</button>
             <button type="button" onClick={() => setFolha('album')}><Layers size={17} />Álbum</button>
+            <button type="button" disabled={!selecionadas.length} onClick={() => setAjusteLote(true)}><SlidersHorizontal size={17} />Ajustar</button>
             <button type="button" disabled={!selecionadas.length} onClick={() => { favoritarLote(); sairDaSelecao(); }}><Heart size={17} />Favoritar</button>
             <button type="button" disabled={!selecionadas.length} onClick={() => { cofreLote(); sairDaSelecao(); }}><Lock size={17} />Cofre</button>
             <button type="button" className="perigo" disabled={!selecionadas.length} onClick={() => setApagarLote(true)}><Trash2 size={17} />Excluir</button>
@@ -354,7 +362,7 @@ export default function Gallery() {
       {visor >= 0 && !!filtradas.length && (
         <VisorDeFotos fotos={filtradas} indice={Math.min(visor, filtradas.length - 1)} aoMudar={setVisor} aoFechar={fecharVisor}
           titulo={nomeDe} apoio={photo => `${formatDate(photo.capturedAt || photo.createdAt)} · ${pastaDe(photo)}`}
-          aoFavoritar={favoritar} aoBaixar={photo => { void baixar(photo); }} acoes={photo => acoesDaFoto(photo, false)}
+          aoFavoritar={favoritar} aoBaixar={photo => { void baixar(photo); }} aoEditar={editar} acoes={photo => acoesDaFoto(photo, false)}
           selecionada={!!filtradas[Math.min(visor, filtradas.length - 1)] && selecionadas.includes(filtradas[Math.min(visor, filtradas.length - 1)].id)} aoAlternarSelecao={photo => alternar(photo, false)}
           detalhes={detalhesDaFoto} />
       )}
@@ -366,6 +374,11 @@ export default function Gallery() {
 
       {folha === 'filtros' && folhaFiltros}
       {(folha === 'pasta' || folha === 'album') && folhaDeDestino(folha)}
+      {ajusteLote && (
+        <AjusteEmLote fotos={allPhotos.filter(photo => selecionadas.includes(photo.id))} aoFechar={() => setAjusteLote(false)}
+          aoTerminar={gravadas => { if (gravadas) sairDaSelecao(); }} />
+      )}
+      {edicao.editor}
     </>}
 
     {uploadOpen && <Modal title="Adicionar fotos" description="Selecione várias imagens de uma vez. Você decide se quer vinculá-las agora." onClose={() => setUploadOpen(false)} wide footer={<><span className="muted small">{prepared.length} foto(s) selecionada(s)</span><Button onClick={() => setUploadOpen(false)}>Cancelar</Button><Button variant="primary" disabled={!prepared.length || busy || uploadType !== 'normal' && !consent} onClick={upload}><ImagePlus size={16} />Adicionar à galeria</Button></>}>

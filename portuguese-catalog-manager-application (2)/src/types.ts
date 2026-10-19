@@ -15,6 +15,8 @@ export interface Photo {
   /** Medidas originais (px): guardadas na entrada para o mosaico não medir de novo. */
   width?: number;
   height?: number;
+  /** Quando a imagem passou pelo editor (corte, pintura, ajuste…). */
+  editedAt?: string | null;
 }
 
 export interface BrokenNote {
@@ -86,9 +88,14 @@ export interface Person {
   estiloRoupa?: string;
   observacoesGerais?: string;
   aniversario?: string | null;
+  /**
+   * Saiu da ficha: não se preenche mais e não aparece em tela nenhuma. O campo
+   * continua no tipo para os dados já guardados não se perderem na leitura.
+   */
   pronome?: string;
   comoConheceu?: string;
   musicaFavorita?: string;
+  /** Como `pronome`: saiu da ficha, continua só para não apagar o que foi guardado. */
   signo?: string;
   customFields?: CustomField[];
   attachments?: Attachment[];
@@ -103,6 +110,8 @@ export interface Person {
   vinculos?: Vinculo[];
   /** O que ela é sua: tia, prima, líder, colega... Muda a dinâmica da conversa. */
   vinculoComigo?: string;
+  /** Se ela tem alguém (um valor de `RELACIONAMENTO_OPTIONS`). A ficha avisa na tela. */
+  relacionamento?: string;
   /** Ajuste manual do jeito de falar: a idade sugere, você decide. */
   maturidadeAjuste?: 'auto' | 'seria' | 'solta';
   /** Áudios de verdade dessa pessoa: a voz, os recados, o jeito de rir. */
@@ -298,6 +307,38 @@ export interface InvestigationBoard {
   name: string;
   description: string;
   cards: InvestigationCard[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Mapas mentais.
+ *
+ * Um mapa é um plano com nós de texto livre e fios entre eles — serve para
+ * pensar uma história, um plano ou a teia de gente em volta de uma ficha. As
+ * coordenadas são do plano (não da tela): quem vê aplica zoom e deslocamento,
+ * então o mapa não muda quando a janela muda.
+ */
+export interface NoDoMapa {
+  id: string;
+  texto: string;
+  x: number;
+  y: number;
+  cor: string;
+  /** Quando o nó é alguém do catálogo: clicar abre a ficha. */
+  personId?: string | null;
+  nota?: string;
+}
+
+export interface LigacaoDoMapa { id: string; de: string; para: string; rotulo?: string }
+
+export interface MapaMental {
+  id: string;
+  nome: string;
+  descricao?: string;
+  /** O primeiro nó é a raiz: é dela que o "Organizar" espalha os anéis. */
+  nos: NoDoMapa[];
+  ligacoes: LigacaoDoMapa[];
   createdAt: string;
   updatedAt: string;
 }
@@ -511,6 +552,8 @@ export interface AppData {
   pacotes: Pacote[];
   generalNotes: GeneralNote[];
   investigationBoards: InvestigationBoard[];
+  /** Mapas mentais: opcionais para os dados antigos carregarem sem eles. */
+  mapas?: MapaMental[];
   personTemplates?: PersonTemplate[];
   noteDrafts?: Record<string, GeneralNote>;
   albums: Album[];
@@ -779,18 +822,30 @@ export const QI_OPTIONS = [
   'genio',
 ];
 
-export const PRONOME_OPTIONS = [
-  'ela/dela',
-  'ele/dele',
-  'elu/delu',
-  'ela/ele',
-  'nenhum específico',
+/**
+ * Se ela tem alguém.
+ *
+ * Existe para a ficha dizer sem rodeio o que o catálogo já sabe: `compromisso`
+ * é o que a tela lê para mostrar o aviso (no cartão, na ficha e no topo da
+ * conversa), e a opção vazia é "não sei / não informe" — nunca uma suposição.
+ */
+export const RELACIONAMENTO_OPTIONS: { value: string; label: string; compromisso: boolean }[] = [
+  { value: '', label: 'Não informado', compromisso: false },
+  { value: 'solteira', label: 'Solteira', compromisso: false },
+  { value: 'conhecendo', label: 'Conhecendo alguém', compromisso: true },
+  { value: 'namorando', label: 'Namorando', compromisso: true },
+  { value: 'noiva', label: 'Noiva', compromisso: true },
+  { value: 'casada', label: 'Casada', compromisso: true },
+  { value: 'relacionamento', label: 'Em um relacionamento', compromisso: true },
+  { value: 'complicado', label: 'Situação complicada', compromisso: true },
 ];
 
-export const SIGNO_OPTIONS = [
-  'Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem',
-  'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes',
-];
+export const relacionamentoLabel = (value?: string) =>
+  RELACIONAMENTO_OPTIONS.find(item => item.value === (value || ''))?.label || 'Não informado';
+
+/** A ficha diz que há alguém — é isso que o aviso na tela lê. */
+export const temCompromisso = (pessoa: { relacionamento?: string }) =>
+  !!RELACIONAMENTO_OPTIONS.find(item => item.value === (pessoa.relacionamento || ''))?.compromisso;
 
 export const TAG_OPTIONS = [
   'friendzone',

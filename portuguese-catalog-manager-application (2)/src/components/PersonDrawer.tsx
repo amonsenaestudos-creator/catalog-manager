@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AudioLines, CalendarDays, Camera, Check, ExternalLink, Eye, FileText, FolderOpen, Heart, History, Link2, MapPin, Mic, PersonStanding, Play, Plus, Sparkles, Star, Trash2, Trophy, UserRound, Users } from 'lucide-react';
-import { ADULT_APPEARANCE_TAGS } from '../types';
+import { ADULT_APPEARANCE_TAGS, relacionamentoLabel, temCompromisso } from '../types';
 import type { Person } from '../types';
 import VisorDeFotos from './VisorDeFotos';
 import { useCatalog } from '../context';
@@ -18,6 +18,7 @@ import { vinculoComigoLabel } from '../types';
 import { VozDaPessoa, notasDeVoz, resumoDaVoz } from '../features/voice';
 import { RelacoesDaFicha } from '../features/relationships';
 import { abrirEmNovaAba, buscaNoYouTube } from '../features/musica';
+import { useEdicaoDeFoto } from '../features/gallery';
 import { Figura3D, lerForma, resumoDaForma, rotuloDaAltura } from '../features/corpo';
 import { BarraDeAcoes, CATEGORIAS_DA_FICHA, LIMITE_DE_HISTORICO, LIMITE_DE_PREVIA, LIMITE_ESSENCIAL, Revelar, acoesDaFicha, categoriaDaAba, contagemDaSecao, iconeDaAcao, organizarAcoes, revelar } from '../features/interface';
 import type { CategoriaDaFicha } from '../features/interface';
@@ -49,13 +50,15 @@ export default function PersonDrawer({ person }: { person: Person }) {
   };
   const [iceOpen, setIceOpen] = useState(false);
   const [vozOpen, setVozOpen] = useState(false);
+  /* As fotos da ficha também se editam aqui: corte, pintura, luz e cor. */
+  const edicao = useEdicaoDeFoto();
   const draft = usePersonDraft(`edit-${person.id}`, 'edit', person);
   const complete = completeness(person);
   const adult = isAdult(person);
   const tags = person.tags.filter(tag => adult || !ADULT_APPEARANCE_TAGS.includes(tag));
   const details = [
     ['Apelido', person.apelido], ['Nível de amizade', friendshipLabel(person.friendshipLevel)], ['Idade', person.idade ? `${person.idade} anos` : ''], ['Altura', rotuloDaAltura(person.altura)],
-    ['Pronomes', person.pronome], ['Signo', person.signo],
+    ['Relacionamento', person.relacionamento ? relacionamentoLabel(person.relacionamento) : ''],
     ['Cabelo', [person.cabeloTipo, person.cabeloCor === 'colorido' ? person.cabeloCorCustom : person.cabeloCor].filter(Boolean).join(', ')],
     ['Tom de pele', person.pele === 'personalizado' ? person.peleCustom : person.pele], ['Tipo de corpo', person.tipoCorpo], ['Estilo de roupa', person.estiloRoupa],
     ['Onde mora', person.localizacaoMora], ['Contato', person.redesSociais], ['Como conheceu', person.comoConheceu], ['Música favorita', person.musicaFavorita],
@@ -122,10 +125,11 @@ export default function PersonDrawer({ person }: { person: Person }) {
         <div className="person-intro">
           <div className="intro-top"><span className="eyebrow">{person.archivedAt ? 'No arquivo' : 'Sua conexão'}</span><IconButton label={person.favorite ? 'Remover dos favoritos' : 'Favoritar'} onClick={() => { ctx.changePeople([person.id], { favorite: !person.favorite }, person.favorite ? 'Removida dos favoritos.' : 'Adicionada aos favoritos.'); if (!person.favorite) ctx.sound('pop'); }}><Heart size={21} fill={person.favorite ? 'currentColor' : 'none'} className={person.favorite ? 'pink' : ''} /></IconButton></div>
           <h2><i className="person-dot" style={{ background: corDaPessoa(person) }} />{person.nome}</h2><p className="person-location"><MapPin size={15} />{locationLabel(person, data)}</p>
+          {temCompromisso(person) && <p className="rel-recado"><strong>{relacionamentoLabel(person.relacionamento)}</strong><span>A ficha diz que ela tem alguém. Está aqui para você ler antes de qualquer ideia.</span></p>}
           <span className={`rarity-chip rarity-${person.rarity || rarityFor(calculateOverallRating(person.rating))}`}><Sparkles size={12} />{RARITY_LABELS[person.rarity || rarityFor(calculateOverallRating(person.rating))]}{person.aniversario && ageFromBirthday(person.aniversario) !== null && <small> · {ageFromBirthday(person.aniversario)} anos</small>}</span>
           <StarRating value={calculateOverallRating(person.rating)} readonly size={21} />
           <p className="friendship-read">{friendshipLabel(person.friendshipLevel)}<span>Nível de amizade · não afeta a nota</span></p>
-          <p className="person-description">{person.descricao}</p><div className="tags">{tags.map(tag => <Tag key={tag} name={tag} />)}</div>
+          {person.descricao.trim() && <p className="person-description">{person.descricao}</p>}<div className="tags">{tags.map(tag => <Tag key={tag} name={tag} />)}</div>
           {/* Barra de ação contextual: 2 a 3 ações prováveis + "⋯" agrupado.
               As ações mudam com a categoria aberta — ver `features/interface`. */}
           <BarraDeAcoes className="person-primary-actions" plano={planoDaFicha} iconeDe={iconeDaAcao}
@@ -231,6 +235,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
       <VisorDeFotos fotos={person.fotos} indice={Math.min(fotoAberta, person.fotos.length - 1)} aoMudar={setFotoAberta} aoFechar={() => setFotoAberta(-1)}
         titulo={() => person.nome} apoio={file => `${file.isMain ? 'Foto principal · ' : ''}${PHOTO_LABELS[file.type]}`}
         aoFavoritar={file => ctx.togglePhotoFavorite(file.id)}
+        aoEditar={file => edicao.abrir(file, person.nome)}
         aoBaixar={async file => {
           try {
             const blob = await (await fetch(file.url)).blob();
@@ -239,6 +244,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
           } catch { ctx.notify('Não foi possível baixar esta imagem.', true); }
         }} />
     )}
+    {edicao.editor}
     {vozOpen && <VozDaPessoa person={person} onClose={() => setVozOpen(false)} />}
     {iceOpen && <Icebreakers person={person} onClose={() => setIceOpen(false)} onStartChat={() => { setIceOpen(false); ctx.openChat(person); ctx.closePerson(); }} />}
   </Modal>;

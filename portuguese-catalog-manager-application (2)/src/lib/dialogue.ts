@@ -15,7 +15,7 @@
  *  - Ela reconhece nomes: o dela, o seu e o de qualquer familiar cadastrado.
  */
 import type { AppData, ChatMessage, ChatMood, ChatState, ChatTone, Person } from '../types';
-import { INTIMATE_MIN_AGE } from '../types';
+import { INTIMATE_MIN_AGE, relacionamentoLabel } from '../types';
 import { isAdult, normalizeText } from '../store';
 import { abreviacoesNaMensagem, expandirAbreviacoes } from './abreviacoes';
 import { buildPersona, ganchoDe, type Genero, type Persona } from './persona';
@@ -1824,7 +1824,7 @@ export function resumoPessoaEmTexto(person: Person, data: AppData) {
   if (person.descricao) linhas.push(person.descricao);
   if (person.comoConheceu) linhas.push(`Como se conheceram: ${person.comoConheceu}`);
   if (person.musicaFavorita) linhas.push(`Música favorita: ${person.musicaFavorita}`);
-  if (person.signo) linhas.push(`Signo: ${person.signo}`);
+  if (person.relacionamento) linhas.push(`Relacionamento: ${relacionamentoLabel(person.relacionamento)}`);
   if (person.tags.length) linhas.push(`Etiquetas: ${person.tags.join(', ')}`);
   if (person.comportamento) linhas.push(`Comportamento: ${person.comportamento}`);
   if (person.observacoesGerais) linhas.push(`Observações: ${person.observacoesGerais}`);

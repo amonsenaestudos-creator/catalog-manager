@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Download, Heart, Info, Maximize2, Minus, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Heart, Info, Maximize2, Minus, Plus, Wand2, X } from 'lucide-react';
 import type { Photo } from '../types';
 import { useCatalog } from '../context';
 import { registrarRazao } from '../lib/galeria';
@@ -29,6 +29,8 @@ export interface VisorProps {
   /** Coração: quando ausente, o botão de favoritar não aparece. */
   aoFavoritar?: (photo: Photo) => void;
   aoBaixar?: (photo: Photo) => void;
+  /** Edição da imagem: quando presente, aparece o lápis no topo. */
+  aoEditar?: (photo: Photo) => void;
   acoes?: (photo: Photo) => AcaoDeFolha[];
   /** Formulário de metadados, mostrado na folha "Detalhes". */
   detalhes?: (photo: Photo) => React.ReactNode;
@@ -36,7 +38,7 @@ export interface VisorProps {
   aoAlternarSelecao?: (photo: Photo) => void;
 }
 
-export default function VisorDeFotos({ fotos, indice, aoMudar, aoFechar, titulo, apoio, aoFavoritar, aoBaixar, acoes, detalhes, selecionada, aoAlternarSelecao }: VisorProps) {
+export default function VisorDeFotos({ fotos, indice, aoMudar, aoFechar, titulo, apoio, aoFavoritar, aoBaixar, aoEditar, acoes, detalhes, selecionada, aoAlternarSelecao }: VisorProps) {
   const ctx = useCatalog();
   const foto = fotos[indice];
   const cena = useRef<HTMLDivElement>(null);
@@ -208,6 +210,7 @@ export default function VisorDeFotos({ fotos, indice, aoMudar, aoFechar, titulo,
               <Heart size={19} fill={foto.favorite ? 'currentColor' : 'none'} />
             </button>
           )}
+          {aoEditar && <button type="button" className="visor-botao" onClick={() => aoEditar(foto)} aria-label="Editar esta imagem"><Wand2 size={19} /></button>}
           {aoBaixar && <button type="button" className="visor-botao" onClick={() => aoBaixar(foto)} aria-label="Baixar a imagem"><Download size={19} /></button>}
           {acoes && <button type="button" className="visor-botao" onClick={() => setFolha('acoes')} aria-label="Mais ações"><span className="visor-tres-pontos">⋯</span></button>}
         </div>

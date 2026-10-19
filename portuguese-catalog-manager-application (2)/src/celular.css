@@ -1698,6 +1698,10 @@
   .people-grid .card-name-row { align-items: flex-end; gap: 6px; }
   .people-grid .card-name-row h3 { font-size: 14.5px; font-weight: 620; color: #fff; white-space: normal; }
   .people-grid .card-location { color: #ded2e8; font-size: 11px; margin-top: 2px; }
+  .people-grid .rel-aviso { max-width: 44%; overflow: hidden; padding: 2px 6px; font-size: 9px; text-overflow: ellipsis; }
+  .rel-recado { margin: -12px 0 16px; padding: 10px 12px; }
+  .rel-recado strong { font-size: 12.5px; }
+  .rel-recado span { font-size: 11px; }
   /* etiqueta e barra de preenchimento ficam para a lista e para a ficha: sobre a
      foto elas só roubam o rosto da pessoa */
   .people-grid .card-tags, .people-grid .card-bottom, .people-grid.compact .card-tags { display: none; }
@@ -2234,4 +2238,112 @@
   .figura-palco { height: 260px !important; }
   .figura-controles button { flex: 1 1 auto; justify-content: center; }
   .figura-notas { grid-template-columns: 1fr 1fr; }
+}
+
+/* ===== Seção 22: o editor de imagens na palma da mão =====
+   A foto manda no espaço: o palco fica com o que sobra depois do topo, do
+   painel e da trilha. O painel vira uma faixa que rola embaixo (não uma coluna
+   ao lado, que numa tela de 390px deixaria a foto com dois dedos de largura),
+   e as ações de salvar que no computador ficam ao lado da trilha sobem para o
+   "⋯" do topo — no aparelho, dois botões ali empurrariam a trilha para fora. */
+@media (max-width: 1100px) {
+  .editor-corpo { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .editor-palco { padding: 12px 12px 18px; }
+  .editor-painel {
+    max-height: min(42vh, 360px); padding: 12px 12px 16px; gap: 12px;
+    border-left: 0; border-top: 1px solid #ffffff14; overscroll-behavior: contain;
+  }
+  .editor-botao { width: var(--alvo); height: var(--alvo); }
+  .editor-salvar { min-height: var(--alvo); padding: 0 18px; font-size: 13px; }
+  /* O "Original" é botão de segurar com o polegar: alvo de 40px e rótulo curto. */
+  .editor-comparar { top: 8px; right: 8px; min-height: 40px; padding: 0 14px; font-size: 12px; }
+  .editor-original-legenda { top: 8px; left: 8px; }
+
+  .editor-ferramenta { min-width: 66px; min-height: 52px; justify-content: center; font-size: 11px; }
+  .editor-opcao { min-height: 38px; padding: 0 14px; font-size: 12.5px; }
+  .editor-botao-largo { min-height: var(--alvo); }
+  .editor-cor-botao { width: 34px; height: 34px; }
+  .editor-cor-alvo { width: var(--alvo); height: var(--alvo); }
+  .editor-cor-hex { min-height: 42px; }
+  .editor-acoes-do-painel .btn { min-height: var(--alvo); flex: 1 1 auto; justify-content: center; }
+  .editor-corte-alca { width: 34px; height: 34px; }
+  .alca-nw { top: -17px; left: -17px; }
+  .alca-n { top: -17px; margin-left: -17px; }
+  .alca-ne { top: -17px; right: -17px; }
+  .alca-e { right: -17px; margin-top: -17px; }
+  .alca-se { right: -17px; bottom: -17px; }
+  .alca-s { bottom: -17px; margin-left: -17px; }
+  .alca-sw { bottom: -17px; left: -17px; }
+  .alca-w { left: -17px; margin-top: -17px; }
+  .editor-corte-alca::after { inset: 12px; }
+}
+
+@media (max-width: 760px) {
+  /* A doca sai da frente: quem está na tela é a foto, não a navegação. */
+  html.editor-aberto .mobile-bottom-nav { transform: translateY(140%); opacity: 0; }
+
+  .editor-topo { padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px; gap: 8px; }
+  .editor-titulo strong { font-size: 14px; }
+  .editor-titulo small { font-size: 10px; }
+  .editor-topo-acoes { gap: 5px; }
+  .editor-base { padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .editor-base-fim { display: none; }
+  .editor-trilha { width: 100%; }
+  .editor-ferramenta kbd { display: none; }   /* no aparelho não há tecla */
+  .editor-dica-da-tela { font-size: 11px; bottom: 0; }
+
+  /* O "⋯" vira folha de baixo: as quatro opções cabem no polegar. */
+  .editor-mais {
+    top: auto; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); left: 8px;
+    min-width: 0; padding: 8px; border-radius: 18px;
+  }
+  .editor-mais button { min-height: var(--alvo); font-size: 13px; }
+  .editor-confirmar > div { padding: 18px 16px; }
+  .editor-confirmar-acoes .btn { flex: 1 1 auto; min-height: var(--alvo); justify-content: center; }
+  .editor-texto input { max-width: calc(100vw - 96px); }
+}
+
+/* Reduzir movimento: nada aqui anima, mas a transição dos botões sai junto. */
+@media (prefers-reduced-motion: reduce) {
+  .editor-botao, .editor-salvar, .editor-cor-botao, .editor-ferramenta { transition-duration: .01ms; }
+}
+
+/* ===== Seção 23: o ajuste em lote na palma da mão =====
+   A mesma folha do computador, com alvos de dedo: os filtros rolam de lado (o
+   polegar alcança todos sem apertar nada), o "Zerar" cresce e o trilho ganha a
+   altura do alvo — arrastar brilho num slider de 4px com o dedo não existe. */
+@media (max-width: 1100px) {
+  .ajuste-lote { gap: 14px; }
+  .ajuste-lote-filtro { width: 92px; }
+  .ajuste-lote-filtro span { font-size: 11px; }
+  .ajuste-lote-zerar { min-height: 34px; padding: 0 13px; font-size: 11.5px; }
+  .ajuste-lote-trilho input[type="range"] { height: var(--alvo); }
+  .ajuste-lote-trilho > span { font-size: 12.5px; }
+  .ajuste-lote-previa img { border-radius: 14px; }
+  .ajuste-lote-falhas { font-size: 12.5px; }
+}
+
+/* --------------------------------------------------------------------------
+   24. Mapas mentais no aparelho
+   O painel sai de cima do plano e vira uma faixa embaixo, o nó encolhe para
+   caber o dedo, e o × do fio fica sempre visível (não há hover no touch).
+   -------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .mapa-corpo { grid-template-columns: minmax(0, 1fr); padding: 10px 0 18px; }
+  .mapa-tela { height: 54vh; min-height: 300px; border-radius: 16px; }
+  .mapa-painel { max-height: none; }
+  .mapa-topo { flex-wrap: wrap; gap: 8px; }
+  .mapa-voltar { min-height: 40px; }
+  .mapa-nome { order: 3; flex-basis: 100%; font-size: 16px; }
+  .mapa-acoes { margin-left: auto; }
+  .mapa-acoes .btn { min-height: 40px; padding: 8px 11px; }
+  .mapa-no { left: -75px; top: -26px; width: 150px; min-height: 52px; }
+  .mapa-no strong { font-size: 13px; }
+  .mapa-fio-corte { left: -15px; top: -15px; width: 30px; height: 30px; opacity: 1; font-size: 15px; }
+  .mapa-zoom { right: 8px; bottom: 8px; }
+  .mapa-zoom button { width: 38px; height: 38px; }
+  .mapa-dica { display: none; }
+  .mapas-lista { grid-template-columns: minmax(0, 1fr); }
+  .mapa-miniatura { height: 88px; }
+  .mapa-escolha button { min-height: 40px; }
 }
