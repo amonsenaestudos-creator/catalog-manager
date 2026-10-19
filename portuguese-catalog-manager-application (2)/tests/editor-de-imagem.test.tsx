@@ -14,11 +14,16 @@ import {
   moverMarcaPara, moverPonto, nomeEditado, novaForma, novoBorrado, novoTexto, novoTraco,
   paraFonte, paraSaida, pontosDaMarca, podeDesfazer, podeRefazer, razaoDaSaida, refazer,
   registrar, repor, rgbParaHex, salvarCorRecente, tamanhoDaSaida, temMudanca, textoSobre,
+  FORMATOS_DO_RECORTE, TAMANHOS_DE_SAIDA, fatorDoLimite, raioDoArredondado, resumoDoFormato,
+  tamanhoDoLimite, tamanhoExportado,
 } from "../src/features/gallery/edicao";
 import AjusteEmLote from "../src/features/gallery/components/AjusteEmLote";
 import { getAllPhotos } from "../src/features/gallery";
 import type { Edicao, Geometria, Marca, Ponto, Photo, Retangulo } from "../src/features/gallery";
-import { comporTela, corNaTela, desenharBase, exportarEdicao, miniaturaDeAjustes, novoCanvas, paletaDaTela } from "../src/features/gallery/tela";
+import {
+  caminhoDoFormato, comporTela, corNaTela, desenharBase, exportarEdicao, miniaturaDeAjustes,
+  novoCanvas, paletaDaTela, recortarNoFormato,
+} from "../src/features/gallery/tela";
 import { FERRAMENTAS } from "../src/features/gallery/ferramentas";
 import { getDefaultPerson } from "../src/store";
 import type { AppData } from "../src/types";
@@ -593,6 +598,9 @@ function contextoFalso(canvas: HTMLCanvasElement, chamadas: string[]) {
     strokeRect: noop("strokeRect"),
     beginPath: noop("beginPath"),
     closePath: noop("closePath"),
+    rect: noop("rect"),
+    roundRect: noop("roundRect"),
+    clip: noop("clip"),
     moveTo: noop("moveTo"),
     lineTo: noop("lineTo"),
     quadraticCurveTo: noop("quadraticCurveTo"),
@@ -945,6 +953,43 @@ describe("o editor com um canvas de mentira", () => {
     await waitFor(() => expect(aoSalvar).toHaveBeenCalledTimes(1), { timeout: 4000 });
     expect(aoSalvar.mock.calls[0][1]).toBe("nova");
   });
+
+  it("o contorno entra na receita, aparece no topo e sai no arquivo", async () => {
+    const user = userEvent.setup();
+    const aoSalvar = montar();
+    await apontar();
+    const painel = document.querySelector(".editor-painel") as HTMLElement;
+    expect(within(painel).getByText("Contorno")).toBeInTheDocument();
+    await user.click(within(painel).getByRole("button", { name: "Oval" }));
+    await waitFor(() => expect(leitura()).toContain("recorte oval"));
+    // a base foi refeita com o caminho do contorno
+    expect(chamadas).toContain("ellipse");
+    expect(chamadas).toContain("clip");
+    await user.click(screen.getByRole("button", { name: /Desfazer/i }));
+    await waitFor(() => expect(leitura()).not.toContain("recorte oval"));
+    await user.click(within(painel).getByRole("button", { name: "Arredondada" }));
+    await waitFor(() => expect(leitura()).toContain("cantos arredondados"));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await waitFor(() => expect(aoSalvar).toHaveBeenCalledTimes(1), { timeout: 4000 });
+    expect(aoSalvar.mock.calls[0][0].largura).toBe(120);
+  });
+
+  it("o tamanho salvo promete no painel e segura o arquivo", async () => {
+    const user = userEvent.setup();
+    const aoSalvar = montar();
+    await apontar();
+    const painel = document.querySelector(".editor-painel") as HTMLElement;
+    expect(within(painel).getByText("Vai salvar")).toBeInTheDocument();
+    expect(leitura()).not.toContain("salva com até");
+    await user.click(within(painel).getByRole("button", { name: "Pequena" }));
+    await waitFor(() => expect(leitura()).toContain("salva com até 800px"));
+    // a foto de teste tem 120px: o limite não corta nada, e o painel diz isso
+    expect(leitura()).toContain("120 × 80 px");
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await waitFor(() => expect(aoSalvar).toHaveBeenCalledTimes(1), { timeout: 4000 });
+    expect(aoSalvar.mock.calls[0][0].largura).toBe(120);
+    expect(aoSalvar.mock.calls[0][0].altura).toBe(80);
+  });
 });
 
 /* ------------------------------------------------------------------- CSS -- */
@@ -1234,5 +1279,105 @@ describe("o mesmo ajuste em várias fotos", () => {
     expect(cssDoApp).toMatch(/\.ajuste-lote-previa img \{[^}]*object-fit: cover/);
     expect(cssDoApp).toMatch(/\.ajuste-lote-trilho input\[type="range"\] \{ height: var\(--alvo\); \}/);
     expect(cssDoApp).toMatch(/\.ajuste-lote-filtro \{ width: 92px; \}/);
+  });
+});
+
+/* ------------------------------------------- contorno e tamanho do arquivo -- */
+
+describe("o contorno da foto e o tamanho do arquivo salvo", () => {
+  it("a receita começa sem contorno, e o contorno conta como mudança", () => {
+    const base = tamanho(1200, 800);
+    expect(edicaoInicial(base).formato).toBe("retangulo");
+    expect(temMudanca(edicaoInicial(base), base)).toBe(false);
+    expect(temMudanca({ ...edicaoInicial(base), formato: "oval" }, base)).toBe(true);
+    expect(FORMATOS_DO_RECORTE.map(item => item.id)).toEqual(["retangulo", "arredondado", "oval"]);
+    expect(resumoDoFormato("retangulo")).toBe("");
+    expect(resumoDoFormato("arredondado")).toBe("cantos arredondados");
+    expect(resumoDoFormato("oval")).toBe("recorte oval");
+  });
+
+  it("o raio dos cantos acompanha o lado menor da foto", () => {
+    expect(raioDoArredondado(tamanho(1000, 500))).toBe(60);
+    expect(raioDoArredondado(tamanho(500, 1000))).toBe(60);
+    expect(raioDoArredondado(tamanho(40, 30))).toBe(4);
+    expect(raioDoArredondado(tamanho(3, 3))).toBe(1);
+  });
+
+  it("o limite segura o lado maior e encolhe o outro junto", () => {
+    expect(TAMANHOS_DE_SAIDA.map(item => item.id)).toEqual(["cheia", "grande", "media", "pequena"]);
+    expect(tamanhoDoLimite("pequena")).toBe(800);
+    expect(tamanhoDoLimite("cheia")).toBe(2400);
+    expect(tamanhoDoLimite("inventado")).toBe(2400);
+    expect(tamanhoExportado(tamanho(3000, 2000), 800)).toEqual(tamanho(800, 533));
+    expect(tamanhoExportado(tamanho(2000, 3000), 1200)).toEqual(tamanho(800, 1200));
+    expect(tamanhoExportado(tamanho(640, 480), 2400)).toEqual(tamanho(640, 480));
+    expect(fatorDoLimite(tamanho(640, 480), 2400)).toBe(1);
+    expect(fatorDoLimite(tamanho(3000, 2000), 800)).toBeCloseTo(800 / 3000);
+  });
+});
+
+describe("o contorno no desenho", () => {
+  let chamadas: string[] = [];
+  const tela = (largura = 40, altura = 30) => novoCanvas(largura, altura) as HTMLCanvasElement;
+
+  beforeEach(() => {
+    chamadas = [];
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (this: HTMLCanvasElement) {
+      return contextoFalso(this, chamadas) as unknown as ReturnType<HTMLCanvasElement["getContext"]>;
+    } as never);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/webp;base64,ARQUIVO");
+  });
+
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it("cada contorno pede o seu caminho", () => {
+    const ctx = contextoFalso(tela(), chamadas);
+    caminhoDoFormato(ctx, "oval", tamanho(40, 30));
+    expect(chamadas).toEqual(["beginPath", "ellipse"]);
+    chamadas.length = 0;
+    caminhoDoFormato(ctx, "arredondado", tamanho(40, 30));
+    expect(chamadas).toEqual(["beginPath", "roundRect"]);
+    chamadas.length = 0;
+    caminhoDoFormato(ctx, "retangulo", tamanho(40, 30));
+    expect(chamadas).toEqual(["beginPath", "rect"]);
+  });
+
+  it("recortar só vale quando há contorno, e diz se precisa desfazer", () => {
+    const ctx = contextoFalso(tela(10, 10), chamadas);
+    expect(recortarNoFormato(ctx, "retangulo", tamanho(10, 10))).toBe(false);
+    expect(chamadas).toEqual([]);
+    expect(recortarNoFormato(ctx, "oval", tamanho(10, 10))).toBe(true);
+    expect(chamadas).toEqual(["save", "beginPath", "ellipse", "clip"]);
+  });
+
+  it("a base, a prévia e o arquivo saem recortados", () => {
+    const imagem = new ImagemDeTeste() as unknown as HTMLImageElement;
+    const oval = { ...edicaoInicial(tamanho(120, 80)), formato: "oval" } as Edicao;
+    expect(desenharBase(tela(120, 80), imagem, oval, 1)).toBe(true);
+    expect(chamadas).toContain("clip");
+    expect(chamadas).toContain("drawImage");
+
+    chamadas.length = 0;
+    expect(comporTela(tela(120, 80), tela(120, 80), [], 1, null, "oval")).toBe(true);
+    expect(chamadas).toContain("clip");
+
+    chamadas.length = 0;
+    expect(comporTela(tela(120, 80), tela(120, 80), [], 1)).toBe(true);
+    expect(chamadas).not.toContain("clip");
+
+    chamadas.length = 0;
+    const resultado = exportarEdicao(imagem, oval);
+    expect(resultado?.largura).toBe(120);
+    expect(resultado?.altura).toBe(80);
+    expect(chamadas).toContain("clip");
+  });
+
+  it("o limite da exportação segura as medidas do arquivo", () => {
+    const imagem = new ImagemDeTeste() as unknown as HTMLImageElement;
+    const edicao = edicaoInicial(tamanho(120, 80));
+    expect(exportarEdicao(imagem, edicao)?.largura).toBe(120);
+    const pequena = exportarEdicao(imagem, edicao, { limite: 60 });
+    expect(pequena?.largura).toBe(60);
+    expect(pequena?.altura).toBe(40);
   });
 });

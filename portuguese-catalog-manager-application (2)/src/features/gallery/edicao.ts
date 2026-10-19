@@ -77,6 +77,8 @@ export type Marca = Traco | Forma | Texto | Borrado;
 export interface Edicao {
   geometria: Geometria;
   ajustes: Ajustes;
+  /** O contorno do resultado: cantos retos, arredondados ou oval. */
+  formato: FormatoDoRecorte;
   marcas: Marca[];
 }
 
@@ -87,6 +89,7 @@ export function edicaoInicial(tamanho: Tamanho): Edicao {
   return {
     geometria: { corte: { x: 0, y: 0, largura, altura }, giro: 0, espelharH: false, espelharV: false },
     ajustes: { ...AJUSTES_NEUTROS },
+    formato: FORMATO_PADRAO,
     marcas: [],
   };
 }
@@ -313,6 +316,77 @@ export const PROPORCOES: Proporcao[] = [
   { id: '3:2', nome: '3:2', razao: 3 / 2, dica: 'Paisagem clássica.' },
   { id: '16:9', nome: '16:9', razao: 16 / 9, dica: 'Tela e capa.' },
 ];
+
+/* ------------------------------------------------ contorno e tamanho salvo -- */
+
+/**
+ * O contorno da foto depois do corte.
+ *
+ * O corte continua sendo um retângulo: é ele que diz quais pixels do arquivo
+ * entram. O contorno só aparece no resultado — arredondado tira os quatro
+ * cantos, oval deixa só o meio, que numa foto quadrada é um círculo.
+ */
+export type FormatoDoRecorte = 'retangulo' | 'arredondado' | 'oval';
+
+/** Como a foto entra: sem contorno nenhum. */
+export const FORMATO_PADRAO: FormatoDoRecorte = 'retangulo';
+
+export const FORMATOS_DO_RECORTE: { id: FormatoDoRecorte; nome: string; resumo: string; dica: string }[] = [
+  { id: 'retangulo', nome: 'Retângulo', resumo: '', dica: 'A foto inteira, com os cantos retos.' },
+  { id: 'arredondado', nome: 'Arredondada', resumo: 'cantos arredondados', dica: 'Cantos suaves, como num cartão.' },
+  { id: 'oval', nome: 'Oval', resumo: 'recorte oval', dica: 'Só o meio aparece; numa foto quadrada vira um círculo.' },
+];
+
+/** Como o topo do editor fala do contorno (vazio quando não há contorno). */
+export const resumoDoFormato = (formato: FormatoDoRecorte) =>
+  FORMATOS_DO_RECORTE.find(item => item.id === formato)?.resumo || '';
+
+/**
+ * O raio dos cantos arredondados: uma fração do lado menor, para a curva ficar
+ * proporcional numa foto grande e numa pequena sem comer o rosto de ninguém.
+ */
+export const raioDoArredondado = (tamanho: Tamanho) =>
+  Math.max(1, Math.round(Math.min(tamanho.largura, tamanho.altura) * 0.12));
+
+/**
+ * Até onde o lado maior da foto salva pode ir.
+ *
+ * O catálogo guarda tudo no aparelho, então é o tamanho do arquivo que decide
+ * quantas fotos cabem. As fotos já entram com no máximo 1.440px, e por isso
+ * "Tamanho cheio" quase nunca reduz nada — as outras três são para quem quer
+ * um catálogo leve de propósito.
+ */
+export interface TamanhoDeSaida { id: string; nome: string; maximo: number; dica: string }
+
+export const TAMANHOS_DE_SAIDA: TamanhoDeSaida[] = [
+  { id: 'cheia', nome: 'Tamanho cheio', maximo: 2400, dica: 'Guarda a foto como ela saiu do corte.' },
+  { id: 'grande', nome: 'Grande', maximo: 1600, dica: 'Até 1.600px no lado maior: dá para ver de perto.' },
+  { id: 'media', nome: 'Média', maximo: 1200, dica: 'Até 1.200px: o tamanho em que as fotos entram.' },
+  { id: 'pequena', nome: 'Pequena', maximo: 800, dica: 'Até 800px: pesa bem menos no aparelho.' },
+];
+
+/** A escolha de quem abre o editor: guardar a foto como ela está. */
+export const LIMITE_PADRAO = 'cheia';
+
+export function tamanhoDoLimite(id: string): number {
+  return TAMANHOS_DE_SAIDA.find(item => item.id === id)?.maximo ?? 2400;
+}
+
+/**
+ * As medidas do arquivo que vai ser gravado: o lado maior não passa de `limite`
+ * e o outro encolhe junto, para a foto não entortar.
+ */
+/** Quanto a foto encolhe para caber no limite: 1 quer dizer "não mexe". */
+export const fatorDoLimite = (saida: Tamanho, limite: number) =>
+  Math.min(1, limite / Math.max(1, saida.largura, saida.altura));
+
+export function tamanhoExportado(saida: Tamanho, limite: number): Tamanho {
+  const fator = fatorDoLimite(saida, limite);
+  return {
+    largura: Math.max(1, Math.round(saida.largura * fator)),
+    altura: Math.max(1, Math.round(saida.altura * fator)),
+  };
+}
 
 export function limitar(valor: number, minimo: number, maximo: number): number {
   return Math.min(maximo, Math.max(minimo, valor));
@@ -815,6 +889,7 @@ export function temMudanca(edicao: Edicao, tamanho: Tamanho): boolean {
     || corte.x !== inicial.geometria.corte.x || corte.y !== inicial.geometria.corte.y
     || corte.largura !== inicial.geometria.corte.largura || corte.altura !== inicial.geometria.corte.altura
     || !ajustesNeutros(edicao.ajustes)
+    || edicao.formato !== FORMATO_PADRAO
     || edicao.marcas.length > 0;
 }
 

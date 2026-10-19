@@ -25,12 +25,13 @@ import { useCatalog } from '../../../context';
 import { downloadBlob } from '../../../store';
 import type { AcaoDeFolha } from '../../../components/Folha';
 import {
-  AJUSTES_NEUTROS, FILTROS_PRONTOS, PROPORCOES, aplicarAcao, areaProporcional, arrastarArea,
-  corEmHex, desfazer, edicaoInicial, filtroAtivo, historicoInicial, lerCoresRecentes,
-  podeDesfazer, podeRefazer, refazer, registrar, repor, salvarCorRecente, tamanhoDaEdicao, temMudanca,
+  AJUSTES_NEUTROS, FILTROS_PRONTOS, LIMITE_PADRAO, PROPORCOES, aplicarAcao, areaProporcional,
+  arrastarArea, corEmHex, desfazer, edicaoInicial, filtroAtivo, historicoInicial, lerCoresRecentes,
+  podeDesfazer, podeRefazer, refazer, registrar, repor, resumoDoFormato, salvarCorRecente,
+  tamanhoDaEdicao, tamanhoDoLimite, temMudanca,
 } from '../edicao';
 import type {
-  Ajustes, Alca, Edicao, FormaTipo, Historico, Marca, ModoDeSalvamento, Ponto,
+  Ajustes, Alca, Edicao, FormaTipo, FormatoDoRecorte, Historico, Marca, ModoDeSalvamento, Ponto,
   ResultadoDaEdicao, Retangulo,
 } from '../edicao';
 import { carregarImagem, exportarEdicao, tamanhoNatural } from '../tela';
@@ -105,6 +106,9 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
   const [letra, setLetra] = useState<EstadoDoTexto>({ tamanho: 32, contorno: true });
   const [bloco, setBloco] = useState(12);
   const [proporcao, setProporcao] = useState('livre');
+  // O contorno mora na receita (desfaz junto); o tamanho do arquivo é uma
+  // escolha de salvamento e por isso fica fora do histórico.
+  const [limiteDeSaida, setLimiteDeSaida] = useState(LIMITE_PADRAO);
   const [area, setArea] = useState<Retangulo | null>(null);
   const [arraste, setArraste] = useState<{ alca: Alca; inicio: Ponto; area: Retangulo } | null>(null);
   const [recentes, setRecentes] = useState<string[]>(() => lerCoresRecentes());
@@ -153,6 +157,10 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
   }, [ctx, passo]);
   const espelhar = useCallback((eixo: 'h' | 'v') => {
     passo(atual => aplicarAcao(atual, { tipo: 'espelho', eixo }));
+    ctx.buzz?.(8);
+  }, [ctx, passo]);
+  const mudarFormato = useCallback((formato: FormatoDoRecorte) => {
+    passo(atual => (atual.formato === formato ? atual : { ...atual, formato }));
     ctx.buzz?.(8);
   }, [ctx, passo]);
 
@@ -258,7 +266,7 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
     setSalvando(true);
     // Um respiro para a tela pintar o "gerando" antes do trabalho pesado.
     window.setTimeout(() => {
-      const resultado = exportarEdicao(imagem, edicao);
+      const resultado = exportarEdicao(imagem, edicao, { limite: tamanhoDoLimite(limiteDeSaida) });
       setSalvando(false);
       if (!resultado) { ctx.notify('Não foi possível gerar a imagem editada neste navegador.', true); return; }
       ctx.sound('shutter');
@@ -273,7 +281,7 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
     setMais(false);
     setSalvando(true);
     window.setTimeout(() => {
-      const resultado = exportarEdicao(imagem, edicao);
+      const resultado = exportarEdicao(imagem, edicao, { limite: tamanhoDoLimite(limiteDeSaida) });
       setSalvando(false);
       if (!resultado) { ctx.notify('Não foi possível gerar a imagem editada neste navegador.', true); return; }
       void (async () => {
@@ -290,6 +298,7 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
   const restaurar = () => {
     setMais(false);
     setProporcao('livre');
+    setLimiteDeSaida(LIMITE_PADRAO);
     setHistorico(historia => registrar(historia, edicaoInicial(tamanho)));
     ctx.notify('A foto voltou ao original. Ainda dá para desfazer.');
   };
@@ -361,6 +370,8 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
     edicao.geometria.espelharH || edicao.geometria.espelharV ? 'espelhada' : '',
     edicao.geometria.corte.largura < tamanho.largura || edicao.geometria.corte.altura < tamanho.altura ? 'cortada' : '',
     filtroLigado && filtroLigado !== 'original' ? `filtro ${FILTROS_PRONTOS.find(item => item.id === filtroLigado)?.nome || ''}` : '',
+    resumoDoFormato(edicao.formato),
+    limiteDeSaida !== LIMITE_PADRAO ? `salva com até ${tamanhoDoLimite(limiteDeSaida)}px` : '',
     edicao.marcas.length ? `${edicao.marcas.length} ${edicao.marcas.length === 1 ? 'marca' : 'marcas'}` : '',
   ].filter(Boolean);
   const cursor = ferramenta === 'cor' ? 'copy' : ferramenta === 'texto' ? 'text' : ferramenta === 'apagar' ? 'cell' : 'crosshair';
@@ -427,6 +438,8 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
           texto={letra} aoMudarTexto={novo => setLetra(atual => ({ ...atual, ...novo }))}
           bloco={bloco} aoMudarBloco={setBloco}
           proporcao={proporcao} aoMudarProporcao={setProporcao} area={area}
+          formato={edicao.formato} aoMudarFormato={mudarFormato}
+          limiteDeSaida={limiteDeSaida} aoMudarLimite={setLimiteDeSaida}
           aoAplicarCorte={aplicarCorte} aoCancelarCorte={() => setArea({ x: 0, y: 0, ...saida })}
           aoGirar={girar} aoEspelhar={espelhar}
           ajustes={edicao.ajustes} aoMudarAjustes={ajustar} aoZerarAjustes={zerarAjustes}

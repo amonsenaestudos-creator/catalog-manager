@@ -13,8 +13,13 @@
  *     quadro, e é barato porque é vetor.
  * Assim pintar não reencoda a foto e não engasga no aparelho.
  */
-import type { Ajustes, Edicao, Geometria, Marca, Ponto, ResultadoDaEdicao, Tamanho } from './edicao';
-import { coresDominantes, filtroCss, rgbParaHex, tamanhoDaSaida, textoSobre } from './edicao';
+import type {
+  Ajustes, Edicao, FormatoDoRecorte, Geometria, Marca, Ponto, ResultadoDaEdicao, Tamanho,
+} from './edicao';
+import {
+  coresDominantes, fatorDoLimite, filtroCss, raioDoArredondado, rgbParaHex, tamanhoDaSaida,
+  tamanhoExportado, textoSobre,
+} from './edicao';
 
 export type Imagem = HTMLImageElement | ImageBitmap;
 
@@ -130,6 +135,50 @@ export function desenharFoto(
   if (filtro !== 'none' && filtroNoContexto(ctx)) ctx.filter = 'none';
 }
 
+/**
+ * O caminho do contorno pedido, no tamanho em pixels que vai ser desenhado.
+ *
+ * Fica aqui (e não em `edicao.ts`) porque é desenho: `edicao.ts` guarda só o
+ * raio, que é conta. `roundRect` é recente demais para todo navegador, e o
+ * caminho cai num retângulo quando ele não existe — melhor um canto reto do
+ * que nada na tela.
+ */
+export function caminhoDoFormato(
+  ctx: CanvasRenderingContext2D,
+  formato: FormatoDoRecorte,
+  tamanho: Tamanho,
+) {
+  const largura = Math.max(1, tamanho.largura);
+  const altura = Math.max(1, tamanho.altura);
+  ctx.beginPath();
+  if (formato === 'oval') {
+    ctx.ellipse(largura / 2, altura / 2, largura / 2, altura / 2, 0, 0, Math.PI * 2);
+    return;
+  }
+  if (formato === 'arredondado' && typeof ctx.roundRect === 'function') {
+    const raio = Math.min(raioDoArredondado(tamanho), largura / 2, altura / 2);
+    ctx.roundRect(0, 0, largura, altura, raio);
+    return;
+  }
+  ctx.rect(0, 0, largura, altura);
+}
+
+/**
+ * Recorta o contexto no contorno escolhido. Devolve verdadeiro quando recortou,
+ * que é o sinal para quem chamou fechar com `restore`.
+ */
+export function recortarNoFormato(
+  ctx: CanvasRenderingContext2D,
+  formato: FormatoDoRecorte,
+  tamanho: Tamanho,
+): boolean {
+  if (formato === 'retangulo' || typeof ctx.clip !== 'function') return false;
+  ctx.save();
+  caminhoDoFormato(ctx, formato, tamanho);
+  ctx.clip();
+  return true;
+}
+
 /** Temperatura e vinheta não têm `filter`: são uma camada por cima da foto. */
 export function desenharAcabamento(ctx: CanvasRenderingContext2D, ajustes: Ajustes, tamanho: Tamanho, escala: number) {
   const largura = tamanho.largura * escala;
@@ -161,8 +210,14 @@ export function desenharBase(canvas: HTMLCanvasElement | null, imagem: Imagem, e
   const saida = tamanhoDaSaida(edicao.geometria);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas!.width, canvas!.height);
+  // Limpar vem antes de recortar: o `clearRect` de dentro do recorte deixaria
+  // os cantos com o quadro anterior.
+  const recortado = recortarNoFormato(ctx, edicao.formato, {
+    largura: saida.largura * escala, altura: saida.altura * escala,
+  });
   desenharFoto(ctx, imagem, edicao.geometria, escala, edicao.ajustes);
   desenharAcabamento(ctx, edicao.ajustes, saida, escala);
+  if (recortado) ctx.restore();
   return true;
 }
 
@@ -290,11 +345,15 @@ export function comporTela(
   marcas: Marca[],
   escala: number,
   rascunho: Marca | null = null,
+  formato: FormatoDoRecorte = 'retangulo',
 ): boolean {
   const ctx = contexto(canvas);
   if (!ctx || !canvas) return false;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // As marcas entram dentro do mesmo recorte da base: sem isso um traço no
+  // canto apareceria flutuando fora da foto oval.
+  const recortado = recortarNoFormato(ctx, formato, { largura: canvas.width, altura: canvas.height });
   if (base) {
     ctx.save();
     ctx.imageSmoothingEnabled = true;
@@ -305,6 +364,7 @@ export function comporTela(
   // O mosaico precisa do que já está pintado no mesmo quadro: por isso as
   // marcas entram depois da base, na ordem em que foram criadas.
   desenharMarcas(ctx, rascunho ? [...marcas, rascunho] : marcas, escala);
+  if (recortado) ctx.restore();
   return true;
 }
 
@@ -351,16 +411,23 @@ export function exportarEdicao(
   { qualidade = 0.92, limite = 2400 }: OpcoesDeExportacao = {},
 ): ResultadoDaEdicao | null {
   const saida = tamanhoDaSaida(edicao.geometria);
-  const fator = Math.min(1, limite / Math.max(1, saida.largura, saida.altura));
-  const largura = Math.max(1, Math.round(saida.largura * fator));
-  const altura = Math.max(1, Math.round(saida.altura * fator));
+  const { largura, altura } = tamanhoExportado(saida, limite);
+  const fator = fatorDoLimite(saida, limite);
   const canvas = novoCanvas(largura, altura);
   const ctx = contexto(canvas);
   if (!ctx) return null;
+  const tipo = formatoDeSaida();
+  // JPEG não tem transparência: o que sair do contorno viraria preto, então o
+  // fundo entra branco antes do recorte.
+  if (edicao.formato !== 'retangulo' && tipo === 'image/jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, largura, altura);
+  }
+  const recortado = recortarNoFormato(ctx, edicao.formato, { largura, altura });
   desenharFoto(ctx, imagem, edicao.geometria, fator, edicao.ajustes);
   desenharAcabamento(ctx, edicao.ajustes, { largura, altura }, 1);
   desenharMarcas(ctx, edicao.marcas, fator);
-  const tipo = formatoDeSaida();
+  if (recortado) ctx.restore();
   try {
     const url = canvas!.toDataURL(tipo, tipo === 'image/png' ? undefined : qualidade);
     if (!url || !url.startsWith('data:image/')) return null;

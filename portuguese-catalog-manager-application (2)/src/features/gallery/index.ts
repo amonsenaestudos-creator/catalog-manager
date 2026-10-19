@@ -23,29 +23,31 @@ export type { EdicaoDeFoto } from './components/EdicaoDeFoto';
 
 export {
   ALCAS, AJUSTES_NEUTROS, BLOCOS_DO_MOSAICO, CORES_PRONTAS, CORTE_MINIMO, FILTROS_PRONTOS, FORMAS,
-  LIMITES_DO_AJUSTE, PASSOS_DE_HISTORICO, PROPORCOES, TAMANHOS_DE_TEXTO,
+  FORMATOS_DO_RECORTE, FORMATO_PADRAO, LIMITES_DO_AJUSTE, LIMITE_PADRAO, PASSOS_DE_HISTORICO,
+  PROPORCOES, TAMANHOS_DE_SAIDA, TAMANHOS_DE_TEXTO,
   aplicarAcao, aplicarGeometria, apagarMarcas, areaDoArrasto, areaProporcional,
   arredondarArea, arrastarArea, coresDominantes, corDoPixel, corEmHex, corteValido, desfazer,
-  edicaoInicial, encaixarArea, filtroAtivo, filtroCss, ajustesDoFiltro, ajustesNeutros,
-  fotoComoNova, fotoEditada, guardarFotoEditada, hexParaRgb, historicoInicial, idDaMarca,
-  lerCoresRecentes, limitar, luminancia, marcaNoPonto, mensagemDoSalvamento, moverMarcaPara,
-  moverPonto, novaForma, novoBorrado, novoTexto, novoTraco, nomeEditado, paraFonte, paraSaida,
-  pontosDaMarca, limitesDaMarca, podeDesfazer, podeRefazer, razaoDaSaida, refazer, registrar,
-  repor, rgbParaHex, salvarCorRecente, tamanhoDaEdicao, tamanhoDaSaida, temMudanca, textoSobre,
-  caminhoDoTraco,
+  edicaoInicial, encaixarArea, fatorDoLimite, filtroAtivo, filtroCss, ajustesDoFiltro,
+  ajustesNeutros, fotoComoNova, fotoEditada, guardarFotoEditada, hexParaRgb, historicoInicial,
+  idDaMarca, lerCoresRecentes, limitar, luminancia, marcaNoPonto, mensagemDoSalvamento,
+  moverMarcaPara, moverPonto, novaForma, novoBorrado, novoTexto, novoTraco, nomeEditado,
+  paraFonte, paraSaida, pontosDaMarca, limitesDaMarca, podeDesfazer, podeRefazer,
+  raioDoArredondado, razaoDaSaida, refazer, registrar, repor, resumoDoFormato, rgbParaHex,
+  salvarCorRecente, tamanhoDaEdicao, tamanhoDaSaida, tamanhoDoLimite, tamanhoExportado,
+  temMudanca, textoSobre, caminhoDoTraco,
 } from './edicao';
 export type {
   AcaoGeometrica, Ajustes, Alca, Angulo, Borrado, Edicao, FiltroPronto, Forma, FormaTipo,
-  Geometria, Historico, Marca, ModoDeSalvamento, OpcoesDePincel, Ponto, Proporcao, Retangulo,
-  ResultadoDaEdicao, Rgb, Tamanho, Texto, Traco,
+  FormatoDoRecorte, Geometria, Historico, Marca, ModoDeSalvamento, OpcoesDePincel, Ponto,
+  Proporcao, Retangulo, ResultadoDaEdicao, Rgb, Tamanho, TamanhoDeSaida, Texto, Traco,
 } from './edicao';
 
 export { FERRAMENTAS, FERRAMENTAS_DE_DESENHO, TRILHA, ferramentaDe } from './ferramentas';
 export type { Ferramenta, FerramentaId } from './ferramentas';
 
 export {
-  carregarImagem, comporTela, corNaTela, desenharAcabamento, desenharBase, desenharFoto,
-  desenharMarca, desenharMarcas, exportarEdicao, filtroNoContexto, formatoDeSaida,
-  miniaturaDeAjustes, novoCanvas, paletaDaTela, tamanhoNatural,
+  caminhoDoFormato, carregarImagem, comporTela, corNaTela, desenharAcabamento, desenharBase,
+  desenharFoto, desenharMarca, desenharMarcas, exportarEdicao, filtroNoContexto, formatoDeSaida,
+  miniaturaDeAjustes, novoCanvas, paletaDaTela, recortarNoFormato, tamanhoNatural,
 } from './tela';
 export type { Imagem, OpcoesDeExportacao } from './tela';

@@ -82,15 +82,15 @@ export default function useTelaDoEditor(
   const escalaTela = escala * dpr;
 
   const compor = useCallback((marcas?: Marca[], extra?: Marca | null) => {
-    comporTela(tela.current, base.current, marcas ?? edicao.marcas, escalaTela, extra ?? null);
-  }, [edicao.marcas, escalaTela]);
+    comporTela(tela.current, base.current, marcas ?? edicao.marcas, escalaTela, extra ?? null, edicao.formato);
+  }, [edicao.marcas, edicao.formato, escalaTela]);
 
   const corDaBase = useCallback(
     (ponto: Ponto) => corNaTela(base.current, { x: ponto.x * escalaTela, y: ponto.y * escalaTela }),
     [escalaTela],
   );
 
-  const chaveDaBase = `${saida.largura}x${saida.altura}|${caixa.largura}|${JSON.stringify(edicao.geometria)}|${JSON.stringify(edicao.ajustes)}`;
+  const chaveDaBase = `${saida.largura}x${saida.altura}|${caixa.largura}|${JSON.stringify(edicao.geometria)}|${JSON.stringify(edicao.ajustes)}|${edicao.formato}`;
   useEffect(() => {
     if (!imagem || !(escala > 0)) return;
     if (chaveDaBaseAnterior.current !== chaveDaBase) {

@@ -137,12 +137,12 @@ com o navegador é a tela, não o domínio.
   foto, nota ou história, e passa pelo `commit` do contexto (portanto, desfazível).
 - Um achado novo entra em `AchadoId`, ganha ícone em `SaudeDoCatalogo` e um caso em
   `tests/saude-catalogo.test.ts` — sem isso a contagem de pendências fica mentindo.
-- `features/gallery/edicao.ts`: a **receita** da edição (geometria, ajustes, marcas, cores,
-  histórico e a gravação no catálogo). É conta pura — não conhece React, canvas nem navegador,
+- `features/gallery/edicao.ts`: a **receita** da edição (geometria, ajustes, contorno do
+  resultado, marcas, cores, histórico e a gravação no catálogo). É conta pura — não conhece React, canvas nem navegador,
   e por isso dá para testar sem navegador. O arquivo original nunca é reencodado no meio do
   caminho: a receita só vira pixels uma vez, no salvar.
-- `features/gallery/tela.ts`: quem fala com o canvas (carregar, desenhar a base, compor marcas,
-  ler cor, exportar). Tudo devolve `false`/`null` quando não há canvas, e o editor mostra a foto
+- `features/gallery/tela.ts`: quem fala com o canvas (carregar, desenhar a base, recortar no
+  contorno, compor marcas, ler cor, exportar). Tudo devolve `false`/`null` quando não há canvas, e o editor mostra a foto
   original com um aviso em vez de um retângulo preto — a mesma regra de `corpo/components/Figura3D.tsx`.
 - `features/gallery/components/`: o editor se divide em tela (`useTelaDoEditor`), gesto
   (`useGestosDoEditor`), palco (`PalcoDeEdicao`), painel (`PainelDeEdicao`) e orquestração
@@ -151,7 +151,9 @@ com o navegador é a tela, não o domínio.
   **um `commit` só**, para um `Ctrl+Z` devolver o lote inteiro.
 - Dois espaços de coordenadas convivem e não podem se misturar: o **corte** mora em pixels do
   arquivo (cortar não perde resolução) e as **marcas** em pixels da saída (girar depois de
-  desenhar move o desenho junto). `paraFonte`/`paraSaida` são a única ponte entre eles.
+  desenhar move o desenho junto). `paraFonte`/`paraSaida` são a única ponte entre eles. O
+  **contorno** recorta a saída, nunca o arquivo — e o tamanho do arquivo salvo é escolha de
+  salvamento, não de receita: fica fora do histórico de propósito.
 
 ## Dívida de migração priorizada
 

@@ -10,10 +10,10 @@
  * para `EditorDeImagem`, que é quem escreve na receita (e no histórico).
  */
 import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw, Undo2 } from 'lucide-react';
-import type { Ajustes, FormaTipo, Geometria, Retangulo, Tamanho } from '../edicao';
+import type { Ajustes, FormaTipo, FormatoDoRecorte, Geometria, Retangulo, Tamanho } from '../edicao';
 import {
-  BLOCOS_DO_MOSAICO, CORES_PRONTAS, FILTROS_PRONTOS, FORMAS, LIMITES_DO_AJUSTE, PROPORCOES,
-  TAMANHOS_DE_TEXTO, filtroAtivo,
+  BLOCOS_DO_MOSAICO, CORES_PRONTAS, FILTROS_PRONTOS, FORMAS, FORMATOS_DO_RECORTE, LIMITES_DO_AJUSTE,
+  PROPORCOES, TAMANHOS_DE_SAIDA, TAMANHOS_DE_TEXTO, filtroAtivo, tamanhoDoLimite, tamanhoExportado,
 } from '../edicao';
 import type { FerramentaId } from '../ferramentas';
 import { FERRAMENTAS } from '../ferramentas';
@@ -125,6 +125,12 @@ export interface PainelProps {
   aoMudarBloco: (bloco: number) => void;
   proporcao: string;
   aoMudarProporcao: (id: string) => void;
+  /** O contorno do resultado: cantos retos, arredondados ou oval. */
+  formato: FormatoDoRecorte;
+  aoMudarFormato: (formato: FormatoDoRecorte) => void;
+  /** Até onde o lado maior da foto salva pode ir (um id de `TAMANHOS_DE_SAIDA`). */
+  limiteDeSaida: string;
+  aoMudarLimite: (id: string) => void;
   area: Retangulo | null;
   aoAplicarCorte: () => void;
   aoCancelarCorte: () => void;
@@ -146,11 +152,13 @@ export default function PainelDeEdicao(props: PainelProps) {
   const {
     ferramenta, geometria, saida, pincel, aoMudarPincel, aoEscolherCor, paleta, recentes, corPega, contaGotasNativo,
     aoUsarContaGotasNativo, figura, preenchida, aoMudarFigura, aoMudarPreenchida, texto, aoMudarTexto,
-    bloco, aoMudarBloco, proporcao, aoMudarProporcao, area, aoAplicarCorte, aoCancelarCorte, aoGirar,
+    bloco, aoMudarBloco, proporcao, aoMudarProporcao, formato, aoMudarFormato, limiteDeSaida,
+    aoMudarLimite, area, aoAplicarCorte, aoCancelarCorte, aoGirar,
     aoEspelhar, ajustes, aoMudarAjustes, aoZerarAjustes, miniaturas, aoAplicarFiltro, aoApagarTudo,
     marcas, semTela,
   } = props;
   const filtro = filtroAtivo(ajustes);
+  const salva = tamanhoExportado(saida, tamanhoDoLimite(limiteDeSaida));
   const cores = <ControlesDeCor cor={pincel.cor} aoEscolher={aoEscolherCor} paleta={paleta} recentes={recentes} />;
 
   return (
@@ -171,13 +179,32 @@ export default function PainelDeEdicao(props: PainelProps) {
             ))}
           </div>
         </Grupo>
+        <Grupo titulo="Contorno">
+          <div className="editor-opcoes">
+            {FORMATOS_DO_RECORTE.map(item => (
+              <Opcao key={item.id} ativa={formato === item.id} aoEscolher={() => aoMudarFormato(item.id)} titulo={item.dica}>
+                {item.nome}
+              </Opcao>
+            ))}
+          </div>
+        </Grupo>
+        <Grupo titulo="Tamanho da foto salva">
+          <div className="editor-opcoes">
+            {TAMANHOS_DE_SAIDA.map(item => (
+              <Opcao key={item.id} ativa={limiteDeSaida === item.id} aoEscolher={() => aoMudarLimite(item.id)} titulo={item.dica}>
+                {item.nome}
+              </Opcao>
+            ))}
+          </div>
+        </Grupo>
         <Grupo titulo="Medidas">
           <p className="editor-leitura">
             <span>Seleção</span><strong>{area ? medida(area) : medida(saida)}</strong>
             <span>Foto atual</span><strong>{medida(saida)}</strong>
+            <span>Vai salvar</span><strong>{medida(salva)}</strong>
           </p>
         </Grupo>
-        <p className="editor-dica">Arraste a moldura sobre a foto, puxe os cantos para mudar o tamanho ou escolha uma proporção. A seleção nunca sai da imagem.</p>
+        <p className="editor-dica">Arraste a moldura sobre a foto, puxe os cantos para mudar o tamanho ou escolha uma proporção. A seleção nunca sai da imagem. Arredondada e Oval recortam os cantos da foto salva — onde o navegador não guarda transparência, o canto sai branco.</p>
         <div className="editor-acoes-do-painel">
           <button type="button" className="btn btn-primary" onClick={aoAplicarCorte}>Aplicar corte</button>
           <button type="button" className="btn" onClick={aoCancelarCorte}>Foto inteira</button>

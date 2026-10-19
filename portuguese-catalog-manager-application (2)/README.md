@@ -230,6 +230,7 @@ reencodar um JPEG pela terceira vez.
 | O corte | pixels do **arquivo** | cortar nunca perde resolução: o recorte é sempre do original |
 | Giro e espelho | passos de 90° e eixos | ângulo livre faria o recorte deixar de ser um retângulo do arquivo |
 | As marcas do dedo | pixels da **saída** | o dedo desenha no que está vendo; girar depois move o desenho junto |
+| O contorno | recorte da **saída** | arredondar ou ovalar não muda quais pixels do arquivo entram |
 
 **O conta-gotas.** Tocar na foto com a ferramenta **Cor** lê aquele pixel, mostra
 o hex copiado, joga a cor no pincel e guarda nas "usadas há pouco" (no aparelho,
@@ -257,6 +258,15 @@ o antes e o depois na primeira foto escolhida — e grava **todas as escolhidas 
 uma vez**, com barra de progresso. É um `commit` só, então um `Ctrl+Z` devolve o
 lote inteiro; o que não abriu (foto hospedada em outro site) fica de fora e
 aparece pelo nome, em vez de sumir em silêncio.
+
+**O contorno e o tamanho do arquivo.** Na ferramenta **Cortar**, além da
+proporção, dá para escolher o contorno da foto que sai: cantos retos,
+**arredondados** ou **oval** — que, numa foto quadrada, é um círculo. O contorno
+entra na receita, aparece na prévia na hora e desfaz como qualquer passo; onde o
+navegador não guarda transparência (JPEG) o canto sai branco, e o painel diz isso
+antes. Ao lado fica o **tamanho da foto salva** — cheio, grande, média ou pequena
+—, com as medidas do arquivo escritas no painel antes de você salvar, porque o
+catálogo mora no aparelho e é o tamanho do arquivo que decide quantas fotos cabem.
 
 **Quando não dá.** Sem canvas (navegador antigo, economia de memória) o editor não
 finge: mostra a foto original por cima, escreve o que não foi possível fazer e
@@ -377,7 +387,7 @@ nada foi perdido e nada foi inventado por engano no caminho.
 
 ## Validação
 
-O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos — **2.578 kB** (1.041 kB gzip). O `dist/` não é versionado: ele é resultado, não código. O mesmo para `node_modules/` (o `.gitignore` e o item 0.4 de `MELHORIAS.md` cuidam disso). Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira, além de:
+O build de produção é gerado pelo script `npm run build`, com saída em `dist/index.html` e recursos embutidos — **2.580 kB** (1.042 kB gzip). O `dist/` não é versionado: ele é resultado, não código. O mesmo para `node_modules/` (o `.gitignore` e o item 0.4 de `MELHORIAS.md` cuidam disso). Os testes (`npm test`) cobrem o catálogo com centenas de fichas, as telas novas, os sons (com um `AudioContext` falso), as ordenações, a linha do tempo, o `.ics` e a limpeza automática da lixeira, além de:
 
 - `tests/chat.test.ts`: persona derivada da ficha, detecção de intenções, química e estágios, travas de idade e de clima, memória, variedade das respostas, sugestões e análise da conversa.
 - `tests/toolbox.test.ts`: as 50 ferramentas (contagem, grupos, ids únicos), execução sem quebrar com catálogo vazio, resultado visível nas ferramentas de leitura, uso do `commit` nas que alteram dados e conferência das contas do dia a dia.

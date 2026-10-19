@@ -65,14 +65,14 @@ geometria**, para o histórico não ganhar um passo que não desfaz nada.
 
 | Arquivo | O que decide |
 | --- | --- |
-| `edicao.ts` | A regra pura: receita, geometria, moldura do corte, marcas, ajustes, filtros, cores (hex/rgb, luminância, paleta, recentes no `localStorage`), histórico (desfazer/refazer com teto de passos) e a gravação no catálogo (`guardarFotoEditada`, `nomeEditado`). Não conhece React, canvas nem navegador. |
-| `tela.ts` | Quem fala com o canvas: carregar a imagem, medir, desenhar a base (foto + acabamento), compor marcas, ler cor de um pixel, achar as cores dominantes, gerar as miniaturas de filtro e exportar. Tudo devolve `false`/`null` quando não há canvas. |
+| `edicao.ts` | A regra pura: receita, geometria, moldura do corte, contorno do resultado, tamanho do arquivo salvo, marcas, ajustes, filtros, cores (hex/rgb, luminância, paleta, recentes no `localStorage`), histórico (desfazer/refazer com teto de passos) e a gravação no catálogo (`guardarFotoEditada`, `nomeEditado`). Não conhece React, canvas nem navegador. |
+| `tela.ts` | Quem fala com o canvas: carregar a imagem, medir, desenhar a base (foto + acabamento), recortar no contorno escolhido, compor marcas, ler cor de um pixel, achar as cores dominantes, gerar as miniaturas de filtro e exportar. Tudo devolve `false`/`null` quando não há canvas. |
 | `ferramentas.ts` | As dez ferramentas, com ícone, nome, atalho e o texto de dica; `TRILHA` é a ordem da barra de baixo. |
 | `components/EditorDeImagem.tsx` | O editor: histórico, geometria, luz, cor, salvamento, teclado e a moldura da tela. Portal no `body`, `z-index` 300 (acima do visor e das folhas). |
 | `components/useTelaDoEditor.ts` | A tela: mede o palco (`ResizeObserver`), decide `escala`/`caixa`, mantém a **base pronta** e responde por paleta e miniaturas. A base só refaz quando muda forma ou luz — nunca a cada traço. |
 | `components/useGestosDoEditor.ts` | O dedo: `pointerdown/move/up` → traço, figura, mosaico, texto, apagar, mover letra e conta-gotas. |
 | `components/PalcoDeEdicao.tsx` | O palco: o canvas, a moldura de corte com as oito alças, a letra em rascunho e o antes/depois — as três sobreposições que precisam concordar no mesmo retângulo. |
-| `components/PainelDeEdicao.tsx` | O painel da direita (faixa embaixo no aparelho): controles de cada ferramenta, proporções de corte, sliders de luz, filtros com prévia, cores (prontas, recentes, hex, paleta da foto) e a trilha de ferramentas. |
+| `components/PainelDeEdicao.tsx` | O painel da direita (faixa embaixo no aparelho): controles de cada ferramenta, proporções de corte, contorno e tamanho do arquivo salvo, sliders de luz, filtros com prévia, cores (prontas, recentes, hex, paleta da foto) e a trilha de ferramentas. |
 | `components/EdicaoDeFoto.tsx` | `useEdicaoDeFoto()`: o hook que as telas usam — `abrir(foto, titulo?)`, `fechar()`, `aberta` e o `editor` pronto para renderizar, já ligado ao `commit` do contexto. |
 | `components/AjusteEmLote.tsx` | A mesma receita de luz e cor em várias fotos: prévia em CSS na primeira escolhida, filtros prontos, os sete controles e **um `commit` só** no fim. |
 | `index.ts` | A API pública do domínio. |
@@ -91,6 +91,25 @@ a prévia é a primeira foto com o filtro em CSS (`filtroCss`, a mesma string qu
 canvas usa), cada foto é gravada uma por vez com a barra de progresso, tudo entra
 num **único `commit`** (um `Ctrl+Z` devolve o lote) e o que não abriu é dito pelo
 nome em vez de sumir em silêncio.
+
+## O contorno e o tamanho do arquivo
+
+**O contorno** (`Edicao.formato`) é o que a foto *é* depois do corte: `retangulo`
+(como ela entra), `arredondado` ou `oval`. Ele fica na receita, não no arquivo, e
+por isso desfaz — e por isso o corte continua sendo um retângulo em pixels do
+arquivo: arredondar não muda quais pixels entram, só quais aparecem. O desenho é
+`recortarNoFormato(ctx, formato, tamanho)`, usado nos três lugares que precisam
+concordar: a base pronta, a prévia (para um traço no canto não flutuar fora da
+foto) e a exportação. O raio dos cantos vem de `raioDoArredondado`, uma fração do
+lado menor, e o caminho cai num retângulo onde não existe `roundRect`. JPEG não
+tem transparência: nesse caso o fundo entra branco antes do recorte, e o painel
+avisa.
+
+**O tamanho salvo** (`TAMANHOS_DE_SAIDA`) é uma escolha de salvamento, não de
+receita — por isso fica fora do histórico: mudar de "cheia" para "pequena" não é
+um passo que se desfaz, é como o arquivo vai ser gravado. `tamanhoExportado` e
+`fatorDoLimite` são a conta única, usada tanto pelo painel (a linha "Vai salvar")
+quanto por `exportarEdicao`, para a promessa da tela ser a medida do arquivo.
 
 ## Como a edição volta para o catálogo
 
@@ -112,7 +131,8 @@ nome em vez de sumir em silêncio.
 
 - Com o modo privacidade ligado, **baixar** a edição é recusado (nada sai do
   aparelho); salvar no catálogo continua valendo, porque o dado já é dela.
-- A exportação tem limite de lado (2400 px) e tenta WebP → JPEG → PNG, na ordem,
+- A exportação tem limite de lado (2400 px por padrão, e 1600/1200/800 quando
+  quem edita escolhe um arquivo menor) e tenta WebP → JPEG → PNG, na ordem,
   usando o que o navegador aceita de verdade.
 - Foto de outro domínio suja o canvas: `toDataURL`/`getImageData` estão em
   `try/catch` e devolvem `null`, e o editor avisa em vez de quebrar.
@@ -124,7 +144,8 @@ nome em vez de sumir em silêncio.
 `tests/editor-de-imagem.test.tsx`: a conta (geometria nos dois espaços, moldura e
 alças do corte, marcas, borracha, cores, histórico, gravação no catálogo), o
 editor aberto sem canvas (aviso em vez de retângulo preto), o editor com um canvas
-de mentira (desenho, traço, conta-gotas, salvar, antes/depois), o ajuste em várias
+de mentira (desenho, traço, conta-gotas, salvar, antes/depois, contorno e tamanho
+salvo), o contorno e o limite do arquivo na conta e no desenho, o ajuste em várias
 fotos (prévia em CSS, trilhos, falha dita pelo nome e as duas fotos gravadas no
 catálogo de verdade), o estilo (camada, doca que sai da frente, alvos de dedo,
 painel só no computador), a galeria abrindo o editor e a divisão dos arquivos.
