@@ -3,18 +3,20 @@ import { join } from "node:path";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CatalogProvider } from "../src/context";
+import { CatalogProvider, useCatalog } from "../src/context";
 import EditorDeImagem from "../src/features/gallery/components/EditorDeImagem";
 import {
   ALCAS, AJUSTES_NEUTROS, CORES_PRONTAS, FILTROS_PRONTOS, PASSOS_DE_HISTORICO, PROPORCOES,
   aplicarAcao, apagarMarcas, areaDoArrasto, areaProporcional, arrastarArea, caminhoDoTraco,
   coresDominantes, corDoPixel, corEmHex, corteValido, desfazer, edicaoInicial, encaixarArea,
-  filtroAtivo, filtroCss, ajustesDoFiltro, fotoComoNova, guardarFotoEditada, hexParaRgb,
+  filtroAtivo, filtroCss, ajustesDoFiltro, fotoComoNova, guardarFotoEditada, hexParaRgb, LIMITES_DO_AJUSTE,
   historicoInicial, lerCoresRecentes, limitesDaMarca, luminancia, marcaNoPonto,
   moverMarcaPara, moverPonto, nomeEditado, novaForma, novoBorrado, novoTexto, novoTraco,
   paraFonte, paraSaida, pontosDaMarca, podeDesfazer, podeRefazer, razaoDaSaida, refazer,
   registrar, repor, rgbParaHex, salvarCorRecente, tamanhoDaSaida, temMudanca, textoSobre,
 } from "../src/features/gallery/edicao";
+import AjusteEmLote from "../src/features/gallery/components/AjusteEmLote";
+import { getAllPhotos } from "../src/features/gallery";
 import type { Edicao, Geometria, Marca, Ponto, Photo, Retangulo } from "../src/features/gallery";
 import { comporTela, corNaTela, desenharBase, exportarEdicao, miniaturaDeAjustes, novoCanvas, paletaDaTela } from "../src/features/gallery/tela";
 import { FERRAMENTAS } from "../src/features/gallery/ferramentas";
@@ -763,6 +765,37 @@ describe("o editor aberto", () => {
     expect(hex.value).toMatch(/^#[\da-f]{6}$/i);
   });
 
+  it("segurar o “Original” mostra a foto como ela entrou", async () => {
+    montar();
+    await apontar();
+    const botao = screen.getByRole("button", { name: /Original/i });
+    expect(document.querySelector(".editor-original"), "nada de original antes de segurar").toBeNull();
+    expect(botao.getAttribute("aria-pressed")).toBe("false");
+
+    act(() => { botao.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })); });
+    await waitFor(() => expect(document.querySelector(".editor-original")).toBeTruthy());
+    // é a foto que entrou, não um segundo desenho: o src é o mesmo do arquivo
+    expect((document.querySelector(".editor-original") as HTMLImageElement).getAttribute("src")).toContain("AAAAeditavel");
+    expect(document.querySelector(".editor-original-legenda")?.textContent).toContain("Foto original");
+    expect(document.querySelector(".editor-moldura")?.className).toContain("comparando");
+    expect(botao.getAttribute("aria-pressed")).toBe("true");
+
+    act(() => { botao.dispatchEvent(new MouseEvent("pointerup", { bubbles: true })); });
+    await waitFor(() => expect(document.querySelector(".editor-original")).toBeNull());
+    expect(document.querySelector(".editor-moldura")?.className).not.toContain("comparando");
+    expect(botao.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("o “Original” também responde a segurar uma tecla, para quem não usa o dedo", async () => {
+    montar();
+    await apontar();
+    const botao = screen.getByRole("button", { name: /Original/i });
+    act(() => { botao.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); });
+    await waitFor(() => expect(document.querySelector(".editor-original")).toBeTruthy());
+    act(() => { botao.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", bubbles: true })); });
+    await waitFor(() => expect(document.querySelector(".editor-original")).toBeNull());
+  });
+
   it("sem canvas ele diz o que não deu, e não mostra um retângulo preto", async () => {
     const { aoSalvar } = montar();
     await apontar();
@@ -948,6 +981,16 @@ describe("o editor no estilo do aplicativo", () => {
     expect(css).toMatch(/\.editor-ferramenta kbd\s*\{\s*display:\s*none/);
   });
 
+  it("o antes/depois tem alvo de dedo e não depende do canvas", () => {
+    // segurar é gesto: o botão não pode deixar a tela rolar nem selecionar texto
+    expect(cssDoApp).toMatch(/\.editor-comparar \{[^}]*touch-action: none/);
+    expect(cssDoApp).toMatch(/\.editor-comparar \{[^}]*min-height: 34px/);
+    expect(cssDoApp).toMatch(/\.editor-original \{[^}]*object-fit: contain/);
+    expect(cssDoApp).toMatch(/\.editor-moldura\.comparando \.editor-corte,[\s\S]{0,90}\.editor-moldura\.comparando \.editor-texto \{ display: none; \}/);
+    // no aparelho o alvo sobe para 40px
+    expect(cssDoApp).toMatch(/\.editor-comparar \{ top: 8px; right: 8px; min-height: 40px/);
+  });
+
   it("o painel fica à direita só no computador", () => {
     expect(css).toMatch(/@media \(min-width: 1101px\) \{[\s\S]{0,120}\.editor-corpo\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\) 340px/);
   });
@@ -1009,10 +1052,11 @@ describe("a divisão do editor", () => {
   const linhas = (caminho: string) =>
     readFileSync(join(__dirname, "..", caminho), "utf8").split("\n").length;
 
-  it("deixa a tela e o gesto fora do componente", () => {
+  it("deixa a tela, o gesto e o palco fora do componente", () => {
     const pasta = "src/features/gallery/components";
     expect(linhas(`${pasta}/useTelaDoEditor.ts`)).toBeGreaterThan(60);
     expect(linhas(`${pasta}/useGestosDoEditor.ts`)).toBeGreaterThan(80);
+    expect(linhas(`${pasta}/PalcoDeEdicao.tsx`)).toBeGreaterThan(80);
     expect(linhas(`${pasta}/EditorDeImagem.tsx`)).toBeLessThan(520);
     expect(linhas(`${pasta}/PainelDeEdicao.tsx`)).toBeLessThan(520);
   });
@@ -1027,5 +1071,168 @@ describe("a divisão do editor", () => {
     // e a exportação acontece uma vez só, com limite de lado
     expect(tela).toMatch(/limite = 2400/);
     expect(tela).toMatch(/export function exportarEdicao/);
+  });
+});
+
+/* --------------------------------------------------------- várias fotos -- */
+
+describe("o mesmo ajuste em várias fotos", () => {
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 480 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 360 });
+    vi.stubGlobal("Image", ImagemDeTeste);
+  });
+
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); localStorage.clear(); });
+
+  function montar(fotos: Photo[]) {
+    const aoFechar = vi.fn();
+    const aoTerminar = vi.fn();
+    render(
+      <CatalogProvider>
+        <AjusteEmLote fotos={fotos} aoFechar={aoFechar} aoTerminar={aoTerminar} />
+      </CatalogProvider>,
+    );
+    return { aoFechar, aoTerminar };
+  }
+
+  /** jsdom não move slider com seta de teclado: usa o setter nativo, como o React espera. */
+  function mexerNoTrilho(rotulo: string, valor: string) {
+    const trilho = screen.getByLabelText(rotulo) as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    act(() => {
+      setter.call(trilho, valor);
+      trilho.dispatchEvent(new Event("input", { bubbles: true }));
+      trilho.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    return trilho;
+  }
+
+  const filtroDe = (id: string) => FILTROS_PRONTOS.find(item => item.id === id)!;
+
+  it("mostra o antes e o depois sem usar canvas nenhum", async () => {
+    const user = userEvent.setup();
+    montar([foto("lote-a", { name: "praia-a.jpg" }), foto("lote-b", { name: "praia-b.jpg" })]);
+
+    expect(screen.getByText("Ajustar a luz de várias fotos")).toBeInTheDocument();
+    expect(screen.getByText(/2 fotos escolhidas/)).toBeInTheDocument();
+    const aplicar = screen.getByRole("button", { name: /Aplicar em 2 fotos/i });
+    expect(aplicar, "nada escolhido ainda, nada para aplicar").toBeDisabled();
+
+    const legendas = [...document.querySelectorAll(".ajuste-lote-previa figcaption")].map(node => node.textContent);
+    expect(legendas[0]).toBe("Antes");
+    expect(legendas[1]).toContain("praia-a.jpg");
+
+    await user.click(screen.getByRole("button", { name: /Quente/i }));
+    const depois = document.querySelectorAll<HTMLImageElement>(".ajuste-lote-previa img")[1];
+    // a prévia é a mesma string que o canvas vai aplicar: não é um palpite
+    expect(depois.style.filter).toBe(filtroCss(filtroDe("quente").ajustes));
+    expect(depois.style.filter).not.toBe("none");
+    expect(aplicar).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: /Zerar/i }));
+    expect(aplicar).toBeDisabled();
+    expect(document.querySelectorAll<HTMLImageElement>(".ajuste-lote-previa img")[1].style.filter).toBe("none");
+  });
+
+  it("tem um trilho para cada ajuste, e mexer nele sai da receita pronta", async () => {
+    const user = userEvent.setup();
+    montar([foto("lote-a")]);
+    for (const item of LIMITES_DO_AJUSTE) {
+      expect(screen.getByLabelText(item.nome), `falta o trilho de ${item.nome}`).toBeTruthy();
+    }
+
+    await user.click(screen.getByRole("button", { name: /Frio/i }));
+    expect(screen.getByRole("button", { name: /Frio/i }).getAttribute("aria-pressed")).toBe("true");
+
+    mexerNoTrilho("Brilho", "18");
+    expect(screen.getByLabelText("Brilho").value).toBe("18");
+    expect(screen.getByRole("button", { name: /Frio/i }).getAttribute("aria-pressed"),
+      "mexer num controle tira a foto da receita pronta").toBe("false");
+    expect(screen.getByRole("button", { name: /Aplicar em 1 foto/i })).toBeEnabled();
+  });
+
+  it("sem canvas, diz o que não deu e não fecha deixando a pessoa no escuro", async () => {
+    const user = userEvent.setup();
+    const { aoFechar, aoTerminar } = montar([foto("lote-a"), foto("lote-b")]);
+    await user.click(screen.getByRole("button", { name: /Quente/i }));
+    await user.click(screen.getByRole("button", { name: /Aplicar em 2 fotos/i }));
+    await waitFor(() => expect(document.querySelector(".ajuste-lote-falhas")).toBeTruthy());
+    const aviso = document.querySelector(".ajuste-lote-falhas")!;
+    expect(aviso.textContent).toContain("Não abriu: lote-a.webp, lote-b.webp");
+    expect(aviso.textContent).toContain("não pode ser reencodada");
+    expect(aoTerminar).toHaveBeenCalledWith(0, 2);
+    expect(aoFechar, "a folha continua aberta para mostrar o motivo").not.toHaveBeenCalled();
+  });
+
+  it("grava o ajuste nas fotos do catálogo, todas de uma vez", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (this: HTMLCanvasElement) {
+      const chamadas: string[] = [];
+      return contextoFalso(this, chamadas) as unknown as ReturnType<HTMLCanvasElement["getContext"]>;
+    } as never);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/webp;base64,LOTE");
+
+    const dados = seededData(3, 2);
+    await seedIdb(dados);
+    // seed-0 nasce marcada como apagada (o gerador faz isso com i % 17) e some da
+    // galeria: o lote usa a seed-1, que está inteira.
+    const fotos = dados.people.find(pessoa => pessoa.id === "seed-1")!.fotos;
+    expect(fotos).toHaveLength(2);
+
+    let vistos: AppData | null = null;
+    function Sonda() { vistos = useCatalog().data; return null; }
+
+    const aoFechar = vi.fn();
+    render(
+      <CatalogProvider>
+        <Sonda />
+        <AjusteEmLote fotos={fotos} aoFechar={aoFechar} />
+      </CatalogProvider>,
+    );
+    await waitFor(() => expect(vistos?.people.some(pessoa => pessoa.id === "seed-1")).toBe(true), { timeout: 10000 });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Quente/i }));
+    await user.click(screen.getByRole("button", { name: /Aplicar em 2 fotos/i }));
+    await waitFor(() => expect(aoFechar).toHaveBeenCalledTimes(1), { timeout: 10000 });
+
+    const depois = getAllPhotos(vistos!).filter(photo => fotos.some(antes => antes.id === photo.id));
+    expect(depois).toHaveLength(2);
+    expect(depois.every(photo => photo.url === "data:image/webp;base64,LOTE"), "as duas ganharam o arquivo novo").toBe(true);
+    expect(depois.every(photo => !!photo.editedAt), "as duas dizem quando foram editadas").toBe(true);
+    expect(depois.every(photo => photo.width === 120 && photo.height === 80), "o mosaico sabe o tamanho novo").toBe(true);
+    // a ficha continua sendo a dona das duas
+    expect(depois.every(photo => photo.personId === "seed-1")).toBe(true);
+  }, 30000);
+
+  it("o lote da galeria e o do cofre oferecem o ajuste", async () => {
+    const user = userEvent.setup();
+    await seedIdb(seededData(6, 2));
+    await bootApp(user);
+    const aside = document.querySelector(".sidebar") as HTMLElement;
+    await act(async () => { (within(aside).getByRole("button", { name: /Galeria/i }) as HTMLElement).click(); });
+    await waitFor(() => expect(document.querySelectorAll(".azulejo").length).toBeGreaterThan(2));
+
+    await act(async () => { (screen.getByRole("button", { name: /Organizar fotos/i }) as HTMLElement).click(); });
+    const azulejos = document.querySelectorAll<HTMLElement>(".azulejo");
+    await act(async () => { azulejos[0].click(); });
+    await act(async () => { azulejos[1].click(); });
+    await waitFor(() => expect(document.querySelector(".gallery-lote")).toBeTruthy());
+
+    const barra = document.querySelector(".gallery-lote") as HTMLElement;
+    await act(async () => { (within(barra).getByRole("button", { name: /Ajustar/i }) as HTMLElement).click(); });
+    await waitFor(() => expect(document.querySelector(".ajuste-lote")).toBeTruthy());
+    expect(screen.getByText("Ajustar a luz de várias fotos")).toBeInTheDocument();
+    expect(screen.getByText(/2 fotos escolhidas/)).toBeInTheDocument();
+  }, 30000);
+
+  it("no aparelho os filtros rolam de lado e o trilho tem altura de dedo", () => {
+    expect(cssDoApp).toMatch(/\.ajuste-lote-filtros \{[^}]*overflow-x: auto/);
+    expect(cssDoApp).toMatch(/\.ajuste-lote-filtro \{[^}]*flex: none/);
+    expect(cssDoApp).toMatch(/\.ajuste-lote-previa \{[^}]*grid-template-columns: 1fr 1fr/);
+    // a prévia é CSS, não um segundo canvas
+    expect(cssDoApp).toMatch(/\.ajuste-lote-previa img \{[^}]*object-fit: cover/);
+    expect(cssDoApp).toMatch(/\.ajuste-lote-trilho input\[type="range"\] \{ height: var\(--alvo\); \}/);
+    expect(cssDoApp).toMatch(/\.ajuste-lote-filtro \{ width: 92px; \}/);
   });
 });

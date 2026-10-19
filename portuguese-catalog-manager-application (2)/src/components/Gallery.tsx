@@ -22,7 +22,7 @@ import type { AcaoDeFolha } from './Folha';
 import GaleriaGrade from './GaleriaGrade';
 import VisorDeFotos from './VisorDeFotos';
 import { FILTROS_PADRAO, MODOS_GALERIA, ORDENACOES, aplicarFiltros, chipsDeFiltro, contarFiltrosAtivos, fotoEmPasta, lerModoSalvo, resumoDaGaleria, salvarModo } from '../lib/galeria';
-import { useEdicaoDeFoto } from '../features/gallery';
+import { AjusteEmLote, useEdicaoDeFoto } from '../features/gallery';
 import type { FiltrosDeGaleria, ModoGaleria } from '../lib/galeria';
 import { movimentoReduzido } from '../lib/toque';
 import { useFaixasGrudadas } from '../hooks/useFaixasGrudadas';
@@ -65,6 +65,7 @@ export default function Gallery() {
   const nomeDe = useCallback((photo: Photo) => data.people.find(person => person.id === photo.personId)?.nome || 'Sem ficha', [data.people]);
   /* Cortar, pintar, ajustar e tirar a cor da foto sem sair da galeria. */
   const edicao = useEdicaoDeFoto();
+  const [ajusteLote, setAjusteLote] = useState(false);
   const editar = useCallback((photo: Photo) => edicao.abrir(photo, nomeDe(photo)), [edicao, nomeDe]);
   const pastaDe = useCallback((photo: Photo) => data.folders.find(folder => fotoEmPasta(photo, folder.id, data.folders))?.name || 'Sem pasta', [data.folders]);
 
@@ -349,6 +350,7 @@ export default function Gallery() {
           <div>
             <button type="button" onClick={() => setFolha('pasta')}><Folder size={17} />Pasta</button>
             <button type="button" onClick={() => setFolha('album')}><Layers size={17} />Álbum</button>
+            <button type="button" disabled={!selecionadas.length} onClick={() => setAjusteLote(true)}><SlidersHorizontal size={17} />Ajustar</button>
             <button type="button" disabled={!selecionadas.length} onClick={() => { favoritarLote(); sairDaSelecao(); }}><Heart size={17} />Favoritar</button>
             <button type="button" disabled={!selecionadas.length} onClick={() => { cofreLote(); sairDaSelecao(); }}><Lock size={17} />Cofre</button>
             <button type="button" className="perigo" disabled={!selecionadas.length} onClick={() => setApagarLote(true)}><Trash2 size={17} />Excluir</button>
@@ -372,6 +374,10 @@ export default function Gallery() {
 
       {folha === 'filtros' && folhaFiltros}
       {(folha === 'pasta' || folha === 'album') && folhaDeDestino(folha)}
+      {ajusteLote && (
+        <AjusteEmLote fotos={allPhotos.filter(photo => selecionadas.includes(photo.id))} aoFechar={() => setAjusteLote(false)}
+          aoTerminar={gravadas => { if (gravadas) sairDaSelecao(); }} />
+      )}
       {edicao.editor}
     </>}
 

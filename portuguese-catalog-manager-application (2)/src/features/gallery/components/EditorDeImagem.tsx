@@ -25,7 +25,7 @@ import { useCatalog } from '../../../context';
 import { downloadBlob } from '../../../store';
 import type { AcaoDeFolha } from '../../../components/Folha';
 import {
-  ALCAS, AJUSTES_NEUTROS, FILTROS_PRONTOS, PROPORCOES, aplicarAcao, areaProporcional, arrastarArea,
+  AJUSTES_NEUTROS, FILTROS_PRONTOS, PROPORCOES, aplicarAcao, areaProporcional, arrastarArea,
   corEmHex, desfazer, edicaoInicial, filtroAtivo, historicoInicial, lerCoresRecentes,
   podeDesfazer, podeRefazer, refazer, registrar, repor, salvarCorRecente, tamanhoDaEdicao, temMudanca,
 } from '../edicao';
@@ -37,6 +37,7 @@ import { carregarImagem, exportarEdicao, tamanhoNatural } from '../tela';
 import { FERRAMENTAS } from '../ferramentas';
 import type { FerramentaId } from '../ferramentas';
 import PainelDeEdicao, { TrilhaDeFerramentas } from './PainelDeEdicao';
+import PalcoDeEdicao from './PalcoDeEdicao';
 import useGestosDoEditor from './useGestosDoEditor';
 import useTelaDoEditor from './useTelaDoEditor';
 import type { EstadoDoPincel, EstadoDoTexto } from './PainelDeEdicao';
@@ -109,6 +110,7 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
   const [recentes, setRecentes] = useState<string[]>(() => lerCoresRecentes());
   const [corPega, setCorPega] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [comparando, setComparando] = useState(false);
   const [mais, setMais] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
 
@@ -301,6 +303,7 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
 
   /* ----------------------------------------------------------- teclado/sair */
   const tentarFechar = useCallback(() => {
+    setComparando(false);
     if (rascunho) { aoCancelarRascunho(); return; }
     if (suja) { setConfirmando(true); return; }
     aoFechar();
@@ -404,56 +407,16 @@ export default function EditorDeImagem({ foto, titulo, aoFechar, aoSalvar }: Edi
       )}
 
       <div className="editor-corpo">
-        <div className="editor-palco" ref={palco}>
-          {falha && <p className="editor-falha" role="alert">{falha}</p>}
-          {!falha && !imagem && <p className="editor-carregando" role="status">Abrindo a foto…</p>}
-          {imagem && escala > 0 && (
-            <div className={`editor-moldura ferramenta-${ferramenta}`} style={{ width: caixa.largura, height: caixa.altura }}>
-              <canvas ref={tela} className="editor-tela" style={{ width: caixa.largura, height: caixa.altura, cursor }}
-                onPointerDown={aoDescer} onPointerMove={aoCorrer} onPointerUp={aoSubir} onPointerCancel={aoSubir}
-                role="img" aria-label={`Foto em edição, com ${Math.round(saida.largura)} por ${Math.round(saida.altura)} pixels`} />
-              {semTela && <img className="editor-tela-fallback" src={foto.url} alt="" draggable={false} />}
-
-              {ferramenta === 'cortar' && area && (
-                <div className="editor-corte">
-                  <div className="editor-corte-area"
-                    style={{ left: area.x * escala, top: area.y * escala, width: area.largura * escala, height: area.altura * escala }}
-                    onPointerDown={evento => {
-                      evento.preventDefault();
-                      evento.stopPropagation();
-                      setArraste({ alca: 'mover', inicio: { x: evento.clientX, y: evento.clientY }, area });
-                    }}>
-                    <span className="editor-corte-grade" aria-hidden="true"><i /><i /><i /><i /></span>
-                    {ALCAS.map(alca => (
-                      <button type="button" key={alca.id} className={`editor-corte-alca alca-${alca.id}`} aria-label={`Redimensionar pelo ${alca.nome.toLowerCase()}`}
-                        onPointerDown={evento => {
-                          evento.preventDefault();
-                          evento.stopPropagation();
-                          setArraste({ alca: alca.id, inicio: { x: evento.clientX, y: evento.clientY }, area });
-                        }} />
-                    ))}
-                    <span className="editor-corte-medida">{Math.round(area.largura)} × {Math.round(area.altura)}</span>
-                  </div>
-                </div>
-              )}
-
-              {rascunho && (
-                <div className="editor-texto" style={{ left: rascunho.ponto.x * escala, top: rascunho.ponto.y * escala }}>
-                  <input ref={campoDeTexto} value={rascunho.valor} placeholder="Escreva aqui" maxLength={120}
-                    style={{ fontSize: Math.max(13, letra.tamanho * escala), color: corEmHex(pincel.cor) }}
-                    onChange={evento => aoEscreverRascunho(evento.target.value)}
-                    onKeyDown={evento => {
-                      if (evento.key === 'Enter') { evento.preventDefault(); confirmarTexto(); }
-                      if (evento.key === 'Escape') { evento.preventDefault(); evento.stopPropagation(); aoCancelarRascunho(); }
-                    }}
-                    onBlur={() => { if (rascunho.valor.trim()) confirmarTexto(); else aoCancelarRascunho(); }} />
-                  <button type="button" className="editor-texto-ok" onClick={confirmarTexto} aria-label="Colocar o texto na foto"><Check size={16} /></button>
-                </div>
-              )}
-            </div>
-          )}
-          {imagem && escala > 0 && <p className="editor-dica-da-tela">{dicaDaTela}</p>}
-        </div>
+        <PalcoDeEdicao
+          palco={palco} tela={tela} campoDeTexto={campoDeTexto} url={foto.url} falha={falha}
+          pronta={!!imagem} desenhada={!!imagem && escala > 0} semTela={semTela}
+          escala={escala} caixa={caixa} saida={saida} cursor={cursor} ferramenta={ferramenta} dica={dicaDaTela}
+          comparando={comparando} aoComparar={setComparando}
+          area={area} aoPuxarCorte={(alca, comeco) => { if (area) setArraste({ alca, inicio: comeco, area }); }}
+          rascunho={rascunho} aoEscreverRascunho={aoEscreverRascunho} aoCancelarRascunho={aoCancelarRascunho}
+          confirmarTexto={confirmarTexto} corDaLetra={corEmHex(pincel.cor)} tamanhoDaLetra={letra.tamanho}
+          aoDescer={aoDescer} aoCorrer={aoCorrer} aoSubir={aoSubir}
+        />
 
         <PainelDeEdicao
           ferramenta={ferramenta} geometria={edicao.geometria} saida={saida}

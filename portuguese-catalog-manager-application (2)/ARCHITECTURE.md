@@ -145,8 +145,10 @@ com o navegador é a tela, não o domínio.
   ler cor, exportar). Tudo devolve `false`/`null` quando não há canvas, e o editor mostra a foto
   original com um aviso em vez de um retângulo preto — a mesma regra de `corpo/components/Figura3D.tsx`.
 - `features/gallery/components/`: o editor se divide em tela (`useTelaDoEditor`), gesto
-  (`useGestosDoEditor`), painel (`PainelDeEdicao`) e orquestração (`EditorDeImagem`); quem abre
-  usa o hook `useEdicaoDeFoto`, que já devolve a gravação ligada ao `commit` do contexto.
+  (`useGestosDoEditor`), palco (`PalcoDeEdicao`), painel (`PainelDeEdicao`) e orquestração
+  (`EditorDeImagem`); quem abre usa o hook `useEdicaoDeFoto`, que já devolve a gravação ligada
+  ao `commit` do contexto. `AjusteEmLote` aplica a mesma receita de luz em várias fotos — e faz
+  **um `commit` só**, para um `Ctrl+Z` devolver o lote inteiro.
 - Dois espaços de coordenadas convivem e não podem se misturar: o **corte** mora em pixels do
   arquivo (cortar não perde resolução) e as **marcas** em pixels da saída (girar depois de
   desenhar move o desenho junto). `paraFonte`/`paraSaida` são a única ponte entre eles.

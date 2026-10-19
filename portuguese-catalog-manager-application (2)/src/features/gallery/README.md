@@ -71,9 +71,26 @@ geometria**, para o histórico não ganhar um passo que não desfaz nada.
 | `components/EditorDeImagem.tsx` | O editor: histórico, geometria, luz, cor, salvamento, teclado e a moldura da tela. Portal no `body`, `z-index` 300 (acima do visor e das folhas). |
 | `components/useTelaDoEditor.ts` | A tela: mede o palco (`ResizeObserver`), decide `escala`/`caixa`, mantém a **base pronta** e responde por paleta e miniaturas. A base só refaz quando muda forma ou luz — nunca a cada traço. |
 | `components/useGestosDoEditor.ts` | O dedo: `pointerdown/move/up` → traço, figura, mosaico, texto, apagar, mover letra e conta-gotas. |
+| `components/PalcoDeEdicao.tsx` | O palco: o canvas, a moldura de corte com as oito alças, a letra em rascunho e o antes/depois — as três sobreposições que precisam concordar no mesmo retângulo. |
 | `components/PainelDeEdicao.tsx` | O painel da direita (faixa embaixo no aparelho): controles de cada ferramenta, proporções de corte, sliders de luz, filtros com prévia, cores (prontas, recentes, hex, paleta da foto) e a trilha de ferramentas. |
 | `components/EdicaoDeFoto.tsx` | `useEdicaoDeFoto()`: o hook que as telas usam — `abrir(foto, titulo?)`, `fechar()`, `aberta` e o `editor` pronto para renderizar, já ligado ao `commit` do contexto. |
+| `components/AjusteEmLote.tsx` | A mesma receita de luz e cor em várias fotos: prévia em CSS na primeira escolhida, filtros prontos, os sete controles e **um `commit` só** no fim. |
 | `index.ts` | A API pública do domínio. |
+
+## Antes e depois, e o mesmo ajuste em várias fotos
+
+**Segurar `Original`** mostra a foto como ela entrou. É um `<img>` por cima do
+canvas, não um segundo desenho: comparar não custa um redesenho, funciona até
+onde não há canvas, e enquanto dura, a moldura de corte e a letra em rascunho
+saem da frente (ver o original com grade por cima não é ver o original).
+
+**O lote** (`AjusteEmLote`) existe porque fotos do mesmo lugar saem com o mesmo
+problema — todas escuras, todas azuis — e consertar uma por uma é o que faz a
+pessoa desistir no meio. Ele aplica a mesma receita em todas as escolhidas:
+a prévia é a primeira foto com o filtro em CSS (`filtroCss`, a mesma string que o
+canvas usa), cada foto é gravada uma por vez com a barra de progresso, tudo entra
+num **único `commit`** (um `Ctrl+Z` devolve o lote) e o que não abriu é dito pelo
+nome em vez de sumir em silêncio.
 
 ## Como a edição volta para o catálogo
 
@@ -107,6 +124,7 @@ geometria**, para o histórico não ganhar um passo que não desfaz nada.
 `tests/editor-de-imagem.test.tsx`: a conta (geometria nos dois espaços, moldura e
 alças do corte, marcas, borracha, cores, histórico, gravação no catálogo), o
 editor aberto sem canvas (aviso em vez de retângulo preto), o editor com um canvas
-de mentira (desenho, traço, conta-gotas, salvar), o estilo (camada, doca que sai da
-frente, alvos de dedo, painel só no computador), a galeria abrindo o editor e a
-divisão dos arquivos.
+de mentira (desenho, traço, conta-gotas, salvar, antes/depois), o ajuste em várias
+fotos (prévia em CSS, trilhos, falha dita pelo nome e as duas fotos gravadas no
+catálogo de verdade), o estilo (camada, doca que sai da frente, alvos de dedo,
+painel só no computador), a galeria abrindo o editor e a divisão dos arquivos.

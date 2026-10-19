@@ -170,7 +170,7 @@ fazia outra, ou uma peça que ninguém usava.
 | R8 | `resumoDoCatalogoParaCompartilhar`, `enderecoDoApp`, `capaDaPessoa` e `duracaoDaNota` eram **código morto** | O retrato do catálogo virou comando na paleta (⌘K) e os outros três saíram | `CommandPalette.tsx`, `lib/compartilhar.ts`, `sintetizador.ts` |
 | R9 | `.voz-tabs` era classe usada **sem estilo** nenhum; abas apertavam em tela estreita | Regra própria, com quebra de linha | `base.css` |
 
-Suíte na época: 35 arquivos, 503 testes (`tests/correcoes.test.ts` cobre R1–R4 e R7–R8); depois da rodada 4, 497; depois da rodada 5, 498; depois do editor de imagens, 642 em 39 arquivos.
+Suíte na época: 35 arquivos, 503 testes (`tests/correcoes.test.ts` cobre R1–R4 e R7–R8); depois da rodada 4, 497; depois da rodada 5, 498; depois do editor de imagens, 651 em 39 arquivos.
 
 ## 3.3 Rodada 4 — limpeza: nada de TTS, nomes honestos
 
@@ -238,6 +238,6 @@ de arquitetura, arquitetura antes de produto novo.
 | --- | --- |
 | 16. Instalar limpo de verdade | ✅ é o que o CI faz a cada push (`npm ci` + `typecheck` + testes + build, verdes) |
 | 17. `typecheck` | ✅ sem erros, no CI |
-| 18. Todos os testes | ✅ 39 arquivos, 642 testes, no CI |
+| 18. Todos os testes | ✅ 39 arquivos, 651 testes, no CI |
 | 19. Testes dos fluxos críticos | ⏳ (o que falta: importar/exportar backup grande, trocar de perfil, faxina) |
 | 20. Lint (item 0.5) | ⏳ |

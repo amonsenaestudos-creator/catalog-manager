@@ -2660,6 +2660,40 @@ html.editor-aberto, html.editor-aberto body { overflow: hidden; overscroll-behav
 .editor-tela { display: block; touch-action: none; }
 .editor-tela-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: .92; }
 
+/* Antes e depois: segurar o botão mostra a foto como ela entrou. É um <img> por
+   cima do canvas — comparar não pode custar um redesenho nem depender de canvas. */
+.editor-comparar {
+  position: absolute; top: 12px; right: 12px; z-index: 6;
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 34px; padding: 0 13px;
+  border: 1px solid #ffffff26; border-radius: 999px;
+  background: #14101ae6; color: #cfc4d8;
+  font-family: inherit; font-size: 11.5px; font-weight: 650; letter-spacing: .02em;
+  cursor: pointer; touch-action: none; user-select: none;
+  backdrop-filter: blur(8px);
+  transition: background .16s, color .16s, border-color .16s, transform .12s;
+}
+.editor-comparar:hover { color: #fff; border-color: #ffffff40; }
+.editor-comparar:focus-visible { outline: 2px solid #cb9ae8; outline-offset: 2px; }
+.editor-comparar.ativa {
+  background: #cb9ae833; border-color: #cb9ae8aa; color: #fff; transform: scale(.97);
+}
+.editor-comparar svg { flex: none; }
+
+.editor-original {
+  position: absolute; inset: 0; z-index: 4;
+  width: 100%; height: 100%; object-fit: contain; background: #0f0d14;
+}
+.editor-original-legenda {
+  position: absolute; z-index: 5; top: 10px; left: 10px; padding: 5px 10px;
+  border-radius: 999px; background: #07060ad9; color: #f0e9f4;
+  font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase;
+  pointer-events: none;
+}
+/* Enquanto compara, a moldura de corte e a letra em rascunho saem da frente. */
+.editor-moldura.comparando .editor-corte,
+.editor-moldura.comparando .editor-texto { display: none; }
+
 .editor-carregando, .editor-falha {
   max-width: 320px; margin: 0; color: #a99cb3; font-size: 12.5px; line-height: 1.6; text-align: center;
 }
@@ -2849,4 +2883,77 @@ html.editor-aberto, html.editor-aberto body { overflow: hidden; overscroll-behav
 @media (min-width: 1101px) {
   .editor-corpo { grid-template-columns: minmax(0, 1fr) 340px; }
   .editor-palco { padding: 24px; }
+}
+
+/* ==========================================================================
+   Ajuste em lote: a mesma luz e cor em várias fotos
+   --------------------------------------------------------------------------
+   A folha usa as cores do tema, e não o fundo escuro fixo do editor: aqui se
+   toma uma decisão sobre o catálogo, não sobre uma foto só. A prévia é CSS puro
+   (`filtroCss`), que é a mesma string que o canvas aplica na hora de gravar —
+   então o que se vê é o que sai, e funciona até onde não há canvas.
+   ========================================================================== */
+.ajuste-lote { display: grid; gap: 16px; }
+.ajuste-lote-grupo { display: grid; gap: 8px; }
+.ajuste-lote-grupo > h3 {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 0; color: var(--muted); font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+
+.ajuste-lote-previa { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ajuste-lote-previa figure { display: grid; gap: 6px; margin: 0; }
+.ajuste-lote-previa img {
+  width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2);
+}
+.ajuste-lote-previa figcaption { color: var(--faint); font-size: 10.5px; text-align: center; }
+
+.ajuste-lote-filtros { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.ajuste-lote-filtro {
+  display: grid; gap: 5px; flex: none; width: 84px; padding: 6px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  color: var(--muted); cursor: pointer;
+  transition: border-color .16s, background .16s, color .16s, transform .12s;
+}
+.ajuste-lote-filtro img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--surface-2); }
+.ajuste-lote-filtro span { font-size: 10.5px; font-weight: 600; text-align: center; }
+.ajuste-lote-filtro:hover { border-color: var(--line-hover); color: var(--txt); }
+.ajuste-lote-filtro.ativo { border-color: var(--accent); background: var(--accent-soft); color: var(--txt); }
+.ajuste-lote-filtro:active { transform: scale(.97); }
+
+.ajuste-lote-zerar {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px;
+  border: 1px solid var(--line); border-radius: 999px; background: transparent;
+  color: var(--muted); font: inherit; font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0; text-transform: none; cursor: pointer;
+}
+.ajuste-lote-zerar:hover:not(:disabled) { border-color: var(--line-hover); color: var(--txt); }
+.ajuste-lote-zerar:disabled { opacity: .4; cursor: default; }
+
+.ajuste-lote-trilhos { display: grid; gap: 10px; }
+.ajuste-lote-trilho { display: grid; gap: 4px; }
+.ajuste-lote-trilho > span { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 11.5px; }
+.ajuste-lote-trilho > span b { color: var(--txt); font-variant-numeric: tabular-nums; }
+.ajuste-lote-trilho input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+.ajuste-lote-progresso {
+  height: 6px; margin: 0; overflow: hidden; border-radius: 999px; background: var(--surface-3);
+}
+.ajuste-lote-progresso span {
+  display: block; height: 100%; border-radius: 999px;
+  background: var(--grad, linear-gradient(120deg, var(--accent), var(--pink)));
+  transition: width .2s ease;
+}
+
+.ajuste-lote-falhas {
+  display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); border-radius: 12px;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--txt); font-size: 12px; line-height: 1.55;
+}
+.ajuste-lote-falhas svg { flex: none; margin-top: 1px; color: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ajuste-lote-filtro, .ajuste-lote-progresso span { transition: none; }
 }

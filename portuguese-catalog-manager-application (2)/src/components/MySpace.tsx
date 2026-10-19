@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookHeart, CalendarDays, Check, Download, ExternalLink, Grid3x3, Heart, KeyRound, LayoutGrid, Link2, Lock, NotebookPen, Plus, Search, Smile, Sparkles, Tag, Trash2, Trophy, Unlock, Wand2 } from 'lucide-react';
+import { BookHeart, CalendarDays, Check, Download, ExternalLink, Grid3x3, Heart, KeyRound, LayoutGrid, Link2, Lock, NotebookPen, Plus, Search, SlidersHorizontal, Smile, Sparkles, Tag, Trash2, Trophy, Unlock, Wand2 } from 'lucide-react';
 import type { Goal, JournalEntry, PersonalLink, Photo } from '../types';
 import { useCatalog } from '../context';
 import { daysUntil, downloadBlob, formatDate, generateId, normalizeText, PHOTO_LABELS, textStats, today } from '../store';
@@ -11,7 +11,7 @@ import VisorDeFotos from './VisorDeFotos';
 import { FolhaDeAcoes } from './Folha';
 import type { AcaoDeFolha } from './Folha';
 import { MODOS_GALERIA, lerModoSalvo, salvarModo } from '../lib/galeria';
-import { useEdicaoDeFoto } from '../features/gallery';
+import { AjusteEmLote, useEdicaoDeFoto } from '../features/gallery';
 import type { ModoGaleria } from '../lib/galeria';
 import { useFaixasGrudadas } from '../hooks/useFaixasGrudadas';
 import { useSelecaoLote } from '../hooks/useSelecaoLote';
@@ -176,6 +176,7 @@ function VaultTab() {
   const nomeDe = (photo: Photo) => data.people.find(person => person.id === photo.personId)?.nome || 'Sem ficha';
   /* Editar no cofre é igual a editar na galeria: a foto continua guardada aqui. */
   const edicao = useEdicaoDeFoto();
+  const [ajusteLote, setAjusteLote] = useState(false);
 
   if (!ctx.vaultUnlocked) return <div className="vault-locked">
     <Lock size={34} strokeWidth={1.3} />
@@ -262,6 +263,7 @@ function VaultTab() {
       <div>
         <button type="button" onClick={lote.selecionarTudo}><Check size={17} />Tudo</button>
         <button type="button" disabled={!lote.ids.length} onClick={() => tirarDoCofre(lote.ids)}><Unlock size={17} />Tirar do cofre</button>
+        <button type="button" disabled={!lote.ids.length} onClick={() => setAjusteLote(true)}><SlidersHorizontal size={17} />Ajustar</button>
         <button type="button" onClick={lote.sair}>Concluir</button>
       </div>
     </div>}
@@ -279,6 +281,10 @@ function VaultTab() {
         aoFechar={() => setSobAcao(null)} acao={{ rotulo: 'Abrir a foto', onClick: () => { abrir(sobAcao); setSobAcao(null); } }} itens={acoesDaFoto(sobAcao)} />
     )}
 
+    {ajusteLote && (
+      <AjusteEmLote fotos={fotos.filter(photo => lote.ids.includes(photo.id))} aoFechar={() => setAjusteLote(false)}
+        aoTerminar={gravadas => { if (gravadas) lote.sair(); }} />
+    )}
     {edicao.editor}
 
     {configOpen && <Modal title={data.vault.pin ? 'Trocar PIN do cofre' : 'Definir PIN do cofre'} onClose={() => setConfigOpen(false)} footer={<><Button onClick={() => setConfigOpen(false)}>Cancelar</Button><Button variant="primary" disabled={!/^\d{4,8}$/.test(newPin)} onClick={() => { ctx.commit(d => ({ ...d, vault: { ...d.vault, pin: newPin } }), 'PIN do cofre atualizado.'); setConfigOpen(false); }}><KeyRound size={16} />Salvar PIN</Button></>}>

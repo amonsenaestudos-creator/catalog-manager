@@ -14,6 +14,10 @@ export { default as EditorDeImagem } from './components/EditorDeImagem';
 export type { EditorDeImagemProps } from './components/EditorDeImagem';
 export { default as PainelDeEdicao, ControlesDeCor, TrilhaDeFerramentas } from './components/PainelDeEdicao';
 export type { EstadoDoPincel, EstadoDoTexto, PainelProps } from './components/PainelDeEdicao';
+export { default as AjusteEmLote } from './components/AjusteEmLote';
+export type { AjusteEmLoteProps } from './components/AjusteEmLote';
+export { default as PalcoDeEdicao } from './components/PalcoDeEdicao';
+export type { PalcoProps } from './components/PalcoDeEdicao';
 export { default as useEdicaoDeFoto } from './components/EdicaoDeFoto';
 export type { EdicaoDeFoto } from './components/EdicaoDeFoto';
 
