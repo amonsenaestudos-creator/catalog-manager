@@ -50,9 +50,19 @@ export function novoCanvas(largura: number, altura: number): HTMLCanvasElement |
   return canvas;
 }
 
-const contexto = (canvas: HTMLCanvasElement | null): CanvasRenderingContext2D | null => {
+/**
+ * O contexto 2D, ou `null` quando não há canvas.
+ *
+ * `ler` pede um canvas guardado na memória do processador, que é o que deixa
+ * `getImageData` barato. Só vale para quem lê pixel de fato (conta-gotas e
+ * paleta): num canvas que se redesenha a cada movimento do dedo, essa escolha
+ * tiraria a aceleração do desenho e o traço engasgaria no aparelho. O atributo
+ * só vale na primeira chamada pelo mesmo canvas, então quem desenha vem antes e
+ * a leitura se acomoda com o contexto que já existe.
+ */
+const contexto = (canvas: HTMLCanvasElement | null, ler = false): CanvasRenderingContext2D | null => {
   if (!canvas || typeof canvas.getContext !== 'function') return null;
-  try { return canvas.getContext('2d', { willReadFrequently: true }); } catch { return null; }
+  try { return canvas.getContext('2d', ler ? { willReadFrequently: true } : undefined); } catch { return null; }
 };
 
 /**
@@ -302,7 +312,7 @@ export function comporTela(
 
 /** A cor que está naquele ponto da tela (o conta-gotas do editor). */
 export function corNaTela(canvas: HTMLCanvasElement | null, ponto: Ponto): string | null {
-  const ctx = contexto(canvas);
+  const ctx = contexto(canvas, true);
   if (!ctx || !canvas) return null;
   const x = Math.floor(ponto.x);
   const y = Math.floor(ponto.y);
@@ -315,7 +325,7 @@ export function corNaTela(canvas: HTMLCanvasElement | null, ponto: Ponto): strin
 
 /** As cores que mais aparecem na foto — a paleta que o editor oferece. */
 export function paletaDaTela(canvas: HTMLCanvasElement | null, quantidade = 6): string[] {
-  const ctx = contexto(canvas);
+  const ctx = contexto(canvas, true);
   if (!ctx || !canvas) return [];
   const passo = Math.max(3, Math.round(Math.max(canvas.width, canvas.height) / 90));
   try {
