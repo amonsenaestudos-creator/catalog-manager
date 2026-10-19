@@ -1,5 +1,5 @@
-import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LigacaoDoMapa, LocationOption, MapaMental, Memory, NoDoMapa, Person, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
-import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS, VINCULO_PAPEIS } from './types';
+import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LigacaoDoMapa, LocationOption, MapaMental, Memory, NoDoMapa, Person, PerfilSocial, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
+import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, REDES_SOCIAIS_IDS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS, VINCULO_PAPEIS } from './types';
 import { DEMO_PORTRAITS } from './assets';
 import { normalizarDensidade } from './features/interface/densidade';
 
@@ -150,7 +150,7 @@ export const RARITY_COLORS: Record<string, string> = { comum: '#9aa0ad', raro: '
 export const rarityFor = (score: number) => score >= 4.8 ? 'lendario' : score >= 4.3 ? 'epico' : score >= 3.6 ? 'raro' : 'comum';
 
 export function getDefaultPerson(): Person {
-  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', vozes: [] };
+  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', perfisSociais: [], vozes: [] };
 }
 export function emptyData(): AppData {
   return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], mapas: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, musicaLinks: {}, ambienteAtivo: '', ambienteVolume: 40, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
@@ -396,6 +396,22 @@ export function normalizePerson(value: unknown): Person {
     .slice(0, 40);
   // Voz: áudios de verdade e o perfil de como ela soa. Nada além de data:audio
   // entra, para um backup estranho não virar fonte de áudio externa.
+  // Perfis de rede social: rede conhecida, link http(s) e foto segura — o
+  // mesmo crivo dos anexos, para um backup estranho não virar atalho externo.
+  result.perfisSociais = array(p.perfisSociais).map(value => {
+    const s = object(value);
+    return {
+      id: text(s.id) || generateId(),
+      rede: ((REDES_SOCIAIS_IDS as readonly string[]).includes(text(s.rede)) ? text(s.rede) : 'outra') as PerfilSocial['rede'],
+      usuario: text(s.usuario).slice(0, 90),
+      url: safeLink(text(s.url)),
+      nomeExibicao: text(s.nomeExibicao).slice(0, 120) || undefined,
+      fotoUrl: safeImage(text(s.fotoUrl)) || undefined,
+      importadoEm: text(s.importadoEm) || undefined,
+    };
+  }).filter(s => s.usuario || s.url)
+    .filter((s, i, list) => list.findIndex(x => x.rede === s.rede && x.usuario.toLowerCase() === s.usuario.toLowerCase() && x.url === s.url) === i)
+    .slice(0, 20);
   result.vozes = normalizarVozNotas(p.vozes);
   return result;
 }
@@ -720,7 +736,7 @@ export function completeness(p: Person) {
   return { percent: Math.round(fields.filter(([, v]) => v).length / fields.length * 100), missing: fields.filter(([, v]) => !v).map(([label]) => label) };
 }
 export function matchesSearch(p: Person, query: string, data: AppData) {
-  const haystack = normalizeText([p.nome, p.apelido, p.redesSociais, p.localizacaoMora, locationLabel(p, data), p.descricao, ...(p.customFields || []).map(field => `${field.label} ${field.value}`), ...(p.attachments || []).map(item => item.label), ...p.tags].join(' '));
+  const haystack = normalizeText([p.nome, p.apelido, p.redesSociais, p.localizacaoMora, locationLabel(p, data), p.descricao, ...(p.customFields || []).map(field => `${field.label} ${field.value}`), ...(p.attachments || []).map(item => item.label), ...(p.perfisSociais || []).map(s => `${s.rede} ${s.usuario} ${s.nomeExibicao || ''}`), ...p.tags].join(' '));
   return normalizeText(query).split(/\s+/).filter(Boolean).every(q => haystack.includes(q));
 }
 export function filterPeople(data: AppData, f: CatalogFilter) {

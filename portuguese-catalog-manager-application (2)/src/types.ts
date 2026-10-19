@@ -52,6 +52,26 @@ export type VinculoPapel =
 
 export interface Vinculo { id: string; personId: string; papel: VinculoPapel }
 
+/** Redes que o Catalog sabe reconhecer num link ou num @usuário. */
+export const REDES_SOCIAIS_IDS = ['instagram', 'tiktok', 'x', 'facebook', 'whatsapp', 'youtube', 'threads', 'telegram', 'github', 'outra'] as const;
+export type RedeSocialId = (typeof REDES_SOCIAIS_IDS)[number];
+
+/**
+ * Um perfil de rede social dessa pessoa, reconhecido a partir de um link ou
+ * de um @ colado no cadastro. `redesSociais` continua sendo o texto livre de
+ * sempre (busca, planilha e duplicatas leem ele); isto aqui é a versão
+ * estruturada, que a ficha mostra como atalhos clicáveis.
+ */
+export interface PerfilSocial {
+  id: string;
+  rede: RedeSocialId;
+  usuario: string;
+  url: string;
+  nomeExibicao?: string;
+  fotoUrl?: string;
+  importadoEm?: string;
+}
+
 export interface Person {
   id: string;
   nome: string;
@@ -70,6 +90,8 @@ export interface Person {
   tags: string[];
   qi: string;
   redesSociais: string;
+  /** Perfis reconhecidos (Instagram, TikTok, WhatsApp…) com link direto. */
+  perfisSociais?: PerfilSocial[];
   comportamento: string;
   notas: BrokenNote[];
   descricaoCorporal: string;

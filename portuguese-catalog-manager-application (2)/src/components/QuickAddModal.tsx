@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Camera, FileText, FolderPlus, UserPlus } from 'lucide-react';
+import { Camera, FileText, FolderPlus, Share2, UserPlus } from 'lucide-react';
 import { useCatalog } from '../context';
 import { usePersonDraft } from '../hooks/usePersonDraft';
 import { Modal } from './ui';
@@ -19,7 +19,7 @@ import { prepararFotosSoltas } from '../lib/galeria';
 export default function QuickAddModal() {
   const ctx = useCatalog();
   const { setQuickOpen } = ctx;
-  const [escolha, setEscolha] = useState<'menu' | 'pessoa'>('menu');
+  const [escolha, setEscolha] = useState<'menu' | 'pessoa' | 'rede'>('menu');
   const [enviando, setEnviando] = useState(false);
   const arquivo = useRef<HTMLInputElement>(null);
   const draft = usePersonDraft('quick-person', 'quick');
@@ -43,9 +43,9 @@ export default function QuickAddModal() {
     }
   };
 
-  if (escolha === 'pessoa') {
-    return <Modal title="Fichário rápido" description="Uma pessoa, uma foto, uma boa lembrança." onClose={fechar} className="quick-modal">
-      <PersonEditor {...draft} quick onDiscard={draft.discard} onCancel={fechar} onSave={() => { if (ctx.savePerson({ ...draft.person, descricao: draft.person.descricao.trim() || 'Adicionado rapidamente via Fichário Rápido. Complete os detalhes depois.' }, 'quick-person')) fechar(); }} submitLabel="Adicionar pessoa" />
+  if (escolha === 'pessoa' || escolha === 'rede') {
+    return <Modal title={escolha === 'rede' ? 'Adicionar pela rede social' : 'Fichário rápido'} description={escolha === 'rede' ? 'Cole o link ou o @ dela e a ficha nasce quase pronta.' : 'Uma pessoa, uma foto, uma boa lembrança.'} onClose={fechar} className="quick-modal">
+      <PersonEditor {...draft} quick abrirImportacao={escolha === 'rede'} onDiscard={draft.discard} onCancel={fechar} onSave={() => { if (ctx.savePerson({ ...draft.person, descricao: draft.person.descricao.trim() || 'Adicionado rapidamente via Fichário Rápido. Complete os detalhes depois.' }, 'quick-person')) fechar(); }} submitLabel="Adicionar pessoa" />
     </Modal>;
   }
 
@@ -54,6 +54,10 @@ export default function QuickAddModal() {
       <button type="button" className="quick-escolha" onClick={() => setEscolha('pessoa')}>
         <span className="quick-escolha-icone"><UserPlus size={20} /></span>
         <span><strong>Pessoa</strong><small>Nome, foto e o essencial — o resto depois.</small></span>
+      </button>
+      <button type="button" className="quick-escolha" onClick={() => setEscolha('rede')}>
+        <span className="quick-escolha-icone"><Share2 size={20} /></span>
+        <span><strong>pela rede social</strong><small>Cole o link ou o @: rede, nome, bio e foto pública vêm junto quando a rede permite.</small></span>
       </button>
       <button type="button" className="quick-escolha" disabled={enviando} onClick={() => arquivo.current?.click()}>
         <span className="quick-escolha-icone"><Camera size={20} /></span>
