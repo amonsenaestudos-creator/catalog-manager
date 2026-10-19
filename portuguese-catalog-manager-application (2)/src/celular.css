@@ -2235,3 +2235,67 @@
   .figura-controles button { flex: 1 1 auto; justify-content: center; }
   .figura-notas { grid-template-columns: 1fr 1fr; }
 }
+
+/* ===== Seção 22: o editor de imagens na palma da mão =====
+   A foto manda no espaço: o palco fica com o que sobra depois do topo, do
+   painel e da trilha. O painel vira uma faixa que rola embaixo (não uma coluna
+   ao lado, que numa tela de 390px deixaria a foto com dois dedos de largura),
+   e as ações de salvar que no computador ficam ao lado da trilha sobem para o
+   "⋯" do topo — no aparelho, dois botões ali empurrariam a trilha para fora. */
+@media (max-width: 1100px) {
+  .editor-corpo { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .editor-palco { padding: 12px 12px 18px; }
+  .editor-painel {
+    max-height: min(42vh, 360px); padding: 12px 12px 16px; gap: 12px;
+    border-left: 0; border-top: 1px solid #ffffff14; overscroll-behavior: contain;
+  }
+  .editor-botao { width: var(--alvo); height: var(--alvo); }
+  .editor-salvar { min-height: var(--alvo); padding: 0 18px; font-size: 13px; }
+  .editor-ferramenta { min-width: 66px; min-height: 52px; justify-content: center; font-size: 11px; }
+  .editor-opcao { min-height: 38px; padding: 0 14px; font-size: 12.5px; }
+  .editor-botao-largo { min-height: var(--alvo); }
+  .editor-cor-botao { width: 34px; height: 34px; }
+  .editor-cor-alvo { width: var(--alvo); height: var(--alvo); }
+  .editor-cor-hex { min-height: 42px; }
+  .editor-acoes-do-painel .btn { min-height: var(--alvo); flex: 1 1 auto; justify-content: center; }
+  .editor-corte-alca { width: 34px; height: 34px; }
+  .alca-nw { top: -17px; left: -17px; }
+  .alca-n { top: -17px; margin-left: -17px; }
+  .alca-ne { top: -17px; right: -17px; }
+  .alca-e { right: -17px; margin-top: -17px; }
+  .alca-se { right: -17px; bottom: -17px; }
+  .alca-s { bottom: -17px; margin-left: -17px; }
+  .alca-sw { bottom: -17px; left: -17px; }
+  .alca-w { left: -17px; margin-top: -17px; }
+  .editor-corte-alca::after { inset: 12px; }
+}
+
+@media (max-width: 760px) {
+  /* A doca sai da frente: quem está na tela é a foto, não a navegação. */
+  html.editor-aberto .mobile-bottom-nav { transform: translateY(140%); opacity: 0; }
+
+  .editor-topo { padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px; gap: 8px; }
+  .editor-titulo strong { font-size: 14px; }
+  .editor-titulo small { font-size: 10px; }
+  .editor-topo-acoes { gap: 5px; }
+  .editor-base { padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .editor-base-fim { display: none; }
+  .editor-trilha { width: 100%; }
+  .editor-ferramenta kbd { display: none; }   /* no aparelho não há tecla */
+  .editor-dica-da-tela { font-size: 11px; bottom: 0; }
+
+  /* O "⋯" vira folha de baixo: as quatro opções cabem no polegar. */
+  .editor-mais {
+    top: auto; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); left: 8px;
+    min-width: 0; padding: 8px; border-radius: 18px;
+  }
+  .editor-mais button { min-height: var(--alvo); font-size: 13px; }
+  .editor-confirmar > div { padding: 18px 16px; }
+  .editor-confirmar-acoes .btn { flex: 1 1 auto; min-height: var(--alvo); justify-content: center; }
+  .editor-texto input { max-width: calc(100vw - 96px); }
+}
+
+/* Reduzir movimento: nada aqui anima, mas a transição dos botões sai junto. */
+@media (prefers-reduced-motion: reduce) {
+  .editor-botao, .editor-salvar, .editor-cor-botao, .editor-ferramenta { transition-duration: .01ms; }
+}

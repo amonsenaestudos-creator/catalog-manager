@@ -299,6 +299,7 @@ function photo(value: unknown, personId: string | null): Photo {
     description: text(p.description), favorite: !!p.favorite, albumIds: [...new Set(strings(p.albumIds))],
     hash: text(p.hash) || photoHash(text(p.url)), capturedAt: text(p.capturedAt) || null,
     width: numeric(p.width) || undefined, height: numeric(p.height) || undefined,
+    editedAt: text(p.editedAt) || null,
   };
 }
 /**

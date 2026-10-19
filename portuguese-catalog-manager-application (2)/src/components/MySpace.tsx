@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookHeart, CalendarDays, Check, Download, ExternalLink, Grid3x3, Heart, KeyRound, LayoutGrid, Link2, Lock, NotebookPen, Plus, Search, Smile, Sparkles, Tag, Trash2, Trophy, Unlock } from 'lucide-react';
+import { BookHeart, CalendarDays, Check, Download, ExternalLink, Grid3x3, Heart, KeyRound, LayoutGrid, Link2, Lock, NotebookPen, Plus, Search, Smile, Sparkles, Tag, Trash2, Trophy, Unlock, Wand2 } from 'lucide-react';
 import type { Goal, JournalEntry, PersonalLink, Photo } from '../types';
 import { useCatalog } from '../context';
 import { daysUntil, downloadBlob, formatDate, generateId, normalizeText, PHOTO_LABELS, textStats, today } from '../store';
@@ -11,6 +11,7 @@ import VisorDeFotos from './VisorDeFotos';
 import { FolhaDeAcoes } from './Folha';
 import type { AcaoDeFolha } from './Folha';
 import { MODOS_GALERIA, lerModoSalvo, salvarModo } from '../lib/galeria';
+import { useEdicaoDeFoto } from '../features/gallery';
 import type { ModoGaleria } from '../lib/galeria';
 import { useFaixasGrudadas } from '../hooks/useFaixasGrudadas';
 import { useSelecaoLote } from '../hooks/useSelecaoLote';
@@ -173,6 +174,8 @@ function VaultTab() {
   const lote = useSelecaoLote(fotos);
   useEffect(() => { salvarModo(MODO_COFRE_CHAVE, modo); }, [modo]);
   const nomeDe = (photo: Photo) => data.people.find(person => person.id === photo.personId)?.nome || 'Sem ficha';
+  /* Editar no cofre é igual a editar na galeria: a foto continua guardada aqui. */
+  const edicao = useEdicaoDeFoto();
 
   if (!ctx.vaultUnlocked) return <div className="vault-locked">
     <Lock size={34} strokeWidth={1.3} />
@@ -184,6 +187,7 @@ function VaultTab() {
       <Button type="submit" variant="primary"><Unlock size={16} />Abrir cofre</Button>
     </form>
     <button className="text-action" onClick={() => { setNewPin(data.vault.pin || ''); setConfigOpen(true); }}>{data.vault.pin ? 'Trocar o PIN do cofre' : 'Definir um PIN'}</button>
+
     {configOpen && <Modal title={data.vault.pin ? 'Trocar PIN do cofre' : 'Definir PIN do cofre'} description="Use de 4 a 8 números. Ele protege apenas este cofre." onClose={() => setConfigOpen(false)} footer={<><Button onClick={() => setConfigOpen(false)}>Cancelar</Button><Button variant="primary" disabled={!/^\d{4,8}$/.test(newPin)} onClick={() => { ctx.commit(d => ({ ...d, vault: { ...d.vault, pin: newPin } }), 'PIN do cofre atualizado.'); ctx.unlockVault(newPin); setConfigOpen(false); }}><KeyRound size={16} />Salvar PIN</Button></>}>
       <Field label="Novo PIN"><input type="password" inputMode="numeric" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))} maxLength={8} /></Field>
     </Modal>}
@@ -206,6 +210,7 @@ function VaultTab() {
 
   /** Segurar a foto: o menu do dedo, com o que faz sentido dentro do cofre. */
   const acoesDaFoto = (photo: Photo): AcaoDeFolha[] => [
+    { rotulo: 'Editar imagem', icone: Wand2, detalhe: 'cortar, pintar, luz e cor', onClick: () => edicao.abrir(photo, nomeDe(photo)) },
     { rotulo: photo.favorite ? 'Tirar das favoritas' : 'Guardar nas favoritas', icone: Heart, onClick: () => ctx.togglePhotoFavorite(photo.id) },
     { rotulo: lote.tem(photo.id) ? 'Tirar do lote' : 'Escolher no lote', icone: Check, onClick: () => lote.alternar(photo, false) },
     { rotulo: 'Baixar a imagem', icone: Download, onClick: () => { void baixar(photo); } },
@@ -265,7 +270,7 @@ function VaultTab() {
       <VisorDeFotos fotos={fotos} indice={Math.min(visor, fotos.length - 1)} aoMudar={setVisor} aoFechar={() => setVisor(-1)}
         titulo={nomeDe} apoio={photo => `No cofre desde ${formatDate(photo.createdAt)} · ${PHOTO_LABELS[photo.type]}`}
         aoFavoritar={photo => ctx.togglePhotoFavorite(photo.id)} aoBaixar={photo => { void baixar(photo); }}
-        acoes={acoesDaFoto} selecionada={!!fotos[Math.min(visor, fotos.length - 1)] && lote.tem(fotos[Math.min(visor, fotos.length - 1)].id)}
+        aoEditar={photo => edicao.abrir(photo, nomeDe(photo))} acoes={acoesDaFoto} selecionada={!!fotos[Math.min(visor, fotos.length - 1)] && lote.tem(fotos[Math.min(visor, fotos.length - 1)].id)}
         aoAlternarSelecao={photo => lote.alternar(photo, false)} detalhes={detalhesDaFoto} />
     )}
 
@@ -273,6 +278,8 @@ function VaultTab() {
       <FolhaDeAcoes titulo={nomeDe(sobAcao)} subtitulo={`No cofre · ${PHOTO_LABELS[sobAcao.type]}`}
         aoFechar={() => setSobAcao(null)} acao={{ rotulo: 'Abrir a foto', onClick: () => { abrir(sobAcao); setSobAcao(null); } }} itens={acoesDaFoto(sobAcao)} />
     )}
+
+    {edicao.editor}
 
     {configOpen && <Modal title={data.vault.pin ? 'Trocar PIN do cofre' : 'Definir PIN do cofre'} onClose={() => setConfigOpen(false)} footer={<><Button onClick={() => setConfigOpen(false)}>Cancelar</Button><Button variant="primary" disabled={!/^\d{4,8}$/.test(newPin)} onClick={() => { ctx.commit(d => ({ ...d, vault: { ...d.vault, pin: newPin } }), 'PIN do cofre atualizado.'); setConfigOpen(false); }}><KeyRound size={16} />Salvar PIN</Button></>}>
       <Field label="Novo PIN"><input type="password" inputMode="numeric" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))} maxLength={8} /></Field>

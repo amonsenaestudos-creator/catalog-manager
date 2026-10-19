@@ -2571,3 +2571,282 @@ html.foco .ambiente-bar:hover, html.foco .ambiente-bar:focus-within { opacity: 1
 .figura-notas li small { color: var(--faint); font-size: 9.5px; }
 .figura-notas .figura-fora { border-style: dashed; }
 html.foco .figura-3d .figura-notas { display: none; }
+
+/* ============================================================================
+   Editor de imagens da galeria (rodada "cortar, pintar e tirar a cor da foto")
+   ----------------------------------------------------------------------------
+   Abre por cima do visor (240), da folha (260) e do modo apresentação (250):
+   quem está editando não pode ver o dedo disputado por outra camada. O fundo é
+   escuro em qualquer tema, como no visor — luz de estúdio atrapalha a leitura
+   da cor, e o branco do tema claro mudaria o julgamento de brilho e contraste.
+   ========================================================================== */
+.editor {
+  position: fixed; inset: 0; z-index: 300; display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: #0b0910; color: #f4eef7; isolation: isolate;
+  padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
+}
+
+html.editor-aberto, html.editor-aberto body { overflow: hidden; overscroll-behavior: none; }
+
+/* ------------------------------------------------------------------- topo -- */
+.editor-topo {
+  position: relative; z-index: 4; display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-bottom: 1px solid #ffffff14;
+  background: linear-gradient(180deg, #15111d, #100e16);
+}
+
+.editor-titulo { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.editor-titulo strong { overflow: hidden; font-size: 13.5px; font-weight: 620; text-overflow: ellipsis; white-space: nowrap; }
+.editor-titulo small { overflow: hidden; color: #a99cb3; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+.editor-topo-acoes { display: flex; align-items: center; gap: 6px; flex: none; }
+
+.editor-botao {
+  width: 38px; height: 38px; flex: none; display: grid; place-items: center;
+  border-radius: 50%; color: #ece6f1; background: #ffffff10; border: 1px solid #ffffff1a;
+  transition: background .16s, color .16s, transform .16s, opacity .16s;
+}
+.editor-botao:hover:not(:disabled) { background: #ffffff1c; }
+.editor-botao:active:not(:disabled) { transform: scale(.92); }
+.editor-botao:disabled { opacity: .32; cursor: not-allowed; }
+.editor-botao.ativa { color: #fff; background: #cb9ae82e; border-color: #cb9ae866; }
+
+.editor-salvar {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 16px;
+  border: 1px solid #ffffff2e; border-radius: 999px; color: #fff; font-size: 12.5px; font-weight: 650;
+  background: var(--grad, linear-gradient(120deg, var(--accent), var(--pink)));
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--accent) 80%, #000);
+  transition: transform .16s, filter .16s;
+}
+.editor-salvar:hover:not(:disabled) { filter: brightness(1.06); }
+.editor-salvar:active:not(:disabled) { transform: scale(.96); }
+.editor-salvar:disabled { opacity: .5; cursor: progress; }
+
+.editor-mais-veu { position: fixed; inset: 0; z-index: 4; border: 0; background: transparent; cursor: default; }
+.editor-mais {
+  position: absolute; top: 54px; right: 10px; z-index: 5; display: grid; gap: 2px;
+  min-width: 258px; padding: 6px; border: 1px solid #ffffff1f; border-radius: 14px;
+  background: #191521f5; box-shadow: 0 20px 48px #000000aa; backdrop-filter: blur(12px);
+}
+.editor-mais button {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px;
+  border: 0; border-radius: 10px; background: transparent; color: #e6ddec; font-size: 12.5px; text-align: left;
+}
+.editor-mais button:hover { background: #ffffff12; }
+.editor-mais button > span { display: grid; gap: 1px; min-width: 0; }
+.editor-mais button small { color: #9b8fa6; font-size: 10.5px; }
+.editor-mais button.perigo { color: var(--danger); }
+.editor-mais button.perigo small { color: #b08f92; }
+
+/* ------------------------------------------------------------------ corpo -- */
+.editor-corpo {
+  display: grid; grid-template-columns: minmax(0, 1fr) 322px;
+  min-height: 0; overflow: hidden;
+}
+
+.editor-palco {
+  position: relative; display: grid; place-items: center; gap: 6px;
+  min-width: 0; min-height: 0; padding: 18px; overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #1b1622 0%, #0b0910 62%),
+    repeating-conic-gradient(#131019 0% 25%, #100d15 0% 50%) 0 0 / 22px 22px;
+}
+
+.editor-moldura {
+  position: relative; max-width: 100%; max-height: 100%;
+  background: #0f0d14; box-shadow: 0 22px 60px #00000088, 0 0 0 1px #ffffff14;
+  touch-action: none; user-select: none;
+}
+.editor-tela { display: block; touch-action: none; }
+.editor-tela-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: .92; }
+
+.editor-carregando, .editor-falha {
+  max-width: 320px; margin: 0; color: #a99cb3; font-size: 12.5px; line-height: 1.6; text-align: center;
+}
+.editor-falha { color: #e0b6ba; }
+.editor-dica-da-tela {
+  position: absolute; right: 0; bottom: 4px; left: 0; margin: 0;
+  color: #8b8095; font-size: 10.5px; text-align: center; pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ corte -- */
+.editor-corte { position: absolute; inset: 0; touch-action: none; }
+.editor-corte-area {
+  position: absolute; border: 1.5px solid #ffffffe6; cursor: move; touch-action: none;
+  box-shadow: 0 0 0 9999px #07060ab8, 0 0 0 1px #00000055;
+}
+.editor-corte-grade { position: absolute; inset: 0; pointer-events: none; }
+.editor-corte-grade i { position: absolute; background: #ffffff40; }
+.editor-corte-grade i:nth-child(1) { top: 0; bottom: 0; left: 33.33%; width: 1px; }
+.editor-corte-grade i:nth-child(2) { top: 0; bottom: 0; left: 66.66%; width: 1px; }
+.editor-corte-grade i:nth-child(3) { left: 0; right: 0; top: 33.33%; height: 1px; }
+.editor-corte-grade i:nth-child(4) { left: 0; right: 0; top: 66.66%; height: 1px; }
+
+.editor-corte-alca {
+  position: absolute; width: 26px; height: 26px; padding: 0;
+  border: 0; background: transparent; touch-action: none;
+}
+.editor-corte-alca::after {
+  content: ''; position: absolute; inset: 9px; border-radius: 999px;
+  background: #fff; box-shadow: 0 1px 5px #00000099;
+}
+.editor-corte-alca:hover::after, .editor-corte-alca:focus-visible::after { background: var(--accent); }
+.alca-nw { top: -13px; left: -13px; cursor: nwse-resize; }
+.alca-n { top: -13px; left: 50%; margin-left: -13px; cursor: ns-resize; }
+.alca-ne { top: -13px; right: -13px; cursor: nesw-resize; }
+.alca-e { top: 50%; right: -13px; margin-top: -13px; cursor: ew-resize; }
+.alca-se { right: -13px; bottom: -13px; cursor: nwse-resize; }
+.alca-s { bottom: -13px; left: 50%; margin-left: -13px; cursor: ns-resize; }
+.alca-sw { bottom: -13px; left: -13px; cursor: nesw-resize; }
+.alca-w { top: 50%; left: -13px; margin-top: -13px; cursor: ew-resize; }
+
+.editor-corte-medida {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  padding: 2px 9px; border-radius: 999px; background: #0d0b12d9; border: 1px solid #ffffff24;
+  color: #f0eaf5; font-size: 10.5px; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none;
+}
+
+/* ----------------------------------------------------------------- texto -- */
+.editor-texto { position: absolute; z-index: 3; display: flex; align-items: flex-start; gap: 6px; max-width: 100%; }
+.editor-texto input {
+  min-width: 130px; max-width: 60vw; padding: 1px 7px; border: 1px dashed #ffffff80; border-radius: 6px;
+  background: #0d0b12b8; color: inherit; font-family: inherit; font-weight: 650; line-height: 1.25;
+  text-shadow: 0 1px 3px #00000088;
+}
+.editor-texto input::placeholder { color: #ffffff8c; font-weight: 500; }
+.editor-texto-ok {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center;
+  border: 1px solid #ffffff33; border-radius: 50%; background: #17131f; color: #fff;
+}
+
+/* ---------------------------------------------------------------- painel -- */
+.editor-painel {
+  display: grid; gap: 14px; align-content: start; min-width: 0;
+  padding: 14px; overflow-y: auto; border-left: 1px solid #ffffff14; background: #12101a;
+}
+.editor-grupo h3 { margin: 0 0 7px; color: #9b8fa6; font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.editor-opcoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.editor-opcao {
+  padding: 6px 12px; border: 1px solid #ffffff1a; border-radius: 999px;
+  background: #ffffff0a; color: #cfc5d8; font-size: 11.5px; transition: background .15s, color .15s, border-color .15s;
+}
+.editor-opcao:hover { color: #fff; border-color: #ffffff33; }
+.editor-opcao.ativa { color: #fff; border-color: #cb9ae880; background: #cb9ae824; }
+
+.editor-botao-largo {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  min-height: 40px; padding: 0 12px; border: 1px solid #ffffff1a; border-radius: 11px;
+  background: #ffffff0a; color: #ece6f1; font-size: 12.5px;
+}
+.editor-botao-largo:hover { border-color: #ffffff33; }
+.editor-botao-largo.ligado { border-color: #cb9ae880; background: #cb9ae824; color: #fff; }
+
+.editor-trilho { display: grid; gap: 3px; }
+.editor-trilho-nome { display: flex; justify-content: space-between; gap: 8px; color: #cfc5d8; font-size: 11.5px; }
+.editor-trilho-nome b { color: #f4eef7; font-variant-numeric: tabular-nums; }
+.editor-trilho-linha { display: flex; align-items: center; gap: 6px; }
+.editor-trilho-linha input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.editor-trilho-zerar {
+  width: 26px; height: 26px; flex: none; display: grid; place-items: center;
+  border: 1px solid #ffffff1a; border-radius: 8px; background: #ffffff0a; color: #a99cb3;
+}
+.editor-trilho-zerar:hover { color: #fff; }
+.editor-trilho small { color: #8b8095; font-size: 10px; line-height: 1.5; }
+
+.editor-linha-de-opcao { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.editor-linha-de-opcao .check-label { color: #cfc5d8; font-size: 12px; }
+.editor-dica { margin: 0; color: #9b8fa6; font-size: 11px; line-height: 1.62; }
+.editor-dica-curta { color: #8b8095; font-size: 10px; }
+.editor-leitura { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; margin: 0; color: #9b8fa6; font-size: 11.5px; }
+.editor-leitura strong { justify-self: end; color: #f4eef7; font-variant-numeric: tabular-nums; }
+.editor-leitura-curta { margin: 0; color: #cfc5d8; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.editor-medida-do-painel { margin: 0; padding-top: 8px; border-top: 1px solid #ffffff10; color: #7d7386; font-size: 10px; }
+.editor-acoes-do-painel { display: flex; flex-wrap: wrap; gap: 8px; }
+.editor-aviso {
+  margin: 0; padding: 9px 11px; border: 1px solid #daba7d55; border-radius: 10px;
+  background: #daba7d14; color: #e8d6b0; font-size: 11.5px; line-height: 1.55;
+}
+
+/* ---------------------------------------------------------------- filtros -- */
+.editor-filtros { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.editor-filtro {
+  display: grid; gap: 5px; justify-items: center; padding: 6px 5px 7px;
+  border: 1px solid #ffffff14; border-radius: 11px; background: #ffffff08; color: #cfc5d8;
+}
+.editor-filtro img, .editor-filtro-sem { width: 100%; aspect-ratio: 1; border-radius: 8px; object-fit: cover; background: #241d2e; }
+.editor-filtro-sem { background: linear-gradient(140deg, #3a2f45, #191521); }
+.editor-filtro strong { font-size: 10px; font-weight: 600; }
+.editor-filtro:hover { border-color: #ffffff33; color: #fff; }
+.editor-filtro.ativo { border-color: #cb9ae88c; background: #cb9ae81f; color: #fff; }
+
+/* ------------------------------------------------------------------ cores -- */
+.editor-cores { display: grid; gap: 12px; }
+.editor-cor-escolha { display: flex; align-items: center; gap: 8px; }
+.editor-cor-alvo {
+  position: relative; width: 42px; height: 42px; flex: none; overflow: hidden;
+  border: 1px solid #ffffff33; border-radius: 12px; box-shadow: inset 0 0 0 1px #00000033;
+}
+.editor-cor-alvo input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.editor-cor-hex {
+  flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid #ffffff1a; border-radius: 10px;
+  background: #0e0c14; color: #f4eef7; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; text-transform: uppercase;
+}
+.editor-cor-fileira { display: flex; flex-wrap: wrap; gap: 6px; }
+.editor-cor-botao {
+  width: 28px; height: 28px; padding: 0; border: 1px solid #ffffff2e; border-radius: 9px;
+  box-shadow: inset 0 0 0 1px #00000022; transition: transform .14s;
+}
+.editor-cor-botao:hover { transform: scale(1.08); }
+.editor-cor-botao.ativa { outline: 2px solid #fff; outline-offset: 1px; }
+.editor-cor-lida { display: flex; align-items: center; gap: 9px; margin: 0 0 8px; color: #cfc5d8; font-size: 12px; }
+.editor-cor-lida strong { color: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.editor-cor-lida small { color: #8b8095; font-size: 10.5px; }
+.editor-cor-amostra { width: 28px; height: 28px; flex: none; border: 1px solid #ffffff33; border-radius: 9px; }
+
+/* ------------------------------------------------------------------ base -- */
+.editor-base {
+  display: flex; align-items: center; gap: 12px; padding: 7px 12px 9px;
+  border-top: 1px solid #ffffff14; background: #100e16;
+}
+.editor-trilha { display: flex; gap: 5px; min-width: 0; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+.editor-trilha::-webkit-scrollbar { display: none; }
+.editor-ferramenta {
+  display: grid; justify-items: center; gap: 2px; flex: none; min-width: 62px;
+  padding: 6px 9px 5px; border: 1px solid transparent; border-radius: 12px;
+  background: #ffffff0a; color: #cfc5d8; font-size: 10.5px; transition: background .15s, color .15s, border-color .15s;
+}
+.editor-ferramenta:hover { color: #fff; background: #ffffff14; }
+.editor-ferramenta.ativa { color: #fff; border-color: #cb9ae866; background: #cb9ae822; }
+.editor-ferramenta kbd {
+  padding: 0 4px; border: 1px solid #ffffff1f; border-radius: 5px;
+  background: #0e0c14; color: #8b8095; font-family: inherit; font-size: 9px; line-height: 14px;
+}
+.editor-base-fim { display: flex; gap: 8px; margin-left: auto; flex: none; }
+.editor-acao-solta {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px;
+  border: 1px solid #ffffff1a; border-radius: 999px; background: #ffffff0f; color: #ddd3e4; font-size: 11.5px;
+}
+.editor-acao-solta:hover:not(:disabled) { color: #fff; border-color: #ffffff33; }
+.editor-acao-solta:disabled { opacity: .4; }
+
+/* --------------------------------------------------------------- confirma -- */
+.editor-confirmar {
+  position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; padding: 18px;
+  background: #07060ad4; backdrop-filter: blur(5px);
+}
+.editor-confirmar > div {
+  width: min(420px, 100%); padding: 20px; border: 1px solid #ffffff1f; border-radius: 16px;
+  background: #17131f; box-shadow: 0 26px 64px #000000aa;
+}
+.editor-confirmar h2 { margin: 0 0 8px; color: #f6f0f9; font-size: 15.5px; }
+.editor-confirmar p { margin: 0 0 16px; color: #b3a8bd; font-size: 12px; line-height: 1.65; }
+.editor-confirmar-acoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+/* No computador, o painel fica à direita e a trilha embaixo: o mouse não
+   precisa viajar até o pé da tela para trocar de ferramenta, mas o caminho do
+   dedo continua o mesmo quando a janela encolhe. */
+@media (min-width: 1101px) {
+  .editor-corpo { grid-template-columns: minmax(0, 1fr) 340px; }
+  .editor-palco { padding: 24px; }
+}

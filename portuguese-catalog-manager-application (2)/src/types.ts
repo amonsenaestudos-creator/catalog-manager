@@ -15,6 +15,8 @@ export interface Photo {
   /** Medidas originais (px): guardadas na entrada para o mosaico não medir de novo. */
   width?: number;
   height?: number;
+  /** Quando a imagem passou pelo editor (corte, pintura, ajuste…). */
+  editedAt?: string | null;
 }
 
 export interface BrokenNote {

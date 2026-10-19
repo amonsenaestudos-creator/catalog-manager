@@ -18,6 +18,7 @@ import { vinculoComigoLabel } from '../types';
 import { VozDaPessoa, notasDeVoz, resumoDaVoz } from '../features/voice';
 import { RelacoesDaFicha } from '../features/relationships';
 import { abrirEmNovaAba, buscaNoYouTube } from '../features/musica';
+import { useEdicaoDeFoto } from '../features/gallery';
 import { Figura3D, lerForma, resumoDaForma, rotuloDaAltura } from '../features/corpo';
 import { BarraDeAcoes, CATEGORIAS_DA_FICHA, LIMITE_DE_HISTORICO, LIMITE_DE_PREVIA, LIMITE_ESSENCIAL, Revelar, acoesDaFicha, categoriaDaAba, contagemDaSecao, iconeDaAcao, organizarAcoes, revelar } from '../features/interface';
 import type { CategoriaDaFicha } from '../features/interface';
@@ -49,6 +50,8 @@ export default function PersonDrawer({ person }: { person: Person }) {
   };
   const [iceOpen, setIceOpen] = useState(false);
   const [vozOpen, setVozOpen] = useState(false);
+  /* As fotos da ficha também se editam aqui: corte, pintura, luz e cor. */
+  const edicao = useEdicaoDeFoto();
   const draft = usePersonDraft(`edit-${person.id}`, 'edit', person);
   const complete = completeness(person);
   const adult = isAdult(person);
@@ -231,6 +234,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
       <VisorDeFotos fotos={person.fotos} indice={Math.min(fotoAberta, person.fotos.length - 1)} aoMudar={setFotoAberta} aoFechar={() => setFotoAberta(-1)}
         titulo={() => person.nome} apoio={file => `${file.isMain ? 'Foto principal · ' : ''}${PHOTO_LABELS[file.type]}`}
         aoFavoritar={file => ctx.togglePhotoFavorite(file.id)}
+        aoEditar={file => edicao.abrir(file, person.nome)}
         aoBaixar={async file => {
           try {
             const blob = await (await fetch(file.url)).blob();
@@ -239,6 +243,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
           } catch { ctx.notify('Não foi possível baixar esta imagem.', true); }
         }} />
     )}
+    {edicao.editor}
     {vozOpen && <VozDaPessoa person={person} onClose={() => setVozOpen(false)} />}
     {iceOpen && <Icebreakers person={person} onClose={() => setIceOpen(false)} onStartChat={() => { setIceOpen(false); ctx.openChat(person); ctx.closePerson(); }} />}
   </Modal>;

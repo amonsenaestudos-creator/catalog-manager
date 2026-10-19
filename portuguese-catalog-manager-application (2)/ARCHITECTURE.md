@@ -15,7 +15,7 @@ src/
 │   ├── musica/                  # climas e trilhas por link (YouTube, Spotify, áudio direto)
 │   ├── corpo/                   # altura medida e figura 3D montada das métricas
 │   ├── people/                  # fichas, cadastro e dados de pessoas
-│   ├── gallery/                 # fotos, vídeos, álbuns e órfãs
+│   ├── gallery/                 # fotos, vídeos, álbuns, órfãs e o editor de imagens
 │   ├── relationships/           # relações entre fichas e contexto
 │   ├── gamification/            # XP, desafios e conquistas
 │   ├── health/                  # saúde do catálogo: diagnóstico e faxina de ponteiros
@@ -137,6 +137,19 @@ com o navegador é a tela, não o domínio.
   foto, nota ou história, e passa pelo `commit` do contexto (portanto, desfazível).
 - Um achado novo entra em `AchadoId`, ganha ícone em `SaudeDoCatalogo` e um caso em
   `tests/saude-catalogo.test.ts` — sem isso a contagem de pendências fica mentindo.
+- `features/gallery/edicao.ts`: a **receita** da edição (geometria, ajustes, marcas, cores,
+  histórico e a gravação no catálogo). É conta pura — não conhece React, canvas nem navegador,
+  e por isso dá para testar sem navegador. O arquivo original nunca é reencodado no meio do
+  caminho: a receita só vira pixels uma vez, no salvar.
+- `features/gallery/tela.ts`: quem fala com o canvas (carregar, desenhar a base, compor marcas,
+  ler cor, exportar). Tudo devolve `false`/`null` quando não há canvas, e o editor mostra a foto
+  original com um aviso em vez de um retângulo preto — a mesma regra de `corpo/components/Figura3D.tsx`.
+- `features/gallery/components/`: o editor se divide em tela (`useTelaDoEditor`), gesto
+  (`useGestosDoEditor`), painel (`PainelDeEdicao`) e orquestração (`EditorDeImagem`); quem abre
+  usa o hook `useEdicaoDeFoto`, que já devolve a gravação ligada ao `commit` do contexto.
+- Dois espaços de coordenadas convivem e não podem se misturar: o **corte** mora em pixels do
+  arquivo (cortar não perde resolução) e as **marcas** em pixels da saída (girar depois de
+  desenhar move o desenho junto). `paraFonte`/`paraSaida` são a única ponte entre eles.
 
 ## Dívida de migração priorizada
 

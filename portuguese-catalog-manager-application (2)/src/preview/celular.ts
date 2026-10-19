@@ -54,6 +54,20 @@ const ICONE: Record<string, string> = {
   menos: svg('<path d="M5 12h14"/>', 17),
   subir: svg('<path d="M12 19V5M5 12l7-7 7 7"/>', 17),
   cofre: svg('<rect x="4" y="10" width="16" height="10" rx="3"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/><circle cx="12" cy="15" r="1.4"/>', 18),
+  // editor de imagens: os mesmos ícones que a trilha usa (lucide-react)
+  cortar: svg('<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>', 19),
+  girar: svg('<path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>', 19),
+  ajustar: svg('<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>', 19),
+  filtrosProntos: svg('<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/>', 19),
+  pincel: svg('<path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/>', 19),
+  formas: svg('<path d="M8.3 10a.7.7 0 0 1-.63-1.08L11.4 3a.7.7 0 0 1 1.2-.04L16.3 8.9a.7.7 0 0 1-.57 1.1z"/><circle cx="6.5" cy="16.5" r="3.5"/><path d="M14 13h7v7h-7z"/>', 19),
+  texto: svg('<path d="M4 7V4h16v3M9 20h6M12 4v16"/>', 19),
+  esconder: svg('<path d="M12 3v18M3 12h18"/><rect x="3" y="3" width="18" height="18" rx="2"/>', 19),
+  borracha: svg('<path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7M5 11l9 9"/>', 19),
+  contaGotas: svg('<path d="m2 22 1-1h3l9-9M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3z"/>', 19),
+  desfazer: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', 18),
+  refazer: svg('<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>', 18),
+  fotoNova: svg('<path d="M16 5h6M19 2v6"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"/><circle cx="10.5" cy="12.5" r="1.6"/><path d="m5 19 4-4 2.5 2.5"/>', 16),
 };
 
 const avatar = (src: string, tamanho: number, nome: string) =>
@@ -561,6 +575,89 @@ const ajustes = () => `
   </div></div>
   ${dock('inicio')}`;
 
+/**
+ * O editor de imagens aberto por cima do visor: moldura de corte armada, painel
+ * como faixa embaixo (é o que o aparelho faz) e a trilha das dez ferramentas ao
+ * alcance do polegar. A foto é um <img> no lugar do canvas — aqui se confere o
+ * layout, não o desenho.
+ */
+const FERRAMENTAS_DA_PRANCHA: [string, string, string, boolean][] = [
+  ['cortar', 'Cortar', 'cortar', true], ['girar', 'Girar', 'girar', false],
+  ['ajustar', 'Ajustar', 'ajustar', false], ['filtros', 'Filtros', 'filtrosProntos', false],
+  ['pincel', 'Pintar', 'pincel', false], ['forma', 'Formas', 'formas', false],
+  ['texto', 'Texto', 'texto', false], ['borrar', 'Esconder', 'esconder', false],
+  ['apagar', 'Borracha', 'borracha', false], ['cor', 'Cor', 'contaGotas', false],
+];
+
+const PROPORCOES_DA_PRANCHA: [string, boolean][] = [
+  ['Livre', false], ['Atual', false], ['1:1', true], ['4:5', false], ['3:4', false],
+  ['2:3', false], ['9:16', false], ['5:4', false], ['4:3', false], ['3:2', false], ['16:9', false],
+];
+
+const ALCAS_DA_PRANCHA = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+
+const editor = () => `
+  <div class="editor" role="dialog" aria-modal="true" aria-label="Editor de imagens">
+    <header class="editor-topo">
+      <button class="editor-botao" aria-label="Fechar o editor">${ICONE.x}</button>
+      <div class="editor-titulo">
+        <strong>Bianca Moura</strong>
+        <small>864 × 864 px · cortada</small>
+      </div>
+      <div class="editor-topo-acoes">
+        <button class="editor-botao" aria-label="Desfazer a última mudança">${ICONE.desfazer}</button>
+        <button class="editor-botao" aria-label="Refazer" disabled>${ICONE.refazer}</button>
+        <button class="editor-botao" aria-label="Mais opções">${ICONE.maisOpcoes}</button>
+        <button class="editor-salvar">${ICONE.check}Salvar</button>
+      </div>
+    </header>
+
+    <div class="editor-corpo">
+      <div class="editor-palco">
+        <div class="editor-moldura ferramenta-cortar" style="width:288px;height:288px">
+          <img class="editor-tela" src="${FOTO.bianca}" alt="Foto em edição" style="width:288px;height:288px;cursor:crosshair" />
+          <div class="editor-corte">
+            <div class="editor-corte-area" style="left:24px;top:48px;width:240px;height:192px">
+              <span class="editor-corte-grade" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              ${ALCAS_DA_PRANCHA.map(alca => `<button class="editor-corte-alca alca-${alca}" aria-label="Redimensionar"></button>`).join('')}
+              <span class="editor-corte-medida">720 × 576</span>
+            </div>
+          </div>
+        </div>
+        <p class="editor-dica-da-tela">Arraste a moldura ou puxe um canto</p>
+      </div>
+
+      <aside class="editor-painel" aria-label="Ferramenta cortar">
+        <div class="editor-grupo">
+          <h3>Proporção</h3>
+          <div class="editor-opcoes">
+            ${PROPORCOES_DA_PRANCHA.map(([nome, ativa]) => `<button class="editor-opcao ${ativa ? 'ativa' : ''}" aria-pressed="${ativa}">${nome}</button>`).join('')}
+          </div>
+        </div>
+        <div class="editor-grupo">
+          <h3>Medidas</h3>
+          <p class="editor-leitura"><span>Seleção</span><strong>720 × 576 px</strong><span>Foto atual</span><strong>864 × 864 px</strong></p>
+        </div>
+        <p class="editor-dica">Arraste a moldura sobre a foto, puxe os cantos para mudar o tamanho ou escolha uma proporção. A seleção nunca sai da imagem.</p>
+        <div class="editor-acoes-do-painel">
+          <button class="btn btn-primary">Aplicar corte</button>
+          <button class="btn">Foto inteira</button>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="editor-base">
+      <nav class="editor-trilha" aria-label="Ferramentas de edição">
+        ${FERRAMENTAS_DA_PRANCHA.map(([id, nome, icone, ativa]) => `
+        <button class="editor-ferramenta ${ativa ? 'ativa' : ''}" aria-pressed="${ativa}" data-ferramenta="${id}">${ICONE[icone]}<span>${nome}</span><kbd>${nome.charAt(0).toLowerCase()}</kbd></button>`).join('')}
+      </nav>
+      <div class="editor-base-fim">
+        <button class="editor-acao-solta">${ICONE.baixar}Baixar</button>
+        <button class="editor-acao-solta">${ICONE.fotoNova}Salvar como nova</button>
+      </div>
+    </footer>
+  </div>`;
+
 const TELAS: { id: string; nome: string; nota: string; html: () => string }[] = [
   { id: 'inicio', nome: 'Início', nota: 'painel, cartões e fichas', html: inicio },
   { id: 'catalogo', nome: 'Catálogo', nota: 'título, chips e grade', html: catalogo },
@@ -569,6 +666,7 @@ const TELAS: { id: string; nome: string; nota: string; html: () => string }[] = 
   { id: 'galeria', nome: 'Galeria', nota: 'mosaico, lote e botão flutuante', html: galeria },
   { id: 'visor', nome: 'Visor de fotos', nota: 'tela inteira, pinça e deslizar', html: visor },
   { id: 'acoes', nome: 'Foto segurada', nota: 'folha de ações do dedo', html: acoes },
+  { id: 'editor', nome: 'Editor de imagens', nota: 'corte, painel em faixa e trilha', html: editor },
   { id: 'cofre', nome: 'Cofre', nota: 'mosaico e lote do meu espaço', html: cofre },
   { id: 'filtros', nome: 'Filtros', nota: 'folha larga com o que vale', html: filtros },
   { id: 'folha', nome: 'Nova ficha', nota: 'folha de baixo', html: () => folha() },
@@ -586,6 +684,7 @@ if (tela) {
   // A galeria da prancha mostra o lote aberto: a doca sai da frente, como no app.
   if (encontrada.id === 'galeria' || encontrada.id === 'cofre') document.documentElement.classList.add('gallery-escolhendo');
   if (encontrada.id === 'galeria') document.documentElement.classList.add('topo-compacto');   // mostra o botão de voltar ao começo
+  if (encontrada.id === 'editor') document.documentElement.classList.add('editor-aberto');     // a rolagem trava e a doca sai da frente
   raiz.innerHTML = encontrada.html();
 } else {
   document.body.classList.add('prancha');
@@ -593,7 +692,7 @@ if (tela) {
     <header class="prancha-topo">
       <p class="eyebrow">Catalog · prévia de layout</p>
       <h1>O aplicativo na mão</h1>
-      <p>Cada quadro abaixo tem a largura de um aparelho de verdade (390 × 844) e roda o mesmo CSS do aplicativo — as regras de celular valem de fato. Role a página para ver as caixas todas; se quiser uma tela sozinha e maior, abra <strong>?tela=visor</strong> (ou inicio, catalogo, ficha, ajustes, galeria, acoes, cofre, filtros, folha) no fim do endereço.</p>
+      <p>Cada quadro abaixo tem a largura de um aparelho de verdade (390 × 844) e roda o mesmo CSS do aplicativo — as regras de celular valem de fato. Role a página para ver as caixas todas; se quiser uma tela sozinha e maior, abra <strong>?tela=visor</strong> (ou inicio, catalogo, ficha, ajustes, galeria, acoes, editor, cofre, filtros, folha) no fim do endereço.</p>
       <div class="prancha-dicas">
         <span>${ICONE.pessoas} Doca flutuante com o “+” elevado</span>
         <span>${ICONE.mosaico} Mosaico com a proporção de cada foto</span>
