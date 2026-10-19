@@ -2347,3 +2347,41 @@
   .mapa-miniatura { height: 88px; }
   .mapa-escolha button { min-height: 40px; }
 }
+
+/* --------------------------------------------------------------------------
+   25. Importar perfil e escolher fotos no aparelho
+   A busca vira uma coluna (campo em cima, botão de largura inteira), os
+   atalhos de rede rolam na horizontal e a grade de fotos fica no alcance do
+   polegar. Os campos usam 16px para o iPhone não dar zoom ao tocar.
+   -------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  .rede-import-modal, .escolher-fotos-modal { width: calc(100vw - 20px); }
+  .rede-campo { flex-direction: column; }
+  .rede-campo .btn { width: 100%; justify-content: center; min-height: 44px; }
+  .rede-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 3px; scrollbar-width: none; -ms-overflow-style: none; }
+  .rede-chips::-webkit-scrollbar { display: none; }
+  .rede-chips > button { flex-shrink: 0; min-height: 36px; padding: 8px 12px; }
+  .rede-campo .search-field input, .escolher-fotos-barra .search-field input { font-size: 16px; }
+  .rede-cabecalho { gap: 11px; }
+  .rede-retrato { width: 64px; height: 64px; border-radius: 14px; }
+  .rede-quem h3 { font-size: 15.5px; }
+  .redes-opcoes { flex-direction: column; gap: 10px; }
+  .redes-opcoes .check-label { min-height: 30px; }
+  .rede-fotos-grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .escolher-fotos-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .escolher-fotos-barra { gap: 9px; }
+  .fotos-do-sistema-linha { align-items: flex-start; }
+  .fotos-do-sistema-linha .btn { min-height: 42px; }
+  .redes-perfis-ficha { gap: 6px; }
+  .rede-perfil-chip { padding: 6px 9px 6px 6px; }
+  .rede-perfil-chip strong, .rede-perfil-chip small { max-width: 128px; }
+  .rede-perfil-linha small { font-size: 9.5px; }
+  .quick-photo-acoes { flex-direction: row; flex-wrap: wrap; }
+  .quick-photo-acoes .btn { min-height: 38px; }
+}
+
+/* O bloco de largura inteira não pode abrir uma segunda coluna no formulário
+   de uma coluna só (acontecia com a descrição e agora com as redes). */
+@media (max-width: 1100px) {
+  .form-grid > .span-2 { grid-column: 1 / -1; }
+}

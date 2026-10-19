@@ -3,7 +3,6 @@
 Responsável por experiências de exploração voluntária do catálogo:
 
 - `Momentos`: surpresa do dia, máquina do tempo, ambientes e apresentação.
-- `Desafios`: quiz, detetive, quebra-cabeça, cartas, álbum e hall da fama.
 
 ## Entrada
 

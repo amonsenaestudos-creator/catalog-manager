@@ -49,12 +49,6 @@ describe("novas telas", () => {
     expect(screen.getByText(/Uma coisa para você descobrir/i)).toBeInTheDocument();
     expect(screen.getByText(/Máquina do tempo/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Modo apresentação/i })).toBeInTheDocument();
-
-    await goto(/Desafios/i);
-    await waitFor(() => expect(document.querySelector(".challenges-page")).toBeTruthy());
-    expect(screen.getByText(/Você conhece o seu próprio universo/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Modo Quiz/i })).toBeInTheDocument();
-    expect(screen.getByText(/Cartas colecionáveis/i)).toBeInTheDocument();
   });
 
   it("pastas mostram subpastas e a galeria tem abas novas", async () => {

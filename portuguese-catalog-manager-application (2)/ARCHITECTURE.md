@@ -11,12 +11,11 @@ src/
 ├── app/                         # regras de composição global (em expansão)
 ├── features/
 │   ├── interface/               # apresentação: densidade, revelação, foco e ação por contexto
-│   ├── discovery/               # Momentos, Desafios e exploração
+│   ├── discovery/               # Momentos e exploração
 │   ├── musica/                  # climas e trilhas por link (YouTube, Spotify, áudio direto)
 │   ├── corpo/                   # altura medida e figura 3D montada das métricas
 │   ├── people/                  # fichas, cadastro e dados de pessoas
 │   ├── gallery/                 # fotos, vídeos, álbuns, órfãs e o editor de imagens
-│   ├── mapas/                   # mapas mentais: nós, fios, organização e export
 │   ├── relationships/           # relações entre fichas e contexto
 │   ├── gamification/            # XP, desafios e conquistas
 │   ├── health/                  # saúde do catálogo: diagnóstico e faxina de ponteiros
@@ -57,7 +56,7 @@ tela precisa saber que "photos" virou "midia".
   **figura 3D** (`features/corpo`). A altura é guardada como medida ("1,50 m"),
   aceitando as palavras antigas como estimativa; o modelo é aritmética pura
   (elipsoides + projeção ortográfica), sem biblioteca 3D e sem arquivo.
-- **Explorar:** Descobrir, Momentos e Desafios. O som do Momentos vem de
+- **Explorar:** Descobrir e Momentos. O som do Momentos vem de
   `features/musica`: os climas do Ambiente são **gerados no site** por
   `ambiente.ts` (Web Audio, um clima por vez, som que atravessa telas e volta no
   primeiro toque da visita seguinte); a trilha do Modo apresentação e quem quiser
@@ -155,22 +154,16 @@ com o navegador é a tela, não o domínio.
   desenhar move o desenho junto). `paraFonte`/`paraSaida` são a única ponte entre eles. O
   **contorno** recorta a saída, nunca o arquivo — e o tamanho do arquivo salvo é escolha de
   salvamento, não de receita: fica fora do histórico de propósito.
-- `features/mapas/mapa.ts`: o domínio dos mapas mentais, puro (criar, acrescentar, ligar,
-  rotular, mover, editar, remover, organizar, medir, resumir, virar contorno). Não conhece
-  React, canvas nem navegador. A regra que o mantém previsível é a mesma do histórico do
-  aplicativo: **sem mudança, devolve o mesmo objeto** — `ligar` dois nós que já têm fio,
-  `moverNo` para o mesmo lugar ou pintar com cor fora da paleta não geram passo de `Ctrl+Z`,
-  porque a página compara identidade (`if (proximo === mapa) return;`).
-- `features/mapas/tela.ts`: o desenho que vira PNG. Segue a regra de `gallery/tela.ts` ao
-  contrário — aqui **lança em português** quando não há `document`, quando o modo privacidade
-  está ligado, quando o mapa está vazio ou quando `getContext('2d')` devolve `null`: baixar um
-  arquivo em branco seria pior do que dizer o que não deu.
-- `features/mapas/components/`: `TelaDoMapa` (plano: pan, zoom, arrasto, dois cliques),
-  `PainelDoMapa` (inspetor do nó) e `MapasMentais` (página: lista, topo e modais). As
-  coordenadas do nó (`x`/`y`) são **do plano**, não da tela: o que está na tela é um único
-  CSS transform, e por isso o arrasto divide o deslocamento do ponteiro pelo zoom capturado no
-  começo do gesto e só faz `commit` no `pointerup`. A raiz é `nos[0]` — não existe `raizId`
-  para dessincronizar.
+- `lib/redes.ts`: a importação de perfil social, separada da tela. `lerEndereco` entende
+  link completo, link sem `https://` ou `@usuario`, recusa endereço de publicação e monta o
+  endereço canônico; `buscarPerfilSocial` tenta a API pública (GitHub) e os oEmbed (TikTok,
+  YouTube, X) e depois leitores de metadados com CORS, juntando o primeiro dado útil de cada
+  campo. `extrairMetadados` lê Open Graph, Twitter Card e JSON-LD sem `innerHTML`; o que volta é
+  sempre revisado na tela antes de entrar na ficha. `incorporarImagem` tenta guardar o retrato
+  como data URL e mantém o link público quando o servidor não libera o download.
+- `components/EscolherFotos.tsx`: a galeria inteira num modal de seleção. Foto solta mantém o
+  id (e o `savePerson` a retira de `orphanPhotos` só no salvamento); foto de outra ficha ganha
+  id novo e `sourcePhotoId`, para a original continuar intacta.
 - `lib/planilha.ts`: as colunas da exportação (40 na completa, 17 no resumo) declaradas uma a
   uma — `id`, cabeçalho, escopo e a função que lê a ficha — e a escrita em CSV/TSV (BOM, `;`,
   aspas sempre, e o que começa com `=`, `+`, `-` ou `@` vira texto). Uma célula que erre devolve

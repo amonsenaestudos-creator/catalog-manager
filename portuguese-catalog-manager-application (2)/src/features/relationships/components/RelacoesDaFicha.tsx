@@ -63,7 +63,6 @@ export default function RelacoesDaFicha({ person }: { person: Person }) {
     </section>
 
     <section className="read-text relacao-atalhos">
-      <button onClick={() => ctx.navigate('board')}><Link2 size={15} />Abrir o quadro de investigação</button>
       <button onClick={() => ctx.navigate('catalog', 'active')}><Users size={15} />Ver o catálogo inteiro</button>
     </section>
   </div>;

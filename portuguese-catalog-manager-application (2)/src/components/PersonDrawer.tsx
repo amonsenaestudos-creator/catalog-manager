@@ -9,6 +9,7 @@ import { Radar } from './Charts';
 import { exportPersonPng } from '../lib/export';
 import { usePersonDraft } from '../hooks/usePersonDraft';
 import PersonEditor, { ReadNotes } from './PersonEditor';
+import { PerfisSociaisDaFicha } from './RedesSociais';
 import StarRating from './StarRating';
 import { Button, Confirm, EmptyState, IconButton, Modal, PhotoView, Tag } from './ui';
 import Icebreakers from './Icebreakers';
@@ -157,6 +158,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
         // Música favorita não termina no texto: o "Ouvir" abre a busca pelo nome guardado.
         const fatos = (lista: (string | undefined)[][]) => <dl className="person-facts">{lista.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Não informado'}{label === 'Música favorita' && person.musicaFavorita && <button type="button" className="musica-ouvir" onClick={() => abrirEmNovaAba(buscaNoYouTube(person.musicaFavorita || ''))}><Play size={11} />Ouvir</button>}</dd></div>)}</dl>;
         return <>
+          <PerfisSociaisDaFicha person={person} />
           {/* Regra do "uma decisão por vez": a ficha responde primeiro "quem é
               ela" com as três informações principais; o resto abre a um toque. */}
           <Revelar titulo="Sobre" icone={FileText} contagem={`${sobre.total} ${sobre.total === 1 ? 'informação' : 'informações'}`}

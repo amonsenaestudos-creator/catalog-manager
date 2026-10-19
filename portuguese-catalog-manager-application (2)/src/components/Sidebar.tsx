@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
-import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, ClipboardList, FileText, Folder, Footprints, Gamepad2, Gauge, Heart, HeartPulse, Home, Image, Layers, LogOut, MessageCircle, Minus, Network, Package, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
+import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronRight, FileText, Folder, Footprints, Gauge, Heart, HeartPulse, Home, Image, Layers, LogOut, MessageCircle, Minus, PlusCircle, Plus, Settings2, Shapes, Sparkles, Trophy, UserCircle2, Users, Wrench, X } from 'lucide-react';
 import { useCatalog } from '../context';
 import { isActive } from '../store';
 import { Avatar, IconButton } from './ui';
@@ -72,7 +72,6 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
   const discovery: ItemMenu[] = [
     { id: 'discover', label: 'Descobrir', icon: Sparkles, tour: 'discover' },
     { id: 'moments', label: 'Momentos', icon: Sparkles },
-    { id: 'games', label: 'Desafios', icon: Gamepad2 },
   ];
   const progress: ItemMenu[] = [
     { id: 'dashboard', label: 'Painel', icon: Gauge },
@@ -83,13 +82,10 @@ export default function Sidebar({ open = false, onClose = () => undefined }: { o
     { id: 'add', label: 'Adicionar pessoa', icon: PlusCircle },
     { id: 'gallery', label: 'Galeria', icon: Image },
     { id: 'folders', label: 'Pastas', icon: Folder },
-    { id: 'pacotes', label: 'Pacotes', icon: Package, extra: true },
     { id: 'agenda', label: 'Agenda', icon: CalendarDays, count: data.appointments.filter(item => item.status === 'agendado').length || undefined },
     { id: 'myspace', label: 'Meu espaço', icon: UserCircle2 },
     { id: 'toolbox', label: 'Ferramentas', icon: Wrench },
     { id: 'notes', label: 'Notas gerais', icon: FileText, extra: true },
-    { id: 'board', label: 'Quadro', icon: ClipboardList, extra: true },
-    { id: 'mapas', label: 'Mapas mentais', icon: Network, extra: true, count: (data.mapas ?? []).length || undefined },
     { id: 'stories', label: 'Stories / Fanfics', icon: BookOpen, extra: true },
     { id: 'reminders', label: 'Lembretes', icon: Bell, count: pending || undefined, extra: true },
     { id: 'saude', label: 'Saúde do catálogo', icon: HeartPulse, extra: true },

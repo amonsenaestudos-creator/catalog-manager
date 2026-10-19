@@ -3049,3 +3049,137 @@ html.editor-aberto, html.editor-aberto body { overflow: hidden; overscroll-behav
 .mapa-escolha { display: flex; flex-wrap: wrap; gap: 7px; max-height: 240px; margin-top: 10px; overflow: auto; }
 .mapa-escolha button { padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11.5px; }
 .mapa-escolha button:hover { color: var(--txt); border-color: var(--accent); }
+
+/* ==========================================================================
+   Redes sociais importadas e fotos do sistema
+
+   Duas peças que nasceram juntas no cadastro: o perfil que vem do link
+   público (retrato, nome, bio, localização) e a foto que já existe na galeria
+   e só precisa mudar de ficha. Mesmo vocabulário visual: pílulas, selo de
+   rede e grade de miniaturas com marca de seleção.
+   ========================================================================== */
+
+/* Selo curto da rede: IG, TT, X, GH… Sem ícone de marca, sem dependência. */
+.rede-sigla {
+  display: inline-grid; place-items: center; flex-shrink: 0;
+  min-width: 27px; height: 27px; padding: 0 6px; border-radius: 8px;
+  background: #6c6476; color: #fff; font-size: 9px; font-weight: 700;
+  letter-spacing: .04em; line-height: 1; text-transform: uppercase;
+}
+.rede-instagram { background: linear-gradient(135deg, #f9ce34 0%, #ee2a7b 52%, #6228d7 100%); }
+.rede-tiktok { background: #111116; color: #fff; box-shadow: inset 0 0 0 1px #ffffff2e; }
+.rede-x { background: #141418; color: #fff; }
+.rede-github { background: #4c4555; }
+.rede-facebook { background: #3b6bd6; }
+.rede-youtube { background: #d94a4a; }
+.rede-threads { background: #1c1b20; color: #fff; }
+.rede-linkedin { background: #3d78ad; }
+.rede-twitch { background: #7649c9; }
+.rede-pinterest { background: #c1434f; }
+.rede-kwai { background: #e07a34; }
+.rede-outro { background: #5d5668; }
+
+/* Linha do campo: botão de importar + explicação. */
+.redes-importar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 9px; }
+.redes-importar .form-help { margin: 0; max-width: 520px; }
+.redes-importar.compacto { margin-top: 4px; }
+.redes-importar.compacto .btn { min-height: 32px; font-size: 10.5px; padding: 6px 10px; }
+.redes-campo-ficha { align-self: end; }
+.quick-redes { align-self: end; }
+
+/* Perfis já importados — no editor (linha) e na ficha (pílulas). */
+.redes-perfis-lista { display: grid; gap: 7px; margin-top: 11px; }
+.rede-perfil-linha { display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.rede-perfil-linha > div { flex: 1; min-width: 0; }
+.rede-perfil-linha a { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; color: var(--txt); text-decoration: none; }
+.rede-perfil-linha a:hover strong { color: var(--accent); }
+.rede-perfil-linha strong { font-size: 12px; font-weight: 600; }
+.rede-perfil-linha small { color: var(--muted); font-size: 10px; }
+.rede-perfil-linha p { margin-top: 3px; color: var(--muted); font-size: 10.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.rede-perfil-linha .icon-btn { width: 26px; height: 26px; flex-shrink: 0; }
+
+.redes-perfis-ficha { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 15px; }
+.rede-perfil-chip { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 10px 7px 7px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); color: var(--txt); text-decoration: none; transition: border-color .16s, transform .16s; }
+.rede-perfil-chip:hover { border-color: var(--line-hover); transform: translateY(-1px); }
+.rede-perfil-chip > span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.rede-perfil-chip strong { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.rede-perfil-chip small { color: var(--faint); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+.rede-perfil-chip > svg { color: var(--faint); flex-shrink: 0; }
+.rede-perfil-chip .rede-sigla { min-width: 24px; height: 24px; font-size: 8px; border-radius: 7px; }
+
+/* ----------------------------------------------------- janela de importar -- */
+.rede-import-modal { width: min(760px, calc(100vw - 50px)); }
+.rede-busca { display: grid; gap: 11px; }
+.rede-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rede-chips > button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 10.5px; line-height: 1; transition: border-color .15s, color .15s, background .15s; }
+.rede-chips > button:hover { color: var(--txt); border-color: var(--line-hover); }
+.rede-chips > button.active { color: var(--txt); border-color: var(--accent); background: var(--accent-soft); }
+.rede-chips > button small { color: var(--faint); font-size: 9px; }
+.rede-chips > button .rede-sigla { min-width: 20px; height: 20px; font-size: 7.5px; border-radius: 6px; }
+.rede-campo { display: flex; gap: 8px; align-items: stretch; }
+.rede-campo .search-field { flex: 1; }
+.rede-campo .btn { flex-shrink: 0; }
+
+.rede-erro { align-items: flex-start; margin: 15px 0 0; }
+.rede-erro > svg { margin-top: 2px; flex-shrink: 0; }
+.rede-erro > div { min-width: 0; }
+.rede-erro p { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; line-height: 1.65; overflow-wrap: anywhere; }
+.rede-erro-acoes { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.rede-erro-acoes .btn { min-height: 30px; padding: 5px 10px; font-size: 10.5px; }
+
+/* -------------------------------------------------------- perfil achado -- */
+.rede-resultado { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 18px; }
+.rede-cabecalho { display: flex; gap: 14px; align-items: flex-start; }
+.rede-retrato { width: 76px; height: 76px; flex-shrink: 0; border-radius: 16px; object-fit: cover; border: 1px solid var(--line); background: var(--surface-2); }
+.rede-retrato.vazio { display: grid; place-items: center; color: var(--faint); }
+.rede-quem { flex: 1; min-width: 0; }
+.rede-quem .rede-sigla { display: inline-grid; margin-right: 6px; vertical-align: middle; }
+.rede-quem h3 { display: inline; font-size: 17px; letter-spacing: -.3px; vertical-align: middle; }
+.rede-quem p { margin-top: 4px; color: var(--muted); font-size: 11.5px; }
+.rede-quem small { display: block; margin-top: 5px; color: var(--faint); font-size: 10px; }
+.rede-quem small a { display: inline-flex; align-items: center; gap: 3px; color: var(--accent); text-decoration: none; }
+.rede-bio { margin-top: 13px; padding: 11px 13px; border-left: 2px solid var(--accent); border-radius: 0 9px 9px 0; background: var(--accent-soft); color: var(--muted); font-size: 12px; line-height: 1.75; white-space: pre-wrap; }
+.rede-extra { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 11px; color: var(--muted); font-size: 11px; }
+.rede-extra span { display: inline-flex; gap: 6px; align-items: baseline; }
+.rede-extra strong { color: var(--faint); font-size: 9px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.rede-extra a { color: var(--accent); text-decoration: none; }
+.redes-opcoes { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 15px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.redes-opcoes .check-label { font-size: 11px; }
+
+.rede-fotos-escolha { margin-top: 17px; }
+.rede-fotos-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.rede-fotos-topo strong { font-size: 12px; font-weight: 600; }
+.rede-fotos-topo small { color: var(--faint); font-size: 9.5px; text-align: right; }
+.rede-fotos-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.rede-foto { position: relative; aspect-ratio: 1; overflow: hidden; border: 2px solid transparent; border-radius: 11px; background: var(--surface-2); }
+.rede-foto img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .15s; }
+.rede-foto:not(.marcada) img { opacity: .62; }
+.rede-foto:hover img { opacity: 1; }
+.rede-foto.marcada { border-color: var(--accent); }
+.rede-foto-marca { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #00000066; color: #fff; border: 1px solid #ffffff55; }
+.rede-foto.marcada .rede-foto-marca { background: var(--accent); border-color: var(--accent); color: #1b1224; }
+.rede-foto-rotulo { position: absolute; left: 6px; bottom: 6px; padding: 2px 7px; border-radius: 999px; background: #000000a8; color: #fff; font-size: 8.5px; letter-spacing: .03em; text-transform: uppercase; }
+.rede-fotos-escolha .form-help { margin: 8px 0 0; font-size: 10.5px; }
+
+/* ------------------------------------------------------- fotos do sistema -- */
+.fotos-do-sistema-linha { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 18px; }
+.fotos-do-sistema-linha .form-help { margin: 0; }
+.quick-photo-acoes { display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+.quick-photo-acoes .btn { min-height: 33px; padding: 6px 11px; font-size: 10.5px; }
+
+.escolher-fotos-modal { width: min(930px, calc(100vw - 50px)); }
+.escolher-fotos-barra { display: grid; gap: 11px; margin-bottom: 17px; }
+.escolher-fotos-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+.escolher-foto { display: flex; flex-direction: column; text-align: left; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); transition: border-color .15s, transform .15s; }
+.escolher-foto:hover { border-color: var(--line-hover); transform: translateY(-1px); }
+.escolher-foto.marcada { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.escolher-foto-imagem { position: relative; display: block; aspect-ratio: 1; background: var(--surface-3); }
+.escolher-foto-imagem img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.escolher-fotos-contagem { color: var(--muted); font-size: 11px; margin-right: auto; }
+.escolher-fotos-dica { margin: 13px 0 0; }
+.escolher-foto-marca { position: absolute; top: 7px; right: 7px; display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; border: 1px solid #ffffff66; background: #00000055; color: #fff; }
+.escolher-foto.marcada .escolher-foto-marca { background: var(--accent); border-color: var(--accent); color: #1b1224; }
+.escolher-foto-legenda { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 8px 9px 9px; }
+.escolher-foto-legenda strong { font-size: 10.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.escolher-foto-legenda small { display: inline-flex; align-items: center; gap: 4px; color: var(--faint); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.escolher-foto-legenda svg { flex-shrink: 0; }

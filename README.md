@@ -1,7 +1,7 @@
 # Catalog Manager
 
 Catálogo pessoal em React, TypeScript e Vite, com interface em português brasileiro.
-Tudo é guardado no próprio aparelho: nenhum servidor recebe as fichas, as fotos ou as notas.
+Tudo é guardado no próprio aparelho: nenhum servidor recebe as fichas, as fotos ou as notas. A única saída é opcional e explícita — ao importar um perfil social, só o endereço público que você colou vai ao site da rede e aos leitores de metadados.
 
 O projeto vive em [`portuguese-catalog-manager-application (2)/`](portuguese-catalog-manager-application%20(2)).
 
@@ -20,8 +20,8 @@ fichas fictícias sem tocar no catálogo real.
 
 ```bash
 npm run typecheck  # TypeScript sem emitir
-npm test           # suíte completa (498 testes, 35 arquivos)
-npm run build      # dist/index.html, um arquivo só (2,4 MB · 990 KB gzip)
+npm test           # suíte completa (708 testes, 43 arquivos)
+npm run build      # dist/index.html, um arquivo só (2,6 MB · 1,0 MB gzip)
 ```
 
 O mesmo conjunto roda no CI a cada push em `main` e a cada pull request
@@ -29,7 +29,7 @@ O mesmo conjunto roda no CI a cada push em `main` e a cada pull request
 
 `node_modules/` e `dist/` **não** são versionados — são resultado, não código
 (o `.gitignore` cuida disso, e `npm install` + `npm run build` regeneram os dois).
-O repositório tem 193 arquivos versionados; antes eram 8.454, dos quais 8.282
+O repositório tem cerca de 250 arquivos versionados; antes eram 8.454, dos quais 8.282
 eram dependências.
 
 ## Documentação

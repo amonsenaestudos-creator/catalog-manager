@@ -1,4 +1,4 @@
-import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LigacaoDoMapa, LocationOption, MapaMental, Memory, NoDoMapa, Person, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
+import type { AppData, AppNotification, Appointment, Attachment, ChatMessage, ChatState, Folder, GeneralNote, Icebreaker, InvestigationBoard, InvestigationCard, CatalogFilter, LigacaoDoMapa, LocationOption, MapaMental, Memory, NoDoMapa, Person, PerfilSocial, Photo, Rating, RatingSnapshot, Reminder, Story, TierList, PersonDraft, Vinculo } from './types';
 import { INTIMATE_MIN_AGE, LOCATION_OPTIONS, RETIRED_SUBCATEGORY_VALUES, TAG_OPTIONS, VINCULO_PAPEIS } from './types';
 import { DEMO_PORTRAITS } from './assets';
 import { normalizarDensidade } from './features/interface/densidade';
@@ -150,7 +150,7 @@ export const RARITY_COLORS: Record<string, string> = { comum: '#9aa0ad', raro: '
 export const rarityFor = (score: number) => score >= 4.8 ? 'lendario' : score >= 4.3 ? 'epico' : score >= 3.6 ? 'raro' : 'comum';
 
 export function getDefaultPerson(): Person {
-  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', vozes: [] };
+  return { id: generateId(), nome: '', apelido: '', descricao: '', idade: null, altura: '', rating: { overall: 0, mode: 'weighted', peitos: 0, bunda: 0, rosto: 0, belezaGeral: 0, corpo: 0, cabelo: 0, comportamento: 0, quadril: 0 }, cabeloTipo: '', cabeloCor: '', cabeloCorCustom: '', pele: '', peleCustom: '', localizacaoOnde: '', localizacaoSub: '', localizacaoMora: '', tags: [], qi: '', redesSociais: '', comportamento: '', notas: [], descricaoCorporal: '', fotos: [], ultimoVisto: null, viHojeCount: 0, viHojeDates: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), favorite: false, archivedAt: null, deletedAt: null, friendshipLevel: 0, tipoCorpo: '', estiloRoupa: '', observacoesGerais: '', aniversario: null, pronome: '', comoConheceu: '', musicaFavorita: '', signo: '', customFields: [], attachments: [], ratingHistory: [], rarity: 'comum', pinned: false, vinculos: [], vinculoComigo: '', vozes: [], perfisSociais: [] };
 }
 export function emptyData(): AppData {
   return { schemaVersion: 6, updatedAt: '', people: [], orphanPhotos: [], stories: [], tierLists: [], reminders: [], activity: [], categories: structuredClone(LOCATION_OPTIONS), locations: [], collections: [], savedFilters: [], drafts: {}, ignoredDuplicates: [], folders: [], pacotes: [], generalNotes: [], investigationBoards: [], mapas: [], personTemplates: [], noteDrafts: {}, albums: [], journal: [], goals: [], appointments: [], conversations: [], personalLinks: [], notifications: [], progress: { xp: 0, achievements: {}, notified: {}, duels: [], swipes: {}, streak: { last: '', count: 0 }, challenges: { week: '', done: [] }, lastActive: '', celebrated: {}, konami: false }, vault: { pin: null, photoIds: [] }, profiles: [], activeProfile: 'principal', chats: [], chatStates: {}, memories: [], icebreakers: [], onboardingDone: false, tourSeen: '', settings: { username: 'admin', password: 'admin', profileName: 'Admin', avatar: '', theme: 'dark', pin: null, pinEnabled: false, customTags: [], compactMode: false, rememberLogin: false, privacy: false, reducedMotion: false, largeText: false, accent: '#c786ec', autoTheme: false, browserNotifications: false, notificationLeadDays: 3, revisitAfterDays: 14, splash: false, panicEnabled: true, blurMode: false, density: 'confortavel', trashAutoCleanDays: 0, sounds: true, soundVolume: 55, musicaLinks: {}, ambienteAtivo: '', ambienteVolume: 40, haptics: true, confetti: true, adultMode: false, chatSpeed: 'realista', chatSlang: true, chatEmojis: true, chatMeter: true, chatAuto: false, chatDoNada: true, ownerAge: null, ownerBirthday: null } };
@@ -300,6 +300,7 @@ function photo(value: unknown, personId: string | null): Photo {
     hash: text(p.hash) || photoHash(text(p.url)), capturedAt: text(p.capturedAt) || null,
     width: numeric(p.width) || undefined, height: numeric(p.height) || undefined,
     editedAt: text(p.editedAt) || null,
+    sourcePhotoId: text(p.sourcePhotoId) || undefined,
   };
 }
 /**
@@ -397,6 +398,27 @@ export function normalizePerson(value: unknown): Person {
   // Voz: áudios de verdade e o perfil de como ela soa. Nada além de data:audio
   // entra, para um backup estranho não virar fonte de áudio externa.
   result.vozes = normalizarVozNotas(p.vozes);
+  // Perfis sociais importados: dados públicos, sem nada de credencial. O
+  // endereço é validado como http(s) e cada rede aparece uma vez só.
+  result.perfisSociais = array(p.perfisSociais).map(value => {
+    const perfil = object(value);
+    const rede = text(perfil.rede) as PerfilSocial['rede'];
+    return {
+      id: text(perfil.id) || generateId(),
+      rede: (['instagram', 'tiktok', 'x', 'github', 'facebook', 'youtube', 'threads', 'linkedin', 'twitch', 'pinterest', 'kwai', 'outro'].includes(rede) ? rede : 'outro') as PerfilSocial['rede'],
+      url: safeLink(text(perfil.url)),
+      usuario: text(perfil.usuario).slice(0, 80),
+      nome: text(perfil.nome).slice(0, 100) || undefined,
+      bio: text(perfil.bio).slice(0, 500) || undefined,
+      localizacao: text(perfil.localizacao).slice(0, 120) || undefined,
+      site: safeLink(text(perfil.site)) || undefined,
+      avatar: safeImage(text(perfil.avatar)) || undefined,
+      seguidores: perfil.seguidores == null || perfil.seguidores === '' ? null : Math.max(0, Math.round(numeric(perfil.seguidores))),
+      verificado: perfil.verificado === true,
+      fonte: text(perfil.fonte).slice(0, 80) || undefined,
+      importadoEm: text(perfil.importadoEm, new Date().toISOString()),
+    };
+  }).filter(perfil => perfil.url).slice(0, 12);
   return result;
 }
 
