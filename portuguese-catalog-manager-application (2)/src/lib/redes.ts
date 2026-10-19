@@ -201,71 +201,131 @@ export function limparNomeDeTitulo(titulo: string, usuario = ''): string {
 }
 
 /** Nome, bio e foto que a própria rede publica no cabeçalho da página (Open Graph). */
-export function extrairMetadadosPublicos(html: string, usuario = ''): { nome: string; descricao: string; imagem: string } {
+export function extrairMetadadosPublicos(html: string, usuario = ''): { nome: string; descricao: string; imagem: string; imagens: string[] } {
   const titulo = metaDoHtml(html, ['og:title', 'twitter:title']) || decodificarEntidades(html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || '');
+  // Perfis costumam publicar mais de um og:image; a primeira é a de perfil.
+  const imagens: string[] = [];
+  for (const achou of html.matchAll(/<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]+content=["']([^"']*)["']/gi)) {
+    const url = decodificarEntidades(achou[1]);
+    if (url && safeImage(url) && !imagens.includes(url)) imagens.push(url);
+    if (imagens.length >= 6) break;
+  }
   return {
     nome: limparNomeDeTitulo(titulo, usuario),
     descricao: metaDoHtml(html, ['og:description', 'twitter:description', 'description']).slice(0, 600),
-    imagem: metaDoHtml(html, ['og:image', 'twitter:image', 'twitter:image:src']),
+    imagem: imagens[0] || '',
+    imagens,
   };
 }
 
 /**
  * Endereços públicos que costumam devolver a foto de perfil de um @.
  * São só candidatas: a tela usa <img> e esconde as que não carregarem.
+ * O unavatar resolve muita conta, mas no plano gratuito tem limite diário
+ * por IP e o Instagram vive atrás de antibot — por isso a busca não depende
+ * só dele (ver `buscarPerfilPublico`).
  */
 export function candidatosDeAvatar(analise: AnaliseSocial): string[] {
   const u = analise.usuario.replace(/^@/, '');
   if (!u) return [];
+  const e = encodeURIComponent(u);
   switch (analise.rede) {
-    case 'instagram': case 'threads': return [`https://unavatar.io/instagram/${encodeURIComponent(u)}`];
-    case 'tiktok': return [`https://unavatar.io/tiktok/${encodeURIComponent(u)}`];
-    case 'x': return [`https://unavatar.io/twitter/${encodeURIComponent(u)}`];
-    case 'youtube': return [`https://unavatar.io/youtube/${encodeURIComponent(u)}`];
-    case 'github': return [`https://github.com/${encodeURIComponent(u)}.png?size=400`, `https://unavatar.io/github/${encodeURIComponent(u)}`];
-    case 'telegram': return [`https://t.me/i/userpic/320/${encodeURIComponent(u)}.jpg`];
+    // O @ do Threads é o mesmo do Instagram: uma rota cobre a outra.
+    case 'instagram': return [`https://unavatar.io/instagram/${e}`, `https://unavatar.io/threads/${e}`];
+    case 'threads': return [`https://unavatar.io/threads/${e}`, `https://unavatar.io/instagram/${e}`];
+    case 'tiktok': return [`https://unavatar.io/tiktok/${e}`];
+    case 'x': return [`https://unavatar.io/x/${e}`, `https://unavatar.io/twitter/${e}`];
+    case 'facebook': return [`https://unavatar.io/facebook/${e}`, `https://graph.facebook.com/${e}/picture?width=400&height=400`];
+    case 'whatsapp': return [`https://unavatar.io/whatsapp/${encodeURIComponent(u.replace(/\D/g, ''))}`];
+    case 'youtube': return [`https://unavatar.io/youtube/${e}`];
+    case 'github': return [`https://github.com/${e}.png?size=400`, `https://unavatar.io/github/${e}`];
+    case 'telegram': return [`https://t.me/i/userpic/320/${e}.jpg`, `https://unavatar.io/telegram/${e}`];
     default: return [];
   }
 }
 
-const AVISO_BLOQUEIO = 'A rede não deixou o Catalog ler a página do perfil daqui — é o comportamento normal do Instagram e do TikTok para quem lê de fora. O link e o @ já foram reconhecidos: confira o nome sugerido, cole a bio aqui embaixo se quiser, ou escolha fotos que já estão no sistema na aba Fotos.';
+const AVISO_BLOQUEIO = 'A rede não deixou o Catalog ler a página do perfil daqui — nem direto, nem pelos leitores públicos — e a foto de perfil também não voltou. É o comportamento normal do Instagram e do TikTok para quem lê de fora. O link e o @ já foram reconhecidos: confira o nome sugerido, cole a bio ou o endereço da foto aqui embaixo, ou escolha fotos que já estão no sistema na aba Fotos.';
+
+interface AchadoPublico { nome: string; descricao: string; imagens: string[] }
+
+function comSinalDeTimeout(ms: number): { signal: AbortSignal | undefined; limpar: () => void } {
+  if (typeof AbortController !== 'function') return { signal: undefined, limpar: () => undefined };
+  const controlador = new AbortController();
+  const temporizador = setTimeout(() => controlador.abort(), ms);
+  return { signal: controlador.signal, limpar: () => clearTimeout(temporizador) };
+}
+
+async function lerTexto(fetchFn: typeof fetch, url: string, accept: string, timeoutMs: number): Promise<string> {
+  const { signal, limpar } = comSinalDeTimeout(timeoutMs);
+  try {
+    const resposta = await fetchFn(url, { signal, headers: { Accept: accept } });
+    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+    return await resposta.text();
+  } finally { limpar(); }
+}
+
+const doHtml = (html: string, usuario: string): AchadoPublico | null => {
+  const meta = extrairMetadadosPublicos(html, usuario);
+  return meta.nome || meta.descricao || meta.imagens.length ? { nome: meta.nome, descricao: meta.descricao, imagens: meta.imagens } : null;
+};
+
+/** O JSON do Microlink (leitor público de metadados) virando nome, bio e foto. */
+export function interpretarMicrolink(texto: string, usuario = ''): AchadoPublico | null {
+  try {
+    const json = JSON.parse(texto) as { status?: string; data?: { title?: string; description?: string; image?: { url?: string }; logo?: { url?: string } } };
+    if (json.status !== 'success' || !json.data) return null;
+    const imagens = [json.data.image?.url, json.data.logo?.url].filter((url): url is string => !!url && !!safeImage(url));
+    const nome = limparNomeDeTitulo(decodificarEntidades(json.data.title || ''), usuario);
+    const descricao = decodificarEntidades(json.data.description || '').slice(0, 600);
+    return nome || descricao || imagens.length ? { nome, descricao, imagens } : null;
+  } catch { return null; }
+}
 
 /**
- * Tenta, nesta ordem: ler o cabeçalho público da página do perfil (nome + bio
- * + foto de uma vez) e juntar as fotos candidatas conhecidas. Nunca lança:
- * bloqueou, devolve o que o link já dizia e o aviso honesto.
+ * Leitores públicos que buscam a página pelo servidor deles e devolvem o
+ * HTML já com permissão de leitura (CORS). É o que destrava nome, bio e foto
+ * quando a rede bloqueia o navegador direto. Só o link público do perfil
+ * é enviado, e só quando você toca em Buscar.
+ */
+export const PROXIES_DE_LEITURA: ((url: string) => string)[] = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
+/**
+ * Tenta todas as rotas públicas ao mesmo tempo e junta o que voltar:
+ * a página direto (funciona em sites abertos), o Microlink e os proxies de
+ * leitura (que costumam destravar nome, bio e a foto do cabeçalho), mais os
+ * resolvedores de avatar conhecidos. Nunca lança: bloqueou tudo, devolve o
+ * que o link já dizia e o aviso honesto.
  */
 export async function buscarPerfilPublico(
   analise: AnaliseSocial,
   opcoes: { fetchFn?: typeof fetch; timeoutMs?: number } = {},
 ): Promise<ResultadoBuscaPerfil> {
-  const fotos = [...candidatosDeAvatar(analise)];
-  const base: ResultadoBuscaPerfil = { analise, nome: analise.nomeSugerido, descricao: '', fotosCandidatas: fotos, fonte: 'link' };
+  const avatares = candidatosDeAvatar(analise);
+  const base: ResultadoBuscaPerfil = { analise, nome: analise.nomeSugerido, descricao: '', fotosCandidatas: avatares, fonte: 'link' };
   if (!analise.url) return base;
   const fetchFn = opcoes.fetchFn || (typeof fetch === 'function' ? fetch : null);
   if (!fetchFn) return { ...base, aviso: AVISO_BLOQUEIO };
-  try {
-    const controlador = typeof AbortController === 'function' ? new AbortController() : null;
-    const temporizador = controlador ? setTimeout(() => controlador.abort(), opcoes.timeoutMs || 8000) : null;
-    try {
-      const resposta = await fetchFn(analise.url, { signal: controlador?.signal, headers: { Accept: 'text/html' } });
-      if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
-      const html = await resposta.text();
-      const meta = extrairMetadadosPublicos(html, analise.usuario);
-      const candidatas = meta.imagem && safeImage(meta.imagem) ? [meta.imagem, ...fotos] : fotos;
-      return {
-        analise,
-        nome: meta.nome || analise.nomeSugerido,
-        descricao: meta.descricao,
-        fotosCandidatas: [...new Set(candidatas)].filter(url => safeImage(url)),
-        fonte: 'pagina',
-      };
-    } finally {
-      if (temporizador) clearTimeout(temporizador);
-    }
-  } catch {
-    return { ...base, aviso: AVISO_BLOQUEIO };
-  }
+  const timeout = opcoes.timeoutMs || 10000;
+  const tentativas: Promise<AchadoPublico | null>[] = [
+    lerTexto(fetchFn, analise.url, 'text/html', timeout).then(html => doHtml(html, analise.usuario)),
+    lerTexto(fetchFn, `https://api.microlink.io?url=${encodeURIComponent(analise.url)}`, 'application/json', timeout).then(texto => interpretarMicrolink(texto, analise.usuario)),
+    ...PROXIES_DE_LEITURA.map(montar => lerTexto(fetchFn, montar(analise.url), 'text/html', timeout).then(html => doHtml(html, analise.usuario))),
+  ];
+  const resultados = await Promise.allSettled(tentativas);
+  const achados = resultados.filter((r): r is PromiseFulfilledResult<AchadoPublico> => r.status === 'fulfilled' && !!r.value).map(r => r.value);
+  const imagensDaPagina = [...new Set(achados.flatMap(a => a.imagens))].filter(url => safeImage(url)).slice(0, 6);
+  const achouPagina = achados.length > 0;
+  return {
+    analise,
+    nome: achados.find(a => a.nome)?.nome || analise.nomeSugerido,
+    descricao: achados.find(a => a.descricao)?.descricao || '',
+    fotosCandidatas: [...new Set([...imagensDaPagina, ...avatares])].filter(url => safeImage(url)),
+    fonte: achouPagina ? 'pagina' : 'link',
+    ...(achouPagina ? {} : { aviso: AVISO_BLOQUEIO }),
+  };
 }
 
 /* --------------------------------------------------------- texto colado ---- */
@@ -345,14 +405,16 @@ export function resumoDasRedes(perfis: PerfilSocial[]): string {
 
 /**
  * Baixa a foto remota para ela morar no aparelho (data URL), como todas as
- * outras fotos do catálogo. Se a rede bloquear o download, guarda o endereço
- * https mesmo — melhor uma foto que pode expirar do que foto nenhuma.
+ * outras fotos do catálogo. Tenta direto e, se o CDN da rede bloquear a
+ * leitura (CORS), pede a mesma imagem por um dos leitores públicos. Se nada
+ * der, guarda o endereço https mesmo — melhor uma foto que pode expirar do
+ * que foto nenhuma.
  */
 export async function baixarFotoRemota(url: string, fetchFn: typeof fetch | null = typeof fetch === 'function' ? fetch : null): Promise<string> {
   if (!url || url.startsWith('data:')) return url;
   if (!fetchFn || typeof FileReader !== 'function') return safeImage(url) ? url : '';
-  try {
-    const resposta = await fetchFn(url);
+  const baixar = async (endereco: string): Promise<string> => {
+    const resposta = await fetchFn(endereco);
     if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
     const blob = await resposta.blob();
     if (!blob.type.startsWith('image/') || blob.size > 10 * 1024 * 1024) throw new Error('não é imagem');
@@ -362,7 +424,9 @@ export async function baixarFotoRemota(url: string, fetchFn: typeof fetch | null
       leitor.onerror = () => reject(leitor.error);
       leitor.readAsDataURL(blob);
     });
-  } catch {
-    return safeImage(url) ? url : '';
+  };
+  for (const endereco of [url, ...PROXIES_DE_LEITURA.map(montar => montar(url))]) {
+    try { return await baixar(endereco); } catch { /* tenta a próxima rota */ }
   }
+  return safeImage(url) ? url : '';
 }

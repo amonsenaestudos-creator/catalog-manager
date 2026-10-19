@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Check, ChevronDown, ExternalLink, FileText, Search, Share2 } from 'lucide-react';
 import type { Person, RedeSocialId } from '../types';
 import { useCatalog } from '../context';
-import { generateId, medirImagem, normalizePhotos } from '../store';
+import { generateId, medirImagem, normalizePhotos, safeImage } from '../store';
 import {
   analisarEntradaSocial, baixarFotoRemota, buscarPerfilPublico, candidatosDeAvatar,
   extrairPerfilDeTexto, mesclarPerfis, montarPerfilSocial, REDES_PARA_ESCOLHER,
@@ -43,6 +43,7 @@ export default function ImportarPerfil({ person, update, abertoInicial = false }
   const [usarBio, setUsarBio] = useState(true);
   const [usarFoto, setUsarFoto] = useState(true);
   const [textoColado, setTextoColado] = useState('');
+  const [fotoManual, setFotoManual] = useState('');
   const [aplicadoEm, setAplicadoEm] = useState('');
 
   const analise = analisarEntradaSocial(entrada, redePreferida);
@@ -90,13 +91,24 @@ export default function ImportarPerfil({ person, update, abertoInicial = false }
     setFotoEscolhida(atual => (atual === url ? '' : atual));
   };
 
+  /** O endereço de foto colado à mão entra como candidata escolhida na hora. */
+  const usarFotoManual = () => {
+    const url = fotoManual.trim().split(/\s+/)[0];
+    if (!url || !safeImage(url)) { notify('Cole o endereço completo da foto (começando com https://). No perfil dela, segure a foto e copie o endereço da imagem.', true); return; }
+    setCandidatas(lista => [url, ...lista.filter(item => item !== url)]);
+    setFotoEscolhida(url); setUsarFoto(true); setFotoManual('');
+    notify('foto na lista. Confira a miniatura e aplique na ficha.');
+  };
+
   const aplicar = async () => {
     if (!resultado) return;
     setAplicando(true);
     try {
       const fotoRemota = usarFoto && fotoEscolhida ? fotoEscolhida : '';
       const fotoFinal = fotoRemota ? await baixarFotoRemota(fotoRemota) : '';
-      const medidas = fotoFinal ? await medirImagem(fotoFinal) : { width: 0, height: 0 };
+      const medidas = fotoFinal
+        ? await Promise.race([medirImagem(fotoFinal), new Promise<{ width: number; height: number }>(resolve => setTimeout(() => resolve({ width: 0, height: 0 }), 2500))])
+        : { width: 0, height: 0 };
       const nomeLimpo = nome.trim();
       const bioLimpa = bio.trim();
       update(p => {
@@ -154,17 +166,24 @@ export default function ImportarPerfil({ person, update, abertoInicial = false }
       {entrada.trim() && (analise
         ? <p className="importar-reconhecido"><Check size={14} />Reconheci: <strong>{rotuloDaRede(analise.rede)}</strong>{analise.usuario && <> · <strong>@{analise.usuario}</strong></>}{analise.nomeSugerido && <> · nome provável <strong>{analise.nomeSugerido}</strong></>}{analise.url && <a href={analise.url} target="_blank" rel="noreferrer noopener">abrir perfil<ExternalLink size={12} /></a>}{analise.ehPublicacao && <span className="importar-alerta">Este link parece ser de uma publicação, não do perfil — vale colar o link do perfil para o nome e a foto virem certos.</span>}</p>
         : <p className="importar-reconhecido importar-alerta">Ainda não reconheci isso como link, @ ou telefone. Confira o que colou ou escolha a rede nos botões acima.</p>)}
-      <p className="form-help">A busca só acontece quando você toca em <strong>Buscar perfil</strong>, direto do seu navegador para a rede — nada passa por servidor do Catalog, como no resto do aplicativo.</p>
+      <p className="form-help">A busca só acontece quando você toca em <strong>Buscar perfil</strong>: o Catalog tenta a própria rede e serviços públicos de leitura (unavatar.io, Microlink, AllOrigins), enviando <strong>só o link público do perfil</strong>. Nada da sua ficha sai do aparelho.</p>
 
       {resultado && <div className="importar-resultado">
         {resultado.aviso && <p className="importar-aviso">{resultado.aviso}</p>}
         {resultado.fonte === 'pagina' && <p className="importar-aviso ok">A rede deixou ler o perfil público: nome, bio e foto abaixo vieram de lá. Confira antes de aplicar — é você quem manda na ficha.</p>}
-        {candidatas.length > 0 && <div className="importar-fotos" role="group" aria-label="Fotos candidatas do perfil">
-          {candidatas.map(url => <button key={url} type="button" className={fotoEscolhida === url ? 'selected' : ''} aria-pressed={fotoEscolhida === url} aria-label="Usar esta foto de perfil" onClick={() => { setFotoEscolhida(url); setUsarFoto(true); }}>
-            <img src={url} alt="Foto de perfil encontrada" loading="lazy" onError={() => retirarCandidata(url)} />
-            {fotoEscolhida === url && <span><Check size={13} /></span>}
-          </button>)}
-        </div>}
+        {candidatas.length > 0 ? <div>
+          <div className="importar-fotos" role="group" aria-label="Fotos candidatas do perfil">
+            {candidatas.map(url => <button key={url} type="button" className={fotoEscolhida === url ? 'selected' : ''} aria-pressed={fotoEscolhida === url} aria-label="Usar esta foto de perfil" onClick={() => { setFotoEscolhida(url); setUsarFoto(true); }}>
+              <img src={url} alt="Foto de perfil encontrada" loading="lazy" referrerPolicy="no-referrer" onError={() => retirarCandidata(url)} />
+              {fotoEscolhida === url && <span><Check size={13} /></span>}
+            </button>)}
+          </div>
+          {candidatas.some(url => url.includes('unavatar.io')) && <p className="form-help">Fotos de perfil via <a href="https://unavatar.io" target="_blank" rel="noreferrer noopener">unavatar.io</a> e pelo cabeçalho público da rede. Se a miniatura sumir, o serviço não resolveu essa conta agora — cole o endereço da foto aqui embaixo.</p>}
+        </div> : <p className="importar-aviso">Nenhuma foto de perfil voltou desta vez — a rede e os leitores públicos não resolveram essa conta agora (o Instagram vive mudando o cadeado). Você pode abrir o perfil, segurar a foto dela, <strong>copiar o endereço da imagem</strong> e colar aqui embaixo; ou escolher fotos na aba <strong>Fotos</strong> (&ldquo;Escolher fotos do sistema&rdquo; ou enviar do aparelho).</p>}
+        <div className="importar-busca importar-foto-manual">
+          <input value={fotoManual} onChange={e => setFotoManual(e.target.value)} aria-label="Endereço da foto de perfil" placeholder="Ou cole o endereço da foto dela (https://...)" autoComplete="off" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); usarFotoManual(); } }} />
+          <Button onClick={usarFotoManual} disabled={!fotoManual.trim()}>Usar esta foto</Button>
+        </div>
         <div className="form-grid">
           <Field label="Nome encontrado"><input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome de exibição do perfil" maxLength={100} /></Field>
           <Field label="Bio / descrição pública" className="span-2"><textarea rows={3} value={bio} onChange={e => setBio(e.target.value)} placeholder="Se a rede não deixou ler, cole a bio aqui — ou deixe para depois." /></Field>

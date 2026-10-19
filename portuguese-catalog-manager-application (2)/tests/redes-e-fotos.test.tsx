@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  analisarEntradaSocial, buscarPerfilPublico, extrairMetadadosPublicos, extrairPerfilDeTexto,
+  analisarEntradaSocial, buscarPerfilPublico, candidatosDeAvatar, extrairMetadadosPublicos, extrairPerfilDeTexto, interpretarMicrolink,
   mesclarPerfis, montarPerfilSocial, nomeSugeridoDoUsuario, resumoDasRedes,
 } from '../src/lib/redes';
 import { filtrarFotosDoSistema, fotosDoSistema, prepararFotosEscolhidas } from '../src/lib/fotosSistema';
@@ -84,7 +84,46 @@ describe('a busca do perfil público', () => {
     expect(resultado.fonte).toBe('link');
     expect(resultado.nome).toBe('Ana Souza');
     expect(resultado.aviso).toMatch(/não deixou o Catalog ler/i);
-    expect(resultado.fotosCandidatas).toEqual(['https://unavatar.io/instagram/ana.souza']);
+    expect(resultado.fotosCandidatas).toEqual(['https://unavatar.io/instagram/ana.souza', 'https://unavatar.io/threads/ana.souza']);
+  });
+});
+
+describe('as rotas que destravam a foto de perfil', () => {
+  const resposta = (corpo: string) => ({ ok: true, status: 200, text: async () => corpo });
+  const fetchRoteado = (rotas: Record<string, string>) => vi.fn(async (url: string) => {
+    const chave = Object.keys(rotas).find(k => String(url).includes(k));
+    if (!chave) throw new TypeError('Failed to fetch');
+    return resposta(rotas[chave]);
+  }) as unknown as typeof fetch;
+
+  it('usa o Microlink quando a rede bloqueia a leitura direta', async () => {
+    const analise = analisarEntradaSocial('instagram.com/ana.souza')!;
+    const fetchFn = fetchRoteado({
+      'api.microlink.io': JSON.stringify({ status: 'success', data: { title: 'Ana Souza (@ana.souza) • Instagram photos', description: 'Bio que veio do leitor.', image: { url: 'https://cdn.exemplo.test/microlink.jpg' } } }),
+    });
+    const resultado = await buscarPerfilPublico(analise, { fetchFn });
+    expect(resultado.fonte).toBe('pagina');
+    expect(resultado.nome).toBe('Ana Souza');
+    expect(resultado.descricao).toBe('Bio que veio do leitor.');
+    expect(resultado.fotosCandidatas[0]).toBe('https://cdn.exemplo.test/microlink.jpg');
+    expect(interpretarMicrolink(JSON.stringify({ status: 'fail', data: {} }))).toBeNull();
+  });
+
+  it('usa um proxy de leitura quando direto e Microlink falham', async () => {
+    const analise = analisarEntradaSocial('tiktok.com/@ana.fotografa')!;
+    const html = '<head><meta property="og:title" content="Ana Fotógrafa (@ana.fotografa) | TikTok" /><meta property="og:image" content="https://cdn.exemplo.test/tiktok.jpg" /><meta property="og:image" content="https://cdn.exemplo.test/tiktok-2.jpg" /></head>';
+    const fetchFn = fetchRoteado({ 'api.microlink.io': JSON.stringify({ status: 'fail' }), 'api.allorigins.win': html });
+    const resultado = await buscarPerfilPublico(analise, { fetchFn });
+    expect(resultado.fonte).toBe('pagina');
+    expect(resultado.fotosCandidatas).toEqual(expect.arrayContaining(['https://cdn.exemplo.test/tiktok.jpg', 'https://cdn.exemplo.test/tiktok-2.jpg']));
+    expect(extrairMetadadosPublicos(html, 'ana.fotografa').imagens).toHaveLength(2);
+  });
+
+  it('cada rede tem suas fotos candidatas conhecidas', () => {
+    expect(candidatosDeAvatar(analisarEntradaSocial('@ana', 'x')!)[0]).toBe('https://unavatar.io/x/ana');
+    expect(candidatosDeAvatar(analisarEntradaSocial('(71) 99999-8888')!)).toEqual(['https://unavatar.io/whatsapp/5571999998888']);
+    expect(candidatosDeAvatar(analisarEntradaSocial('facebook.com/ana.souza')!)).toEqual(expect.arrayContaining(['https://graph.facebook.com/ana.souza/picture?width=400&height=400']));
+    expect(candidatosDeAvatar(analisarEntradaSocial('instagram.com/ana.souza')!)).toHaveLength(2);
   });
 });
 
@@ -178,6 +217,7 @@ function Espiao() {
   return <>
     <output data-testid="total-fichas">{data.people.length}</output>
     <output data-testid="total-orfas">{data.orphanPhotos.length}</output>
+    <output data-testid="foto-da-ficha">{primeira?.fotos[0]?.url || '—'}</output>
     <output data-testid="perfil-da-ficha">{primeira ? `${primeira.nome}|${primeira.redesSociais}|${(primeira.perfisSociais || []).map(p => `${p.rede}:${p.usuario}`).join(',')}|${primeira.fotos.map(f => f.id).join(',')}` : '—'}</output>
   </>;
 }
@@ -197,14 +237,16 @@ describe('no cadastro, de ponta a ponta', () => {
     await user.click(screen.getByRole('button', { name: /Buscar perfil/ }));
     expect(await screen.findByText(/não deixou o Catalog ler/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Nome encontrado/)).toHaveValue('Ana Souza');
-    // sem foto que carregue, aplicamos só nome e rede social
-    await user.click(screen.getByRole('checkbox', { name: /foto de perfil/ })).catch(() => undefined);
+    // a rede não devolveu foto: o endereço colado à mão vira a foto escolhida
+    await user.type(screen.getByLabelText(/Endereço da foto de perfil/), 'https://cdn.exemplo.test/ana-perfil.jpg');
+    await user.click(screen.getByRole('button', { name: 'Usar esta foto' }));
     await user.click(screen.getByRole('button', { name: /Aplicar na ficha/ }));
-    await waitFor(() => expect(screen.getByPlaceholderText('Como a pessoa se chama?')).toHaveValue('Ana Souza'));
+    await waitFor(() => expect(screen.getByPlaceholderText('Como a pessoa se chama?')).toHaveValue('Ana Souza'), { timeout: 8000 });
 
     await user.click(screen.getByRole('button', { name: /^Salvar ficha/ }));
     await waitFor(() => expect(screen.getByTestId('total-fichas')).toHaveTextContent('1'));
     expect(screen.getByTestId('perfil-da-ficha').textContent).toContain('Ana Souza|Instagram @ana.souza|instagram:ana.souza');
+    expect(screen.getByTestId('foto-da-ficha')).toHaveTextContent('https://cdn.exemplo.test/ana-perfil.jpg');
   });
 
   it('escolhe uma foto sem ficha do sistema e ela é adotada ao salvar', async () => {
