@@ -348,7 +348,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const openPerson = useCallback((person: Person | string, opts?: { editar?: boolean; aba?: string }) => { const id = typeof person === 'string' ? person : person.id; const p = current.current.people.find(p => p.id === id); if (p?.deletedAt) { navigate('catalog', 'trash'); notify('Esta ficha está na lixeira. Restaure para editar.'); return; } if (p) { setOpenRequest(opts?.editar || opts?.aba ? { editar: opts.editar, aba: opts.aba } : null); setSelectedId(id); } }, [navigate, notify]);
   const changePeople = useCallback((ids: string[], patch: Partial<Person>, message: string) => { commit(d => ({ ...d, people: d.people.map(p => ids.includes(p.id) ? { ...p, ...patch, updatedAt: new Date().toISOString() } : p) }), message); }, [commit]);
   const savePerson = useCallback((p: Person, draftId?: string) => {
-    if (!p.nome.trim() || !p.descricao.trim()) { notify('Preencha o nome e a descrição.', true); return false; }
+    // Só o nome é obrigatório: a descrição é opcional e pode vir depois.
+    if (!p.nome.trim()) { notify('Preencha o nome da pessoa.', true); return false; }
     if (p.idade !== null && (!Number.isInteger(p.idade) || p.idade < 0 || p.idade > 120)) { notify('Informe uma idade inteira entre 0 e 120 anos, ou deixe em branco.', true); return false; }
     const before = calculateOverallRating(p.rating);
     const comment = (p.ratingComment || '').trim() || undefined;

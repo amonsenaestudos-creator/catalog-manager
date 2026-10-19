@@ -1698,6 +1698,10 @@
   .people-grid .card-name-row { align-items: flex-end; gap: 6px; }
   .people-grid .card-name-row h3 { font-size: 14.5px; font-weight: 620; color: #fff; white-space: normal; }
   .people-grid .card-location { color: #ded2e8; font-size: 11px; margin-top: 2px; }
+  .people-grid .rel-aviso { max-width: 44%; overflow: hidden; padding: 2px 6px; font-size: 9px; text-overflow: ellipsis; }
+  .rel-recado { margin: -12px 0 16px; padding: 10px 12px; }
+  .rel-recado strong { font-size: 12.5px; }
+  .rel-recado span { font-size: 11px; }
   /* etiqueta e barra de preenchimento ficam para a lista e para a ficha: sobre a
      foto elas só roubam o rosto da pessoa */
   .people-grid .card-tags, .people-grid .card-bottom, .people-grid.compact .card-tags { display: none; }
@@ -2317,4 +2321,29 @@
   .ajuste-lote-trilho > span { font-size: 12.5px; }
   .ajuste-lote-previa img { border-radius: 14px; }
   .ajuste-lote-falhas { font-size: 12.5px; }
+}
+
+/* --------------------------------------------------------------------------
+   24. Mapas mentais no aparelho
+   O painel sai de cima do plano e vira uma faixa embaixo, o nó encolhe para
+   caber o dedo, e o × do fio fica sempre visível (não há hover no touch).
+   -------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .mapa-corpo { grid-template-columns: minmax(0, 1fr); padding: 10px 0 18px; }
+  .mapa-tela { height: 54vh; min-height: 300px; border-radius: 16px; }
+  .mapa-painel { max-height: none; }
+  .mapa-topo { flex-wrap: wrap; gap: 8px; }
+  .mapa-voltar { min-height: 40px; }
+  .mapa-nome { order: 3; flex-basis: 100%; font-size: 16px; }
+  .mapa-acoes { margin-left: auto; }
+  .mapa-acoes .btn { min-height: 40px; padding: 8px 11px; }
+  .mapa-no { left: -75px; top: -26px; width: 150px; min-height: 52px; }
+  .mapa-no strong { font-size: 13px; }
+  .mapa-fio-corte { left: -15px; top: -15px; width: 30px; height: 30px; opacity: 1; font-size: 15px; }
+  .mapa-zoom { right: 8px; bottom: 8px; }
+  .mapa-zoom button { width: 38px; height: 38px; }
+  .mapa-dica { display: none; }
+  .mapas-lista { grid-template-columns: minmax(0, 1fr); }
+  .mapa-miniatura { height: 88px; }
+  .mapa-escolha button { min-height: 40px; }
 }

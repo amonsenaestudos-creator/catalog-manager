@@ -28,6 +28,7 @@ import Guide from './components/Guide';
 import Notes from './components/Notes';
 import Folders from './components/Folders';
 import InvestigationBoardPage from './components/InvestigationBoard';
+import { MapasMentais } from './features/mapas';
 import Dashboard from './components/Dashboard';
 import MySpace from './components/MySpace';
 import Agenda from './components/Agenda';
@@ -73,6 +74,7 @@ function ActivePage() {
   if (page === 'notes') return <Notes />;
   if (page === 'folders') return <Folders />;
   if (page === 'board') return <InvestigationBoardPage />;
+  if (page === 'mapas') return <MapasMentais />;
   if (page === 'stories') return <Stories />;
   if (page === 'settings') return <Settings />;
   if (page === 'reminders') return <Reminders />;

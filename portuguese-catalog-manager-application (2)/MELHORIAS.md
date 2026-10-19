@@ -188,6 +188,38 @@ produto** e dar nome certo ao que existe.
 A limpeza apagou ~430 linhas de código de produto e ~120 de teste, e o app
 continua passando inteiro.
 
+## 3.4 Rodada 6 — mapas mentais, planilha e a ficha só com o nome
+
+Três pedidos de uma vez, todos sobre **tirar atrito**: o mapa mental para pensar sem
+ficha, a planilha para levar os dados para fora, e o cadastro que parou de cobrar o
+que é opcional.
+
+| O que entrou | Por que | Onde |
+| --- | --- | --- |
+| **Mapas mentais** | O catálogo guarda gente, mas não guarda raciocínio. Uma tela de plano livre: nós com cor e nota, fios com rótulo, nó vinculado a uma ficha (um clique abre), **Organizar** em anéis a partir da raiz, **Mapa das relações** pronto a partir dos vínculos (lendo os dois lados), e export em **PNG**, **contorno Markdown** ou copiado. Cada passo entra no `Ctrl+Z` do aplicativo. | `src/features/mapas/` (`mapa.ts` puro, `tela.ts` desenho, três componentes) |
+| **Planilha das fichas** | O "exportar CSV" era um arquivo de escopo único e sem proteção. Agora são duas medidas (40 colunas / 17 do dia a dia), três caminhos (filtro inteiro, só as selecionadas, copiar para colar) e o formato que Excel e Sheets abrem certo: BOM, `;`, CRLF, aspas sempre e o que começa com `=`, `+`, `-` ou `@` vira texto. Uma célula que erre não derruba o arquivo. | `src/lib/planilha.ts` — o `exportCsv` saiu do `store.ts` |
+| **Só o nome é obrigatório** | A descrição travava o salvamento e ainda aparecia como "falta preencher" na conta de ficha completa — cobrar o que é opcional é o jeito mais rápido de fazer alguém desistir de cadastrar. O campo continua lá, agora **"Descrição (opcional)"**, e saiu da conta. | `src/store.ts` (`completeness`), `src/components/PersonEditor.tsx` |
+| **Relacionamento no lugar** | O espaço que sobrou foi para o que evita erro de verdade: "ela tem alguém?" (Não informado, Solteira, Conhecendo alguém, Namorando, Noiva, Casada, Em um relacionamento, Situação complicada). Quando há compromisso, a ficha mostra um recado no topo, o cartão do catálogo ganha um aviso e a conversa começa dizendo isso. | `src/types.ts`, `PersonEditor`, `PersonDrawer`, `Catalog`, `ChatSimulator` |
+| **Pronomes e signo saíram da ficha** | Pedido explícito. Só a interface: o que já estava gravado continua no arquivo e a conversa simulada ainda lê, porque apagar dado de ninguém é o tipo de limpeza que não se desfaz. | `src/types.ts` (as duas listas de opções), `PersonEditor`, `PersonDrawer` |
+
+Decisões que valem registro:
+
+- **Sem mudança, sem passo de histórico.** As funções puras dos mapas devolvem **o mesmo
+  objeto** quando nada mudaria. Sem isso, cada clique sem arrasto viraria um passo que o
+  `Ctrl+Z` desfaria sem mudar nada na tela — o defeito mais chato de editor caseiro.
+- **`AppData.mapas` é opcional.** Fichas antigas (e os construtores de `AppData` dos testes)
+  não têm o campo; a normalização cria `[]` na leitura, e ninguém precisa migrar arquivo.
+- **Exportar lança em vez de fingir.** Sem canvas, no modo privacidade ou com mapa vazio, a
+  mensagem sai em português na tela. Um PNG em branco baixado em silêncio seria pior.
+- **Estado da ficha ≠ relacionamento.** As colunas novas se chamam "Relacionamento" e "Tem
+  alguém?" porque "Estado" já era Ativa/Arquivada/Lixeira.
+
+Testes: `tests/mapas-mentais.test.tsx` (domínio, contorno, mapa das relações, PNG com um
+contexto 2D de mentira e a página em jsdom), `tests/planilha.test.ts` (colunas, CSV/TSV,
+proteção contra fórmula, privacidade, cópia) e `tests/ficha-simples.test.tsx` (descrição
+opcional de ponta a ponta, campos que saíram, recado de compromisso). O
+`tests/architecture.test.ts` passou a cobrar `README.md` e `index.ts` de `features/mapas`.
+
 ## 4. Como saber se melhorou
 
 - `npm test` verde e CI verde em todo PR (hoje: 35 arquivos, 497 testes).
@@ -238,6 +270,6 @@ de arquitetura, arquitetura antes de produto novo.
 | --- | --- |
 | 16. Instalar limpo de verdade | ✅ é o que o CI faz a cada push (`npm ci` + `typecheck` + testes + build, verdes) |
 | 17. `typecheck` | ✅ sem erros, no CI |
-| 18. Todos os testes | ✅ 39 arquivos, 660 testes, no CI |
+| 18. Todos os testes | ✅ 42 arquivos, 708 testes, no CI |
 | 19. Testes dos fluxos críticos | ⏳ (o que falta: importar/exportar backup grande, trocar de perfil, faxina) |
 | 20. Lint (item 0.5) | ⏳ |

@@ -18,11 +18,12 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Densidade em três degraus:** em **Ajustes** (e no `⋯` do topo, que alterna) a interface vai de **Compacta** (mais informação; com ela o modo lista do catálogo vira uma linha de leitura: foto, nome, lugar, nota e última interação) a **Espaçosa** (cards grandes, mais respiro). O valor antigo (`compacto`) migra sozinho para `compacta`.
 - **“+” inteligente:** o botão central pergunta o que você quer criar — pessoa (fichário rápido), fotos (medidas na hora, entram na galeria sem ficha), nota ou pasta — em vez de levar direto ao cadastro de pessoa.
 - **Início por hierarquia:** saudação e a ação principal; o que chegou de novo; o que precisa de atenção hoje; explorar; e só no fim — fechados — os atalhos, a apresentação do aplicativo e as estatísticas.
-- **Ações rápidas:** toque no botão de raio no cabeçalho (ou pressione `Q`) para abrir mais de vinte utilidades: filtros prontos, surpresa, roleta, comparação, agenda de hoje, avisos, CSV, resumo copiável/compartilhável, tela cheia, privacidade, tema e densidade.
-- **Catálogo:** favoritos, arquivo, lixeira, seleção em lote, filtros, buscas salvas e CSV.
+- **Ações rápidas:** toque no botão de raio no cabeçalho (ou pressione `Q`) para abrir mais de vinte utilidades: filtros prontos, surpresa, roleta, comparação, agenda de hoje, avisos, **planilha** das fichas, resumo copiável/compartilhável, tela cheia, privacidade, tema e densidade.
+- **Catálogo:** favoritos, arquivo, lixeira, seleção em lote, filtros, buscas salvas e exportação em **planilha** — completa ou resumo, do filtro inteiro ou só das fichas selecionadas.
 - **Notas gerais:** ideias, observações, referências e lembretes vinculáveis a pessoas e pastas.
 - **Pastas:** grupos mistos de pessoas, fotos, notas e histórias, sem duplicar os itens.
 - **Quadro de investigação:** cartões pessoais em etapas de observação, conexão, confirmação e arquivo.
+- **Mapas mentais:** um plano livre para pensar uma história, um plano ou a teia de gente em volta de uma ficha — nós com cor e nota, fios com rótulo, nó vinculado a alguém do catálogo (um clique abre a ficha), **Organizar** em anéis a partir da raiz, **Mapa das relações** pronto a partir de uma ficha e exportação em **PNG**, **Markdown** ou copiado. Cada passo entra no `Ctrl+Z` do aplicativo.
 - **Organizar:** coleções legadas, categorias, subcategorias, localizações, tags, rascunhos, possíveis duplicatas e atividade.
 - **Voz das pessoas:** na ficha, o bloco **A voz de …** guarda o som de verdade dela — grave pelo microfone ou envie um arquivo que já existe (“bom dia”, uma risada, um recado), com nome, duração, peso, favorito, player, download, compartilhamento e exclusão. Limites escritos na tela: **2 MB por áudio e 8 MB por pessoa** (um minuto de voz custa cerca de 200 KB). O áudio fica no seu aparelho, junto das fotos, e entra no backup como qualquer outro dado.
 - **Compartilhar:** o resumo de uma ficha sai como texto pelo compartilhamento do aparelho (WhatsApp, Telegram, e-mail) ou vai para a área de transferência quando não houver; o áudio de voz sai como arquivo (`.webm`), com download como plano B. Nada é enviado sozinho e o link do catálogo nunca carrega dado de ninguém.
@@ -39,6 +40,7 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Momentos:** uma surpresa do dia baseada no catálogo, resumo de fotos/vídeos/pessoas/notas, exploração por conexões, máquina do tempo, **climas que tocam música de verdade** (por link, dentro do painel Ambiente) e Modo apresentação com reprodução de fotos, miniaturas e trilha escolhida. Tudo é opcional: não há streak de login nem bloqueio de conteúdo.
 - **Desafios:** Quiz do próprio catálogo, Modo Detetive com casos gerados a partir de relações reais, quebra-cabeça de fotos, “Quem é?”, objetivos semanais, cartas colecionáveis, editor rápido de cards, álbum paginado, Hall da fama, lugares/contextos e exportação de mural visual. As respostas usam somente dados já registrados.
 - **Ficha:** aba **Linha do tempo** com cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota; opção **Fixar no topo** no menu.
+- **Cadastro:** só o **nome** é obrigatório — a descrição virou **"Descrição (opcional)"** e saiu da conta de ficha a completar (não dá para cobrar o que é opcional). No lugar dos campos que saíram (**Pronomes** e **Signo**) entrou **Relacionamento**: quando a ficha diz que há alguém, ela mostra um recado no topo, o cartão do catálogo ganha um aviso e a conversa começa dizendo isso. O que já estava gravado continua no arquivo — nada foi apagado.
 - **Agenda:** exportação `.ics` para Google Agenda, Outlook e iPhone; cronômetro que dá um tique a cada 10 minutos.
 - **Tierlists:** exportação em PNG pelo menu **Mais**.
 - **Ferramentas:** 50 utilidades em cinco grupos (Catálogo e dados, Organização em lote, Conversa e social, Meu espaço e rotina, Utilidades do dia a dia), com busca, ícones no mesmo estilo do resto do app e atalho `T`. Cada ferramenta declara os campos que precisa e mostra o resultado em tela, com botão de copiar e download quando faz sentido.
@@ -75,7 +77,7 @@ domínio: `src/features/interface`.
 
 A conversa com cada pessoa vive na ficha (**Conversar**) e é montada na hora a partir da própria ficha. Não é um banco de frases soltas: a resposta passa por intenção detectada, personalidade, humor, química, tom liberado e memória do papo.
 
-- **Persona da ficha:** idade, comportamento, descrição, categoria, subcategoria, etiquetas, signo, música favorita, localização, nível de amizade, pronome e observações viram traços de personalidade (ousadia, reserva, timidez, humor, verbosidade, emojis, gírias), interesses concretos e um jeito de escrever.
+- **Persona da ficha:** idade, comportamento, descrição, categoria, subcategoria, etiquetas, música favorita, localização, nível de amizade e observações viram traços de personalidade (ousadia, reserva, timidez, humor, verbosidade, emojis, gírias), interesses concretos e um jeito de escrever. O que já estava gravado em campos que saíram da ficha (signo e pronome) continua sendo lido — nada é jogado fora.
 - **Química e estágios:** a conversa acumula química de 0 a 100 e atravessa cinco estágios — conhecendo agora, pegando intimidade, confiante, próxima e especial. O estágio muda o tamanho das respostas, as perguntas e o que ela aceita ouvir.
 - **O clima é automático:** não existe painel de tom no chat. Ela vai do papo leve ao flerte (e, com ficha 18+ e modo adulto ligado, ao clima quente) conforme a intimidade construída, sempre ajustada por reserva e ousadia da persona. Se o assunto passar do ponto, ela **desconversa** com naturalidade em vez de responder, e a química não sobe.
 - **Humor automático:** ela chega a um humor (alegre, brincalhona, flertando, tímida, curiosa, carinhosa, fechada ou neutra) e reage ao que você escreve. Cobranças fecham o clima; desabafos trazem carinho. O cabeçalho só mostra o estado atual, sem botões.
@@ -184,6 +186,7 @@ Um catálogo de fotos lembra o rosto; o Catalog também guarda o som.
 - **Galeria com o visor aberto:** `←`/`→` trocam a foto, `+` e `-` dão zoom, `F` favorite, `I` abre os detalhes e `Esc` fecha.
 - **Galeria no teclado, sem o visor:** `S` entra na seleção em lote; com fotos escolhidas, `Shift` + clique estende o intervalo.
 - **Editor de imagens:** `C` cortar · `R` girar · `A` ajustar · `F` filtros · `P` pintar · `S` formas · `T` texto · `B` esconder · `E` borracha · `I` conta-gotas; `Ctrl+Z` e `Ctrl+Shift+Z` desfazem e refazem dentro do editor; `Esc` sai direto se nada mudou e pergunta antes se mudou; `Enter` confirma a letra que está sendo escrita.
+- **Mapas mentais:** arrastar o plano anda pelo mapa, a roda do mouse aproxima, dois cliques num ponto vazio criam um nó, dois cliques num nó renomeiam, `Enter` confirma o nome, `Esc` cancela uma ligação armada e `Delete`/`Backspace` remove o nó selecionado (o `Ctrl+Z` do aplicativo devolve).
 - **No aparelho, os gestos substituem as teclas:** deslizar da borda esquerda volta uma tela, segurar o título da tela aciona o pânico (≈0,7s), segurar uma foto ou um cartão abre a folha de ações, puxar a folha para baixo fecha, e no visor deslizar troca, pinça/`2 toques` zoom e puxar para baixo fecha.
 
 ## Altura e figura 3D
@@ -281,6 +284,62 @@ A regra vive em `src/features/gallery/edicao.ts` (conta pura), o desenho em
 quem abre usa o hook `useEdicaoDeFoto()`, que já devolve a gravação ligada ao
 `Ctrl+Z` da sessão.
 
+## Mapas mentais
+
+Uma tela para pensar com setas. Diferente do **Quadro de investigação** (que tem
+etapas e colunas), aqui o plano é livre — e o catálogo continua sendo o chão: um
+nó pode ser uma ficha.
+
+- **Criar:** `Mapas mentais` na barra lateral (grupo Biblioteca) → **Novo mapa**.
+  O mapa já nasce com a ideia central no meio, porque um mapa vazio não tem onde
+  clicar. **Mapa das relações** cria um pronto a partir de uma ficha: ela no
+  centro e os vínculos em volta, cada fio com o parentesco escrito — nos dois
+  sentidos, porque o mapa lê tanto quem ela diz que é dela quanto quem diz que ela
+  é a mãe, a irmã, a namorada.
+- **Mexer:** arraste o plano para andar, use a roda do mouse (ou `+`/`−` no canto)
+  para aproximar, arraste um nó para mudá-lo de lugar, **dois cliques num ponto
+  vazio** criam um nó ali e **dois cliques num nó** renomeiam sem sair do lugar.
+  O nó tem cor (as seis primeiras da paleta do aplicativo), **nota própria** — que
+  é do mapa, não da ficha — e pode ser **vinculado a alguém do catálogo**: aí o nó
+  mostra o nome da pessoa e um clique abre a ficha.
+- **Ligar:** selecione um nó, **Ligar a outro nó** e toque no destino. O fio não
+  tem direção (é um mapa mental, não um fluxograma), aceita **rótulo** ("mãe",
+  "dívida", "julho") e o **×** no meio dele desfaz a ligação. `Esc` cancela uma
+  ligação armada; `Delete` remove o nó selecionado e os fios que encostavam nele.
+- **Organizar:** rearruma tudo em anéis a partir da raiz — um fio de distância é o
+  primeiro anel, dois fios o segundo — e o que não tem caminho até a raiz não é
+  esquecido: vai para uma fileira embaixo, à vista.
+- **Exportar:** **Imagem em PNG** (com título, contagem de nós e data no
+  cabeçalho), **Contorno em Markdown** (um traço por nó, recuo por nível, o rótulo
+  do fio entre parênteses, a ficha vinculada depois de um travessão e a nota
+  depois de dois pontos) ou **Copiar o contorno** para colar num e-mail.
+- **Desfazer:** cada passo — nó criado, arrasto, ligação, mapa renomeado, mapa
+  apagado inteiro — passa pelo `commit` do contexto e entra no `Ctrl+Z` do
+  aplicativo. Uma mudança que não muda nada não grava passo.
+- O mapa mora no catálogo (entra no backup e na restauração) e não toca em nenhuma
+  ficha. A regra é função pura em `src/features/mapas/mapa.ts`; o desenho que vira
+  PNG está em `src/features/mapas/tela.ts`, e os dois são testáveis sem navegador.
+
+## As fichas em planilha
+
+O export deixou de ser um CSV solto e virou planilha, com duas medidas e três
+caminhos:
+
+| O quê | Onde |
+| --- | --- |
+| **Completa** — 40 colunas (descrição, aniversário, altura, corpo, estilo, cabelo, pele, QI, vínculo com você, família, amizade, raridade, como conheceu, música, comportamento, observações, fotos, vozes, notas, anexos, campos livres…) | `⋯` do catálogo, ações rápidas (`Q`), paleta de comandos (`Ctrl+K`) e ferramentas rápidas (`T`) |
+| **Resumo** — as 17 colunas do dia a dia (nome, apelido, idade, relacionamento, "tem alguém?", categoria, subcategoria, onde mora, contato, etiquetas, nota, pontos, favorita, estado da ficha, última interação, interações, cadastro) | nos mesmos lugares, no menu ao lado do botão de exportar |
+| **Só as selecionadas** | a barra que aparece ao marcar fichas no catálogo |
+| **Copiar** (cola direto numa célula do Sheets ou do Excel) | menu de exportar, ações rápidas e ranking |
+
+O arquivo abre certo nos dois programas: acento preservado (BOM), `;` entre
+células, quebra de linha `CRLF`, tudo entre aspas e o que começa com `=`, `+`, `-`
+ou `@` vira texto — ninguém executa fórmula sem querer (número continua número).
+Uma coluna que erre devolve célula vazia em vez de derrubar o arquivo inteiro. O
+modo privacidade bloqueia a exportação, como bloqueia as outras. A regra vive em
+`src/lib/planilha.ts`: uma coluna declarada por vez, com `id`, cabeçalho, escopo e
+a função que lê a ficha.
+
 ## Música no site
 
 O Catalog toca música **dentro do próprio site**, de dois jeitos:
@@ -335,9 +394,11 @@ guardado.
 - `src/features/corpo/`: altura medida (leitura, formato e estimativas) e a figura 3D — métricas viram proporções viram elipsoides projetados.
 - `src/App.tsx`: entrada, navegação, atalhos e privacidade.
 - `src/context.tsx`: estado, comandos, salvamento e histórico de desfazer.
-- `src/store.ts`: migração, avaliações, filtros, normalização, duplicatas e CSV.
+- `src/store.ts`: migração, avaliações, filtros, normalização e duplicatas.
+- `src/lib/planilha.ts`: as colunas da planilha e a escrita em CSV/TSV (BOM, `;`, aspas e proteção contra fórmula).
 - `src/lib/storage.ts`: IndexedDB, recuperação local e versões de backup.
 - `src/lib/export.ts`: exportações PNG por Canvas (ficha, ranking e tierlist), sem interpolar conteúdo pessoal em HTML.
+- `src/features/mapas/`: mapas mentais — domínio puro (`mapa.ts`), desenho que vira PNG (`tela.ts`) e a tela (`components/`).
 - `src/lib/sound.ts`: sintetizador de sons de interface (Web Audio) com as regras de silêncio.
 - `src/lib/persona.ts`: leitura da ficha (comportamento, idade, interesses, signo, música, localização) e montagem da persona que fala.
 - `src/lib/dialogue.ts`: motor da conversa simulada — intenções, clima automático, química, estágios, memória, humor, estilo de escrita, sugestões, análise e exportação.
@@ -410,4 +471,4 @@ no topo). Se você refizer alguma dessas telas, ajuste o teste junto com o CSS.
 
 A última instalação de dependências reportou três alertas de auditoria npm (um baixo, um moderado e um alto). As atualizações compatíveis reduziram os alertas, mas uma revisão de segurança das dependências ainda é necessária antes de publicação pública.
 
-Para homologar, use o modo demonstração e confira: criar/editar/recuperar rascunhos, arquivar/restaurar/excluir, exportar CSV e PNG, mover participantes nas tierlists, editar lembretes, criar notas/pastas/quadros, alternar tema, ativar privacidade e recarregar após o indicador de gravação confirmar sucesso.
+Para homologar, use o modo demonstração e confira: criar/editar/recuperar rascunhos, arquivar/restaurar/excluir, exportar planilha (completa e resumo) e PNG, criar e exportar um mapa mental, mover participantes nas tierlists, editar lembretes, criar notas/pastas/quadros, alternar tema, ativar privacidade e recarregar após o indicador de gravação confirmar sucesso.

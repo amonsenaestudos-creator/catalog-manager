@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowDown, ArrowLeft, Brain, Camera, Download, Eraser, Flame, Heart, Info, Lock, MessageCircle, MoreVertical, Reply, Send, Shuffle, Smile, Sparkles, Timer, Wand2, X } from 'lucide-react';
+import { relacionamentoLabel, temCompromisso } from '../types';
 import type { ChatMessage, Person } from '../types';
 import { useCatalog } from '../context';
 import { Avatar, Button, IconButton, Modal } from './ui';
@@ -382,6 +383,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
               <small>{statusLinha}</small>
               <em className="chat-persona-line" title={cartao.resumo}>{cartao.resumo}</em>
               <em className={`chat-relation-line ${relacao.veCrianca ? 'crianca' : relacao.ehTia ? 'tia' : relacao.familiar ? 'familia' : ''}`} title={relacao.descricao}>{seloDaRelacao(relacao)}</em>
+              {temCompromisso(person) && <em className="chat-compromisso-line" title={`A ficha diz: ${relacionamentoLabel(person.relacionamento)}`}>Tem alguém · {relacionamentoLabel(person.relacionamento)}</em>}
               <em className="chat-voz-line" title={`Jeito de falar só dela: ${cartao.marcaRegistrada}`}>{cartao.marcaRegistrada}</em>
             </div>
           </div>
@@ -616,7 +618,7 @@ export default function ChatSimulator({ person, onClose }: { person: Person; onC
         </Button>
       </form>
 
-      {cardOpen && <Modal title={`Como ${person.nome.split(' ')[0]} conversa`} description="Tudo isso é lido direto da ficha: idade, comportamento, categoria, tags, signo e música." onClose={() => setCardOpen(false)}>
+      {cardOpen && <Modal title={`Como ${person.nome.split(' ')[0]} conversa`} description="Tudo isso é lido direto da ficha: idade, comportamento, categoria, tags e música." onClose={() => setCardOpen(false)}>
         <div className="persona-card">
           <p className="persona-resumo">{cartao.resumo}</p>
           <dl>

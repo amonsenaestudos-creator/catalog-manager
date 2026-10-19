@@ -2,7 +2,8 @@ import type { LucideIcon } from 'lucide-react';
 import { Archive, Bell, CalendarClock, CheckCircle2, Clipboard, Columns3, Download, EyeOff, FileWarning, FolderOpen, GalleryHorizontal, Gauge, Heart, ImageOff, Maximize2, Moon, Plus, RefreshCw, ScanEye, Search, Share2, Shuffle, SlidersHorizontal, Sparkles, Star, Sun, Trophy, Users } from 'lucide-react';
 import { useCatalog } from '../context';
 import { informacaoDaDensidade, proximaDensidade } from '../features/interface';
-import { DEFAULT_FILTER, exportCsv, isActive } from '../store';
+import { DEFAULT_FILTER, isActive } from '../store';
+import { baixarPlanilha } from '../lib/planilha';
 import { Modal } from './ui';
 
 type Tool = { title: string; description: string; icon: LucideIcon; run: () => void; accent?: boolean };
@@ -53,7 +54,7 @@ export default function QuickTools({ onClose }: { onClose: () => void }) {
     { title: 'Galeria', description: 'Fotos, álbuns e favoritas', icon: GalleryHorizontal, run: closeRun(() => ctx.navigate('gallery')) },
     { title: 'Pastas', description: 'Abra seus grupos e subpastas', icon: FolderOpen, run: closeRun(() => ctx.navigate('folders')) },
     { title: 'Verificar avisos', description: 'Atualize prazos e revisitas agora', icon: Bell, run: closeRun(() => { ctx.checkAlerts(true); ctx.setNotificationsOpen(true); }) },
-    { title: 'Exportar planilha', description: 'Baixe as fichas ativas em CSV', icon: Download, run: closeRun(() => { exportCsv(people, data); ctx.notify('Planilha CSV exportada.'); }) },
+    { title: 'Exportar planilha', description: 'Todas as fichas ativas em CSV, com cada campo numa coluna', icon: Download, run: closeRun(() => { try { const saida = baixarPlanilha(people, data, 'completa'); ctx.notify(`Planilha com ${saida.pessoas} pessoas e ${saida.colunas} colunas baixada.`); } catch (erro) { ctx.notify((erro as Error).message, true); } }) },
     { title: 'Copiar resumo', description: 'Leve os totais para outra conversa', icon: Clipboard, run: closeRun(copySummary) },
     { title: 'Compartilhar resumo', description: 'Use o menu nativo do celular', icon: Share2, run: closeRun(shareSummary) },
     { title: ctx.blur ? 'Mostrar conteúdo' : 'Modo disfarce', description: 'Desfoque fotos e nomes rapidamente', icon: ScanEye, run: closeRun(() => ctx.setBlur(!ctx.blur)) },
