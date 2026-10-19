@@ -366,7 +366,12 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
           : (p.ratingHistory || []),
       };
       const drafts = { ...d.drafts }; if (draftId) delete drafts[draftId];
-      return { ...d, drafts, people: previous ? d.people.map(x => x.id === person.id ? person : x) : [person, ...d.people], locations: [...new Set([...d.locations, person.localizacaoMora].filter(Boolean))] };
+      // Foto que estava solta na galeria e foi escolhida para esta ficha sai da
+      // lista de soltas no momento em que a ficha é salva — não antes, para
+      // descartar o rascunho não apagar a imagem sem querer.
+      const fotosDaFicha = new Set(person.fotos.map(foto => foto.id));
+      const orphanPhotos = d.orphanPhotos.filter(foto => !fotosDaFicha.has(foto.id));
+      return { ...d, orphanPhotos, drafts, people: previous ? d.people.map(x => x.id === person.id ? person : x) : [person, ...d.people], locations: [...new Set([...d.locations, person.localizacaoMora].filter(Boolean))] };
     }, 'Ficha salva com sucesso.');
     return true;
   }, [commit, notify]);

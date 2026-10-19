@@ -13,7 +13,7 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 
 - **Celular (UI própria):** barra inferior para Início, Catálogo, cadastro rápido, busca e menu; menu lateral deslizante; grades, formulários, tierlists e abas responsivas; áreas seguras do aparelho respeitadas. Além disso, o que só existe no aparelho: **folha que sobe do pé da tela** (filtros, ações, detalhes) com puxador e arrastar para baixo para fechar, **deslizar da borda esquerda para voltar** com trilha lilás, **toque longo** como menu de contexto, **título grande que se recolhe** ao rolar, doca que sai da frente quando uma folha ou o visor assumem a tela e o “⋯” no topo que reúne disfarce, privacidade, tema, desfazer/refazer e o status do salvamento. O “+” do meio é um círculo de gradiente com o rótulo “Adicionar” embaixo — afunda no toque, vibra igual aos vizinhos e, com o fichário rápido aberto, a doca inteira recolhe como recolhe com as folhas —; e a direita do topo é um cluster só — sino, “⋯” e o seu retrato dentro da mesma pílula, sem caixa em volta de cada ícone — (os três têm 40px, `line-height: 0` no quadrado, ícones de 20px, selo colado no canto e o filete que separa ações de perfil é um traço curto no meio, porque o retrato não usa o botão padrão do computador e uma borda inteira atravessaria a pílula). Menu e seta de voltar são exatamente a mesma caixa, para o título não pular quando um entra no lugar do outro, e quem chega no Início zera o histórico — a raiz fica sem seta e o primeiro “voltar” para de levar à tela de onde a pessoa saiu — com o fundo do topo derretendo na página enquanto ela está no começo e virando vidro quando rola. Na galeria e no cofre, a barra de tipo/filtro/modo fica **grudada embaixo das abas** — a altura é medida no pixel (`useFaixasGrudadas`), para o título de cada dia parar logo abaixo dela — e depois de rolar aparece o botão de voltar ao começo do álbum. As medidas (alvo de 48px, raios, sombras, tipografia e as três larguras de tela) estão na seção 14 de `src/celular.css`, a camada própria do celular — folhas, gestos, galeria, visor e cofre — na seção 15, e a **UI do aparelho refeita** nas seções 16 e 17 do mesmo arquivo (16: capa, doca, catálogo e ficha; 17: a ficha por dentro, painel, ajustes e gaveta): o cartão de pessoa é a **foto com o nome por cima** (e o modo lista é a linha larga para ler, com o coração na direita, onde o polegar cai), a doca marca a aba ativa com **pílula atrás do ícone**, o cabeçalho da tela é **capa** com as ações rolando na lateral sem quebrar linha, e a **ficha abre em tela cheia** com as abas colando no alto e a barra de ação no pé da tela. O `src/index.css` é só a porta que importa os três alvos (`base.css`, o que os dois compartilham; `celular.css`, regra que só existe dentro de `@media` de toque; `computador.css`, só `min-width: 1101px`) — é assim desde que o `mobile.css` legado foi aposentado, porque ele escondia a doca e o título do topo para todo canto e reescrevia a doca antiga por cima da nova.
 - **Prancha do celular (13 telas):** rode `npm run dev` e abra **`/celular.html`** para ver as treze telas lado a lado em 390×844, rodando o CSS real do aplicativo — inclusive Galeria em mosaico com a barra grudada no topo, cofre do Meu espaço, visor de fotos, editor de imagens com a moldura de corte armada, folha de ações e folha de filtros. Uma tela sozinha e maior: `/celular.html?tela=visor` (ou `galeria`, `editor`, `acoes`, `cofre`, `filtros`, `conversa`, `ficha`, `ajustes`, …).
-- **Interface orientada a contexto:** a ficha abre com o essencial (as três informações principais, a nota e as contagens) e cada seção revela o resto no toque; as oito abas viraram cinco categorias — **Perfil · Avaliações · Mídia · Relações · Registros**; a barra de ação do pé da ficha mostra 2–3 ações prováveis (e muda com a categoria aberta) e todo o resto vive no **⋯** agrupado em *Ações · Organização · Avançado*. O mesmo vale para o topo: buscar, avisos e perfil ficam à vista, e disfarce, privacidade, tema, desfazer, densidade e modo foco moram no **⋯**. Nada foi removido — só deixou de disputar atenção. As regras ficam em `src/features/interface` (`acoes.ts`, `revelacao.ts`, `densidade.ts`, `foco.ts`), com testes próprios.
+- **Interface orientada a contexto:** a ficha abre com o essencial (as três informações principais, a nota e as contagens) e cada seção revela o resto no toque; as oito abas viraram cinco categorias — **Perfil · Avaliações · Mídia · Relações · Registros**; a barra de ação do pé da ficha mostra 2–3 ações prováveis (e muda com a categoria aberta) e todo o resto vive no **⋯** agrupado em *Ações · Organização · Avançado*. O mesmo vale para o topo: buscar, avisos e perfil ficam à vista, e disfarce, privacidade, tema, desfazer, densidade e modo foco moram no **⋯**. O que não ajuda a cuidar das pessoas saiu do menu — **Quadro de investigação, Mapas mentais, Desafios e Pacotes** —; o resto só deixou de disputar atenção. As regras ficam em `src/features/interface` (`acoes.ts`, `revelacao.ts`, `densidade.ts`, `foco.ts`), com testes próprios.
 - **Modo foco:** `⋯ → Entrar no modo foco` (ou `Alt+F`) esconde menu lateral, rodapé, doca do celular, estatísticas e textos de apoio; sobra o conteúdo, com uma pílula discreta para voltar. A escolha é lembrada entre sessões.
 - **Densidade em três degraus:** em **Ajustes** (e no `⋯` do topo, que alterna) a interface vai de **Compacta** (mais informação; com ela o modo lista do catálogo vira uma linha de leitura: foto, nome, lugar, nota e última interação) a **Espaçosa** (cards grandes, mais respiro). O valor antigo (`compacto`) migra sozinho para `compacta`.
 - **“+” inteligente:** o botão central pergunta o que você quer criar — pessoa (fichário rápido), fotos (medidas na hora, entram na galeria sem ficha), nota ou pasta — em vez de levar direto ao cadastro de pessoa.
@@ -22,8 +22,6 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Catálogo:** favoritos, arquivo, lixeira, seleção em lote, filtros, buscas salvas e exportação em **planilha** — completa ou resumo, do filtro inteiro ou só das fichas selecionadas.
 - **Notas gerais:** ideias, observações, referências e lembretes vinculáveis a pessoas e pastas.
 - **Pastas:** grupos mistos de pessoas, fotos, notas e histórias, sem duplicar os itens.
-- **Quadro de investigação:** cartões pessoais em etapas de observação, conexão, confirmação e arquivo.
-- **Mapas mentais:** um plano livre para pensar uma história, um plano ou a teia de gente em volta de uma ficha — nós com cor e nota, fios com rótulo, nó vinculado a alguém do catálogo (um clique abre a ficha), **Organizar** em anéis a partir da raiz, **Mapa das relações** pronto a partir de uma ficha e exportação em **PNG**, **Markdown** ou copiado. Cada passo entra no `Ctrl+Z` do aplicativo.
 - **Organizar:** coleções legadas, categorias, subcategorias, localizações, tags, rascunhos, possíveis duplicatas e atividade.
 - **Voz das pessoas:** na ficha, o bloco **A voz de …** guarda o som de verdade dela — grave pelo microfone ou envie um arquivo que já existe (“bom dia”, uma risada, um recado), com nome, duração, peso, favorito, player, download, compartilhamento e exclusão. Limites escritos na tela: **2 MB por áudio e 8 MB por pessoa** (um minuto de voz custa cerca de 200 KB). O áudio fica no seu aparelho, junto das fotos, e entra no backup como qualquer outro dado.
 - **Compartilhar:** o resumo de uma ficha sai como texto pelo compartilhamento do aparelho (WhatsApp, Telegram, e-mail) ou vai para a área de transferência quando não houver; o áudio de voz sai como arquivo (`.webm`), com download como plano B. Nada é enviado sozinho e o link do catálogo nunca carrega dado de ninguém.
@@ -38,8 +36,9 @@ Aplicativo pessoal em React, TypeScript e Vite, com interface em português bras
 - **Ajustes:** perfil, tema, acessibilidade, sons e comemorações, PIN opcional, importação, exportação e pontos de restauração.
 - **Painel:** nível e XP, desafios da semana (marcados automaticamente), aniversários e revisitas, roleta, cinturão da campeã do duelo, gráficos e conquistas.
 - **Momentos:** uma surpresa do dia baseada no catálogo, resumo de fotos/vídeos/pessoas/notas, exploração por conexões, máquina do tempo, **climas que tocam música de verdade** (por link, dentro do painel Ambiente) e Modo apresentação com reprodução de fotos, miniaturas e trilha escolhida. Tudo é opcional: não há streak de login nem bloqueio de conteúdo.
-- **Desafios:** Quiz do próprio catálogo, Modo Detetive com casos gerados a partir de relações reais, quebra-cabeça de fotos, “Quem é?”, objetivos semanais, cartas colecionáveis, editor rápido de cards, álbum paginado, Hall da fama, lugares/contextos e exportação de mural visual. As respostas usam somente dados já registrados.
 - **Ficha:** aba **Linha do tempo** com cadastro, fotos, interações, notas, encontros, conversas, metas e mudanças de nota; opção **Fixar no topo** no menu.
+- **Importar perfil social:** no cadastro (e na edição), cole o link do perfil ou `@usuario` e escolha a rede. O Catalog lê **só o que é público** — nome, bio, localização, seguidores, retrato e algumas imagens —, mostra uma prévia e aplica apenas o que você marcar. O GitHub entrega tudo direto da API pública; Instagram, TikTok, X, Facebook, YouTube, Threads, LinkedIn, Twitch, Pinterest e Kwai entram pelo cartão público do link (API oEmbed quando existe e leitores de metadados com CORS). Se a rede bloquear, o endereço fica guardado para completar à mão. Os perfis importados aparecem na ficha como pílulas com retrato, @ e seguidores.
+- **Fotos que já estão no sistema:** **Escolher fotos do sistema** abre a galeria inteira no cadastro e na edição — busca por nome, anotação ou pessoa, filtros “Todas / Sem ficha / De outras fichas”. Foto sem ficha passa a ser da pessoa quando a ficha é salva (sai da galeria solta); foto de outra ficha é **copiada**, e a original continua onde estava. Ao salvar, a primeira vira principal se a ficha ainda não tiver uma.
 - **Cadastro:** só o **nome** é obrigatório — a descrição virou **"Descrição (opcional)"** e saiu da conta de ficha a completar (não dá para cobrar o que é opcional). No lugar dos campos que saíram (**Pronomes** e **Signo**) entrou **Relacionamento**: quando a ficha diz que há alguém, ela mostra um recado no topo, o cartão do catálogo ganha um aviso e a conversa começa dizendo isso. O que já estava gravado continua no arquivo — nada foi apagado.
 - **Agenda:** exportação `.ics` para Google Agenda, Outlook e iPhone; cronômetro que dá um tique a cada 10 minutos.
 - **Tierlists:** exportação em PNG pelo menu **Mais**.
@@ -166,7 +165,7 @@ Um catálogo de fotos lembra o rosto; o Catalog também guarda o som.
 
 ## Privacidade
 
-`Ctrl+Shift+P` cobre o catálogo e os modais. O PIN é um bloqueio de interface, não criptografia. O login é local, sem autenticação de servidor. Backups incluem as configurações de acesso e devem ser guardados com cuidado. Use somente dados e imagens que você tem autorização para armazenar. Conteúdo íntimo exige pessoas adultas.
+`Ctrl+Shift+P` cobre o catálogo e os modais. O PIN é um bloqueio de interface, não criptografia. O login é local, sem autenticação de servidor. Backups incluem as configurações de acesso e devem ser guardados com cuidado. Use somente dados e imagens que você tem autorização para armazenar. Conteúdo íntimo exige pessoas adultas. A importação de perfil social é a única leitura externa do aplicativo: envia só o endereço público que você colou — nunca ficha, foto, nota ou senha — e o resultado fica no aparelho.
 
 ## Atalhos
 
@@ -179,14 +178,13 @@ Um catálogo de fotos lembra o rosto; o Catalog também guarda o som.
 - `D`, `A`, `M`, `X`, `G`, `R`, `O`: Painel, Agenda, Meu espaço, Descobrir, Galeria, Lembretes e Pastas.
 - `T`: Ferramentas (as 50 utilidades).
 - `B`: modo disfarce. `Esc` três vezes: pânico.
-- `H`: Saúde do catálogo. `K`: Pacotes. `F`: Favoritos. `S`: Modo rua.
+- `H`: Saúde do catálogo. `F`: Favoritos. `S`: Modo rua.
 - `/`: busca da página, ou busca global.
 - `Ctrl+Z` e `Ctrl+Shift+Z`: desfazer e refazer alterações da sessão, fora dos formulários.
 - `Esc`: fechar o modal atual, preservando rascunhos.
 - **Galeria com o visor aberto:** `←`/`→` trocam a foto, `+` e `-` dão zoom, `F` favorite, `I` abre os detalhes e `Esc` fecha.
 - **Galeria no teclado, sem o visor:** `S` entra na seleção em lote; com fotos escolhidas, `Shift` + clique estende o intervalo.
 - **Editor de imagens:** `C` cortar · `R` girar · `A` ajustar · `F` filtros · `P` pintar · `S` formas · `T` texto · `B` esconder · `E` borracha · `I` conta-gotas; `Ctrl+Z` e `Ctrl+Shift+Z` desfazem e refazem dentro do editor; `Esc` sai direto se nada mudou e pergunta antes se mudou; `Enter` confirma a letra que está sendo escrita.
-- **Mapas mentais:** arrastar o plano anda pelo mapa, a roda do mouse aproxima, dois cliques num ponto vazio criam um nó, dois cliques num nó renomeiam, `Enter` confirma o nome, `Esc` cancela uma ligação armada e `Delete`/`Backspace` remove o nó selecionado (o `Ctrl+Z` do aplicativo devolve).
 - **No aparelho, os gestos substituem as teclas:** deslizar da borda esquerda volta uma tela, segurar o título da tela aciona o pânico (≈0,7s), segurar uma foto ou um cartão abre a folha de ações, puxar a folha para baixo fecha, e no visor deslizar troca, pinça/`2 toques` zoom e puxar para baixo fecha.
 
 ## Altura e figura 3D
@@ -284,42 +282,6 @@ A regra vive em `src/features/gallery/edicao.ts` (conta pura), o desenho em
 quem abre usa o hook `useEdicaoDeFoto()`, que já devolve a gravação ligada ao
 `Ctrl+Z` da sessão.
 
-## Mapas mentais
-
-Uma tela para pensar com setas. Diferente do **Quadro de investigação** (que tem
-etapas e colunas), aqui o plano é livre — e o catálogo continua sendo o chão: um
-nó pode ser uma ficha.
-
-- **Criar:** `Mapas mentais` na barra lateral (grupo Biblioteca) → **Novo mapa**.
-  O mapa já nasce com a ideia central no meio, porque um mapa vazio não tem onde
-  clicar. **Mapa das relações** cria um pronto a partir de uma ficha: ela no
-  centro e os vínculos em volta, cada fio com o parentesco escrito — nos dois
-  sentidos, porque o mapa lê tanto quem ela diz que é dela quanto quem diz que ela
-  é a mãe, a irmã, a namorada.
-- **Mexer:** arraste o plano para andar, use a roda do mouse (ou `+`/`−` no canto)
-  para aproximar, arraste um nó para mudá-lo de lugar, **dois cliques num ponto
-  vazio** criam um nó ali e **dois cliques num nó** renomeiam sem sair do lugar.
-  O nó tem cor (as seis primeiras da paleta do aplicativo), **nota própria** — que
-  é do mapa, não da ficha — e pode ser **vinculado a alguém do catálogo**: aí o nó
-  mostra o nome da pessoa e um clique abre a ficha.
-- **Ligar:** selecione um nó, **Ligar a outro nó** e toque no destino. O fio não
-  tem direção (é um mapa mental, não um fluxograma), aceita **rótulo** ("mãe",
-  "dívida", "julho") e o **×** no meio dele desfaz a ligação. `Esc` cancela uma
-  ligação armada; `Delete` remove o nó selecionado e os fios que encostavam nele.
-- **Organizar:** rearruma tudo em anéis a partir da raiz — um fio de distância é o
-  primeiro anel, dois fios o segundo — e o que não tem caminho até a raiz não é
-  esquecido: vai para uma fileira embaixo, à vista.
-- **Exportar:** **Imagem em PNG** (com título, contagem de nós e data no
-  cabeçalho), **Contorno em Markdown** (um traço por nó, recuo por nível, o rótulo
-  do fio entre parênteses, a ficha vinculada depois de um travessão e a nota
-  depois de dois pontos) ou **Copiar o contorno** para colar num e-mail.
-- **Desfazer:** cada passo — nó criado, arrasto, ligação, mapa renomeado, mapa
-  apagado inteiro — passa pelo `commit` do contexto e entra no `Ctrl+Z` do
-  aplicativo. Uma mudança que não muda nada não grava passo.
-- O mapa mora no catálogo (entra no backup e na restauração) e não toca em nenhuma
-  ficha. A regra é função pura em `src/features/mapas/mapa.ts`; o desenho que vira
-  PNG está em `src/features/mapas/tela.ts`, e os dois são testáveis sem navegador.
-
 ## As fichas em planilha
 
 O export deixou de ser um CSV solto e virou planilha, com duas medidas e três
@@ -388,7 +350,7 @@ guardado.
 ## Implementação
 
 - `ARCHITECTURE.md`: mapa de domínios, regras de dependência, limites de tamanho e plano de migração incremental. Cada feature nova deve começar por esse contrato.
-- `src/features/discovery/`: domínio de exploração com facades (`index.ts`), README próprio e as telas `Momentos` e `Desafios` separadas de `src/components`.
+- `src/features/discovery/`: domínio de exploração com facade (`index.ts`), README próprio e a tela `Momentos` separada de `src/components`.
 - `src/features/people/`, `gallery/`, `relationships/` e `gamification/`: facades públicas e contratos de domínio para reduzir imports diretos de arquivos legados.
 - `src/features/musica/`: música por link (climas do Ambiente, trilhas da apresentação e o player embutido) — nenhum arquivo de música entra no app.
 - `src/features/corpo/`: altura medida (leitura, formato e estimativas) e a figura 3D — métricas viram proporções viram elipsoides projetados.

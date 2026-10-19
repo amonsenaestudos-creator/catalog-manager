@@ -16,7 +16,7 @@ function filesInside(directory: string): string[] {
 describe('contratos de arquitetura', () => {
   it('mantém o mapa do aplicativo e facades de domínio', () => {
     expect(existsSync(join(root, 'ARCHITECTURE.md'))).toBe(true);
-    for (const feature of ['discovery', 'people', 'gallery', 'gamification', 'relationships', 'health', 'voice', 'mapas']) {
+    for (const feature of ['discovery', 'people', 'gallery', 'gamification', 'relationships', 'health', 'voice']) {
       expect(existsSync(join(src, 'features', feature, 'README.md')), feature).toBe(true);
       expect(existsSync(join(src, 'features', feature, 'index.ts')), feature).toBe(true);
     }
@@ -43,7 +43,6 @@ describe('contratos de arquitetura', () => {
 
   it('mantém os módulos de descoberta dentro do domínio', () => {
     expect(existsSync(join(src, 'features', 'discovery', 'components', 'Momentos.tsx'))).toBe(true);
-    expect(existsSync(join(src, 'features', 'discovery', 'components', 'Desafios.tsx'))).toBe(true);
     expect(statSync(join(src, 'features', 'discovery', 'components', 'Momentos.tsx')).isFile()).toBe(true);
   });
   it('mantém as bancas de frases fora do motor, como estágio de geração', () => {

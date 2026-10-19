@@ -1,7 +1,5 @@
-import { act, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
-import { bootApp, openCatalog, seedIdb, seededData } from "./catalog.test";
+import { describe, expect, it } from "vitest";
+import { seededData } from "./catalog.test";
 import { normalizeData } from "../src/store";
 import type { AppData, Pacote } from "../src/types";
 
@@ -40,52 +38,5 @@ describe("pacotes: dados", () => {
     expect(normal.pacotes[0].color).toMatch(/^#[0-9a-f]{6}$/i);
     expect(normal.pacotes[0].name).toBe("Pacote sem nome");
     expect(normal.pacotes[0].id).toBeTruthy();
-  });
-});
-
-describe("pacotes: tela", () => {
-  beforeEach(async () => { await seedIdb(seededData(24, 1)); });
-
-  it("cria um pacote escolhendo as pessoas e exporta o JSON", async () => {
-    const user = userEvent.setup();
-    await bootApp(user);
-    const aside = document.querySelector(".sidebar") as HTMLElement;
-    // “Pacotes” mora no “Mais” da Biblioteca — não no primeiro “+” do menu.
-    await act(async () => { (aside.querySelector<HTMLButtonElement>(".world-library .nav-expand") as HTMLElement).click(); });
-    const nav = [...aside.querySelectorAll<HTMLButtonElement>("button.nav-item")].find(b => /Pacotes/i.test(b.textContent || ""));
-    expect(nav, "item Pacotes precisa estar no menu").toBeTruthy();
-    await act(async () => { nav!.click(); });
-    await waitFor(() => expect(document.querySelector(".pacotes-page")).toBeTruthy());
-
-    await user.click(screen.getByRole("button", { name: /Novo pacote/i }));
-    await user.type(screen.getByPlaceholderText(/Time do jogo/i), "Pacote do teste");
-    const caixas = [...document.querySelectorAll<HTMLInputElement>(".pacote-pessoa input[type='checkbox']")];
-    expect(caixas.length).toBeGreaterThan(2);
-    await user.click(caixas[0]);
-    await user.click(caixas[1]);
-    await user.click(screen.getByRole("button", { name: /Criar pacote/i }));
-    await waitFor(() => expect(document.querySelector(".pacote-card")).toBeTruthy());
-    await waitFor(() => { const toast = document.querySelector(".toast"); expect(toast?.textContent).toMatch(/criado com 2 pessoas/i); });
-
-    // Exportar: o download é stubado no setup (blob:stub); o que importa é o resumo.
-    await user.click(screen.getByRole("button", { name: /Exportar JSON/i }));
-    await waitFor(() => { const toast = document.querySelector(".toast"); expect(toast?.textContent).toMatch(/exportado com 2 ficha/i); });
-  });
-
-  it("catálogo → seleção em lote → Pacote abre o criador com a pré-seleção", async () => {
-    const user = userEvent.setup();
-    await bootApp(user);
-    await openCatalog();
-    await act(async () => { (document.querySelector<HTMLButtonElement>("button.select-toggle") as HTMLElement).click(); });
-    const caixas = [...document.querySelectorAll<HTMLInputElement>(".person-card input[type='checkbox']")];
-    await user.click(caixas[0]);
-    await user.click(caixas[1]);
-    await user.click(screen.getByRole("button", { name: /^Pacote$/i }));
-    await waitFor(() => expect(document.querySelector(".pacotes-page")).toBeTruthy());
-    await waitFor(() => expect(document.querySelectorAll(".pacote-pessoa input:checked")).toHaveLength(2));
-    await user.type(screen.getByPlaceholderText(/Time do jogo/i), "Direto do catálogo");
-    await user.click(screen.getByRole("button", { name: /Criar pacote/i }));
-    await waitFor(() => expect(document.querySelector(".pacote-card")).toBeTruthy());
-    await waitFor(() => { const toast = document.querySelector(".toast"); expect(toast?.textContent).toMatch(/Direto do catálogo/i); });
   });
 });

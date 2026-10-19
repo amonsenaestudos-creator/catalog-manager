@@ -17,6 +17,12 @@ export interface Photo {
   height?: number;
   /** Quando a imagem passou pelo editor (corte, pintura, ajuste…). */
   editedAt?: string | null;
+  /**
+   * Foto do sistema reaproveitada em outra ficha: guarda o id da original.
+   * Serve para o usuário reconhecer de onde a imagem veio — a original continua
+   * onde estava.
+   */
+  sourcePhotoId?: string;
 }
 
 export interface BrokenNote {
@@ -52,6 +58,40 @@ export type VinculoPapel =
 
 export interface Vinculo { id: string; personId: string; papel: VinculoPapel }
 
+/**
+ * Rede social reconhecida pelo importador de perfil.
+ *
+ * O endereço é lido em modo público (o mesmo que qualquer visitante veria):
+ * nada de senha, nada de login e nada do catálogo é enviado.
+ */
+export type RedeSocial =
+  | 'instagram' | 'tiktok' | 'x' | 'github' | 'facebook' | 'youtube'
+  | 'threads' | 'linkedin' | 'twitch' | 'pinterest' | 'kwai' | 'outro';
+
+/**
+ * Perfil social de uma ficha.
+ *
+ * `avatar` é a imagem escolhida como retrato (pode ser um data URL guardado no
+ * aparelho ou o endereço público). As demais fotos encontradas entram na
+ * galeria da ficha como qualquer outra foto.
+ */
+export interface PerfilSocial {
+  id: string;
+  rede: RedeSocial;
+  url: string;
+  usuario: string;
+  nome?: string;
+  bio?: string;
+  localizacao?: string;
+  site?: string;
+  avatar?: string;
+  seguidores?: number | null;
+  verificado?: boolean;
+  /** De onde veio a leitura: "GitHub", "oEmbed do TikTok", "metadados públicos"... */
+  fonte?: string;
+  importadoEm: string;
+}
+
 export interface Person {
   id: string;
   nome: string;
@@ -70,6 +110,8 @@ export interface Person {
   tags: string[];
   qi: string;
   redesSociais: string;
+  /** Perfis importados (Instagram, TikTok, GitHub...), com nome, bio e retrato. */
+  perfisSociais?: PerfilSocial[];
   comportamento: string;
   notas: BrokenNote[];
   descricaoCorporal: string;
