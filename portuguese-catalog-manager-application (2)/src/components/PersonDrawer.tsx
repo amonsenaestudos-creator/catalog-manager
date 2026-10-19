@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AudioLines, CalendarDays, Camera, Check, ExternalLink, Eye, FileText, FolderOpen, Heart, History, Link2, MapPin, Mic, PersonStanding, Play, Plus, Sparkles, Star, Trash2, Trophy, UserRound, Users } from 'lucide-react';
+import { AudioLines, CalendarDays, Camera, Check, ExternalLink, Eye, FileText, FolderOpen, Heart, History, Link2, MapPin, Mic, PersonStanding, Play, Plus, Share2, Sparkles, Star, Trash2, Trophy, UserRound, Users } from 'lucide-react';
 import { ADULT_APPEARANCE_TAGS, relacionamentoLabel, temCompromisso } from '../types';
 import type { Person } from '../types';
 import VisorDeFotos from './VisorDeFotos';
@@ -23,6 +23,7 @@ import { Figura3D, lerForma, resumoDaForma, rotuloDaAltura } from '../features/c
 import { BarraDeAcoes, CATEGORIAS_DA_FICHA, LIMITE_DE_HISTORICO, LIMITE_DE_PREVIA, LIMITE_ESSENCIAL, Revelar, acoesDaFicha, categoriaDaAba, contagemDaSecao, iconeDaAcao, organizarAcoes, revelar } from '../features/interface';
 import type { CategoriaDaFicha } from '../features/interface';
 import { compartilharResumoDaPessoa, mensagemDoCompartilhamento } from '../lib/compartilhar';
+import { rotuloDaRede } from '../lib/redes';
 import type { TimelineEvent } from '../lib/stats';
 
 const ICONES_DA_CATEGORIA: Record<CategoriaDaFicha, typeof Star> = {
@@ -171,6 +172,7 @@ export default function PersonDrawer({ person }: { person: Person }) {
             resumo={pastas.length ? `Em ${pastas.map(pasta => pasta.name).join(' · ')}` : 'Reúna esta ficha numa pasta — ou em várias — sem duplicar nada.'}>
             <div className="collection-picker">{data.folders.map(folder => <button className={folder.personIds.includes(person.id) ? 'selected' : ''} key={folder.id} onClick={() => ctx.commit(d => ({ ...d, folders: d.folders.map(x => x.id === folder.id ? { ...x, personIds: x.personIds.includes(person.id) ? x.personIds.filter(id => id !== person.id) : [...x.personIds, person.id], updatedAt: new Date().toISOString() } : x) }), 'Pasta atualizada.')}><span style={{ background: folder.color }} />{folder.name}{folder.personIds.includes(person.id) && <Check size={13} />}</button>)}{!data.folders.length && <p className="muted">Crie uma pasta em Organizar para reunir fichas, notas e fotos.</p>}</div>
           </Revelar>
+          {(person.perfisSociais || []).length > 0 && <div className="read-text"><h3><Share2 size={15} />Redes sociais</h3><div className="attachment-links redes-links">{(person.perfisSociais || []).map(perfil => <a key={perfil.id} href={perfil.url} target="_blank" rel="noreferrer noopener"><ExternalLink size={13} /><span>{rotuloDaRede(perfil.rede)}{perfil.usuario && <small>@{perfil.usuario}</small>}</span></a>)}</div></div>}
           <div className="read-text"><h3><Link2 size={15} />Anexos</h3><div className="attachment-links">{(person.attachments || []).map(item => <a key={item.id} href={item.url} target="_blank" rel="noreferrer noopener"><ExternalLink size={13} /><span>{item.label || 'Anexo'}<small>{item.kind.toUpperCase()}</small></span></a>)}</div></div>
         </>;
       })()}

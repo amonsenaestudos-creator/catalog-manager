@@ -3049,3 +3049,68 @@ html.editor-aberto, html.editor-aberto body { overflow: hidden; overscroll-behav
 .mapa-escolha { display: flex; flex-wrap: wrap; gap: 7px; max-height: 240px; margin-top: 10px; overflow: auto; }
 .mapa-escolha button { padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11.5px; }
 .mapa-escolha button:hover { color: var(--txt); border-color: var(--accent); }
+
+/* Adicionar pela rede social + fotos que já estão no sistema.
+   O painel mora no cadastro (completo e rápido) e na edição: recolhido é
+   uma faixa só; aberto, reconhece o link, mostra o que a busca trouxe e só
+   escreve na ficha no "Aplicar". O seletor é a prateleira do acervo. */
+.importar-perfil { border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(135deg, #c786ec12, #ef88a60d), var(--surface-2); margin-bottom: 20px; overflow: hidden; }
+.importar-cabecalho { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; text-align: left; }
+.importar-cabecalho:hover { background: var(--surface-3); }
+.importar-icone { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); }
+.importar-titulos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.importar-titulos strong { font-size: 13px; }
+.importar-titulos small { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.importar-cabecalho > svg { color: var(--faint); transition: transform .2s; }
+.importar-cabecalho > svg.girado { transform: rotate(180deg); }
+.importar-corpo { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.rede-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rede-chips button { padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 11px; }
+.rede-chips button:hover { color: var(--txt); border-color: var(--accent); }
+.rede-chips button.active { color: var(--txt); border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.importar-busca { display: flex; gap: 9px; }
+.importar-busca input { flex: 1; }
+.importar-busca .btn { flex: none; }
+.importar-reconhecido { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.importar-reconhecido svg { color: var(--green); }
+.importar-reconhecido strong { color: var(--txt); font-weight: 600; }
+.importar-reconhecido a { display: inline-flex; align-items: center; gap: 3px; color: var(--accent); font-weight: 550; }
+.importar-alerta { color: var(--gold); }
+.importar-resultado { display: flex; flex-direction: column; gap: 12px; border-top: 1px dashed var(--line); padding-top: 14px; }
+.importar-aviso { font-size: 12px; line-height: 1.7; color: var(--gold); background: #daba7d14; border: 1px solid #daba7d2b; border-radius: 10px; padding: 10px 12px; }
+.importar-aviso.ok { color: var(--green); background: #91bba312; border-color: #91bba32e; }
+.importar-fotos { display: flex; flex-wrap: wrap; gap: 10px; }
+.importar-fotos button { position: relative; width: 76px; height: 76px; border-radius: 12px; overflow: hidden; border: 2px solid var(--line); padding: 0; background: var(--surface-3); }
+.importar-fotos button:hover { border-color: var(--line-hover); }
+.importar-fotos button.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.importar-fotos img { width: 100%; height: 100%; object-fit: cover; }
+.importar-fotos button > span { position: absolute; right: 5px; bottom: 5px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; }
+.importar-opcoes { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.importar-opcoes .desligado { opacity: .5; }
+.importar-acoes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.importar-colar { border-top: 1px dashed var(--line); padding-top: 12px; }
+.importar-colar summary { display: flex; align-items: center; gap: 7px; cursor: pointer; font-size: 12px; font-weight: 550; color: var(--accent); list-style: none; }
+.importar-colar summary::-webkit-details-marker { display: none; }
+.importar-colar textarea { margin: 10px 0; }
+.seletor-topo { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.seletor-abas { display: flex; flex-wrap: wrap; gap: 6px; }
+.seletor-abas button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11.5px; }
+.seletor-abas button:hover { color: var(--txt); border-color: var(--accent); }
+.seletor-abas button.active { color: var(--txt); border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.seletor-abas small { font-size: 9.5px; color: var(--faint); background: var(--surface-3); border-radius: 4px; padding: 1px 5px; }
+.seletor-busca { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; max-width: 320px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); padding: 0 10px; color: var(--faint); }
+.seletor-busca input { flex: 1; border: 0; background: transparent; padding: 10px 0; box-shadow: none; }
+.seletor-busca input:focus { box-shadow: none; }
+.seletor-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; max-height: 52vh; overflow: auto; padding: 2px; }
+.seletor-foto { position: relative; display: flex; flex-direction: column; text-align: left; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: var(--surface-2); padding: 0; }
+.seletor-foto:hover:not(:disabled) { border-color: var(--accent); }
+.seletor-foto.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.seletor-foto.ja-tem { opacity: .5; cursor: default; }
+.seletor-foto img { width: 100%; height: 104px; object-fit: cover; background: var(--surface-3); }
+.seletor-foto-rodape { display: flex; flex-direction: column; gap: 1px; padding: 8px 9px; min-width: 0; }
+.seletor-foto-rodape > span { font-size: 11px; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seletor-foto-rodape small { font-size: 10px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seletor-marca { position: absolute; top: 7px; right: 7px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; box-shadow: 0 2px 8px #0007; }
+.seletor-rodape-acoes { display: inline-flex; gap: 9px; margin-left: auto; }
+.redes-links a span { display: flex; align-items: baseline; gap: 7px; }
+.redes-links a small { margin-left: 0; }

@@ -156,6 +156,16 @@ Um catálogo de fotos lembra o rosto; o Catalog também guarda o som.
 - **Ao baixar ou compartilhar**, a extensão e o tipo saem do próprio arquivo (um MP3 enviado continua `.mp3`) e o nome fica legível: `catalog-voz-ana-souza-bom-dia-ab12cd.mp3`.
 - **Não existe voz sintetizada.** O aplicativo não fala por ninguém: uma voz de máquina dizendo “Oi, eu sou Ana” não é a voz da Ana. Quem quiser ouvir a pessoa usa o áudio que ela gravou. (Esse recurso existiu até a rodada 4 de `MELHORIAS.md` e foi retirado de propósito.)
 
+## Adicionar pela rede social e fotos do sistema
+
+Cadastrar alguém novo pode começar pelo perfil dela, em vez de uma ficha em branco:
+
+- **Cole o link, o @ ou o WhatsApp** no painel **Adicionar pela rede social** (cadastro completo, fichário rápido pelo caminho **pela rede social** e também na edição de uma ficha). O Catalog reconhece na hora Instagram, TikTok, X, Facebook, Threads, YouTube, Telegram, GitHub e WhatsApp (telefone brasileiro ganha o `55` do `wa.me`), monta o link certo e sugere o nome a partir do usuário — `@ana.souza` vira “Ana Souza”, sempre editável.
+- Ao tocar em **Buscar perfil**, o navegador tenta ler o cabeçalho público da página (nome de exibição, bio e foto de perfil via Open Graph) e juntar fotos candidatas conhecidas da conta. O que voltar aparece para conferir — nome e bio editáveis, foto à escolha — e só entra na ficha no **Aplicar na ficha**. A foto escolhida é baixada para o aparelho quando a rede permite, como qualquer foto do catálogo.
+- **O limite fica escrito na tela:** Instagram e TikTok costumam bloquear essa leitura de fora (CORS). Quando bloqueiam, o aviso diz isso sem rodeio e o cadastro continua com o que o link já dizia — ou você abre o perfil no aplicativo da rede, copia nome/@/bio e usa **Colar o texto do perfil**, que separa nome, bio e perfis citados das contagens de seguidores. A busca só acontece quando você pede, direto do seu navegador para a rede; nenhum servidor do Catalog participa (ele nem existe).
+- Os perfis reconhecidos ficam guardados na ficha como atalhos clicáveis (**Redes sociais**, na aba Perfil) e alimentam o campo livre de contato, então busca, planilha e a detecção de duplicatas continuam enxergando o @ como sempre enxergaram.
+- Na aba **Fotos**, **Escolher fotos do sistema** abre todo o acervo que já está no Catalog: fotos **sem ficha** são adotadas de verdade ao salvar (saem da prateleira das órfãs sem duplicar o arquivo — e só ao salvar, então descartar o rascunho não perde a foto), fotos **de outras fichas** entram como cópia (a origem nem fica sabendo) e os **retratos do sistema** estão sempre à mão, mesmo com a galeria vazia. A regra de mídia adulta é a mesma da galeria, e foto que já está na ficha não se repete.
+
 ## Compartilhar
 
 - **Resumo da ficha em texto:** nome, idade, categoria, local, nota pessoal, descrição, marcas (favorita, arquivada, quantos áudios e fotos, tags) e a data — sem HTML e sem dado que você não vê na tela. Sai pelo compartilhamento do aparelho; onde ele não existe, vai para a área de transferência.

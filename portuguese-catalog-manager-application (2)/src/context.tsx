@@ -366,7 +366,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
           : (p.ratingHistory || []),
       };
       const drafts = { ...d.drafts }; if (draftId) delete drafts[draftId];
-      return { ...d, drafts, people: previous ? d.people.map(x => x.id === person.id ? person : x) : [person, ...d.people], locations: [...new Set([...d.locations, person.localizacaoMora].filter(Boolean))] };
+      return { ...d, drafts, people: previous ? d.people.map(x => x.id === person.id ? person : x) : [person, ...d.people], orphanPhotos: d.orphanPhotos.filter(f => !person.fotos.some(pf => pf.id === f.id)), locations: [...new Set([...d.locations, person.localizacaoMora].filter(Boolean))] };
     }, 'Ficha salva com sucesso.');
     return true;
   }, [commit, notify]);
